@@ -62,6 +62,9 @@ class TasheelApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AudioProvider()),
       ],
       child: MaterialApp(
+        // ── مفتاح ScaffoldMessenger الشامل للإشعارات اللحظية ──────────
+        scaffoldMessengerKey: AppProvider.scaffoldMessengerKey,
+
         // ── إعدادات التطبيق ────────────────────────────────────────────
         title: 'تسهيل',
         debugShowCheckedModeBanner: false,

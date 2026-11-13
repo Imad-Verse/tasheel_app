@@ -33,7 +33,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
   }
 
   @override
@@ -119,6 +119,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 _SeriesTab(appProvider: appProvider),
                 _LessonsTab(appProvider: appProvider),
                 _TranscriptsTab(appProvider: appProvider),
+                _NotificationsAndUpdatesTab(appProvider: appProvider),
                 _AboutAppTab(appProvider: appProvider),
               ],
             ),
@@ -279,6 +280,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Tab(icon: Icon(Icons.library_books_rounded, size: 20), text: 'الشروحات'),
           Tab(icon: Icon(Icons.audiotrack_rounded, size: 20), text: 'الدروس'),
           Tab(icon: Icon(Icons.subtitles_rounded, size: 20), text: 'التفريغات'),
+          Tab(icon: Icon(Icons.notifications_active_rounded, size: 20), text: 'الإشعارات والتحديثات'),
           Tab(icon: Icon(Icons.info_outline_rounded, size: 20), text: 'عن التطبيق والتواصل'),
         ],
       ),
@@ -498,93 +500,121 @@ class _SheikhsTab extends StatelessWidget {
     final shortBioController = TextEditingController(text: sheikh?.shortBio ?? '');
     final fullBioController = TextEditingController(text: sheikh?.fullBio ?? '');
     final formKey = GlobalKey<FormState>();
+    bool sendNotification = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.scaffoldCream,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          sheikh == null ? 'إضافة شيخ جديد' : 'تعديل بيانات الشيخ',
-          style: GoogleFonts.readexPro(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryDarkBrown,
-          ),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  style: GoogleFonts.readexPro(fontSize: 14),
-                  decoration: const InputDecoration(
-                    labelText: 'اسم الشيخ (مثال: الشيخ عبد الرزاق البدر)',
-                    filled: true,
-                    fillColor: AppColors.cardWhite,
-                  ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم الشيخ' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: shortBioController,
-                  style: GoogleFonts.readexPro(fontSize: 14),
-                  decoration: const InputDecoration(
-                    labelText: 'نبذة قصيرة',
-                    filled: true,
-                    fillColor: AppColors.cardWhite,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: fullBioController,
-                  style: GoogleFonts.readexPro(fontSize: 14),
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'السيرة والتفاصيل',
-                    filled: true,
-                    fillColor: AppColors.cardWhite,
-                  ),
-                ),
-              ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            sheikh == null ? 'إضافة شيخ جديد' : 'تعديل بيانات الشيخ',
+            style: GoogleFonts.readexPro(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDarkBrown,
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDarkBrown,
-              foregroundColor: AppColors.textGoldLight,
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'اسم الشيخ (مثال: الشيخ عبد الرزاق البدر)',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم الشيخ' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: shortBioController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'نبذة قصيرة',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: fullBioController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'السيرة والتفاصيل',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                  ),
+                  if (sheikh == null) ...[
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: sendNotification,
+                      title: Text(
+                        'إرسال إشعار للمستخدمين بهذه الإضافة',
+                        style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      activeColor: AppColors.primaryDarkBrown,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          sendNotification = val ?? true;
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(ctx);
-              if (sheikh == null) {
-                final newSheikh = SheikhModel(
-                  id: 'sheikh_${DateTime.now().millisecondsSinceEpoch}',
-                  name: nameController.text.trim(),
-                  shortBio: shortBioController.text.trim(),
-                  fullBio: fullBioController.text.trim(),
-                );
-                await appProvider.addSheikh(newSheikh);
-              } else {
-                final updated = sheikh.copyWith(
-                  name: nameController.text.trim(),
-                  shortBio: shortBioController.text.trim(),
-                  fullBio: fullBioController.text.trim(),
-                );
-                await appProvider.updateSheikh(updated);
-              }
-            },
-            child: Text(sheikh == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(ctx);
+                if (sheikh == null) {
+                  final newSheikh = SheikhModel(
+                    id: 'sheikh_${DateTime.now().millisecondsSinceEpoch}',
+                    name: nameController.text.trim(),
+                    shortBio: shortBioController.text.trim(),
+                    fullBio: fullBioController.text.trim(),
+                  );
+                  await appProvider.addSheikh(newSheikh);
+                  if (sendNotification) {
+                    await appProvider.sendNotification(
+                      title: 'إضافة شيخ جديد',
+                      body: 'تمت إضافة صفحة وشروحات ${newSheikh.name} إلى تطبيق تسهيل.',
+                      type: 'sheikh',
+                    );
+                  }
+                } else {
+                  final updated = sheikh.copyWith(
+                    name: nameController.text.trim(),
+                    shortBio: shortBioController.text.trim(),
+                    fullBio: fullBioController.text.trim(),
+                  );
+                  await appProvider.updateSheikh(updated);
+                }
+              },
+              child: Text(sheikh == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1276,6 +1306,8 @@ class _LessonsTab extends StatefulWidget {
 class _LessonsTabState extends State<_LessonsTab> {
   String? _selectedSeriesId;
   bool _isBulkMode = false;
+  bool _singleSendNotification = true;
+  bool _bulkSendNotification = true;
 
   // حقول الإضافة الفردية
   final _singleTitleController = TextEditingController();
@@ -1358,6 +1390,20 @@ class _LessonsTabState extends State<_LessonsTab> {
     _singleTranscriptController.clear();
     _updateDefaultOrder();
 
+    if (_singleSendNotification) {
+      final series = widget.appProvider.getSeriesById(seriesId);
+      final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
+      final sheikh = series != null ? widget.appProvider.getSheikhById(series.sheikhId) : null;
+      final bookTitle = book?.title ?? series?.title ?? '';
+      final sheikhName = sheikh?.name ?? '';
+
+      await widget.appProvider.sendNotification(
+        title: 'درس جديد: ${newLesson.title}',
+        body: 'تمت إضافة درس جديد في شرح $bookTitle لـ $sheikhName.',
+        type: 'lesson',
+      );
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1391,6 +1437,20 @@ class _LessonsTabState extends State<_LessonsTab> {
 
     _bulkTextAreaController.clear();
     _updateDefaultOrder();
+
+    if (added > 0 && _bulkSendNotification) {
+      final series = widget.appProvider.getSeriesById(seriesId);
+      final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
+      final sheikh = series != null ? widget.appProvider.getSheikhById(series.sheikhId) : null;
+      final bookTitle = book?.title ?? series?.title ?? '';
+      final sheikhName = sheikh?.name ?? '';
+
+      await widget.appProvider.sendNotification(
+        title: 'إضافة دروس جديدة',
+        body: 'تمت إضافة $added دروس جديدة في شرح $bookTitle لـ $sheikhName.',
+        type: 'lesson',
+      );
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1965,6 +2025,17 @@ class _LessonsTabState extends State<_LessonsTab> {
               fillColor: AppColors.scaffoldCream,
             ),
           ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            value: _singleSendNotification,
+            title: Text(
+              'إرسال إشعار للمستخدمين بهذه الإضافة',
+              style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            activeThumbColor: AppColors.iconGold,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (val) => setState(() => _singleSendNotification = val),
+          ),
           const SizedBox(height: 14),
           ElevatedButton.icon(
             onPressed: _handleSingleAdd,
@@ -2034,6 +2105,17 @@ class _LessonsTabState extends State<_LessonsTab> {
               filled: true,
               fillColor: AppColors.scaffoldCream,
             ),
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            value: _bulkSendNotification,
+            title: Text(
+              'إرسال إشعار للمستخدمين بهذه الإضافة',
+              style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            activeThumbColor: AppColors.iconGold,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (val) => setState(() => _bulkSendNotification = val),
           ),
           const SizedBox(height: 14),
           ElevatedButton.icon(
@@ -2116,80 +2198,110 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
 
   void _openTranscriptEditor(LessonModel lesson) {
     final controller = TextEditingController(text: lesson.transcript);
+    bool sendNotification = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.scaffoldCream,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'تفريغ: ${lesson.title}',
-          style: GoogleFonts.readexPro(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryDarkBrown,
-            fontSize: 15,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'تفريغ: ${lesson.title}',
+            style: GoogleFonts.readexPro(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDarkBrown,
+              fontSize: 15,
+            ),
           ),
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'اكتب أو الصق التفريغ النصي الكامل للدرس. سيحفظ فوراً ويظهر لجميع الطلاب:',
-                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: controller,
-                maxLines: 12,
-                style: GoogleFonts.amiri(fontSize: 15, height: 1.8),
-                decoration: const InputDecoration(
-                  hintText: 'بسم الله الرحمن الرحيم، الحمد لله رب العالمين...',
-                  filled: true,
-                  fillColor: AppColors.cardWhite,
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'اكتب أو الصق التفريغ النصي الكامل للدرس. سيحفظ فوراً ويظهر لجميع الطلاب:',
+                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: controller,
+                  maxLines: 12,
+                  style: GoogleFonts.amiri(fontSize: 15, height: 1.8),
+                  decoration: const InputDecoration(
+                    hintText: 'بسم الله الرحمن الرحيم، الحمد لله رب العالمين...',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                CheckboxListTile(
+                  value: sendNotification,
+                  title: Text(
+                    'إرسال إشعار للمستخدمين بهذه الإضافة',
+                    style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  activeColor: AppColors.primaryDarkBrown,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (val) {
+                    setDialogState(() {
+                      sendNotification = val ?? true;
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          if (lesson.hasTranscript)
+          actions: [
+            if (lesson.hasTranscript)
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red.shade800),
+                onPressed: () async {
+                  final deleted = await _confirmDeleteTranscript(lesson);
+                  if (deleted && ctx.mounted) {
+                    Navigator.pop(ctx);
+                  }
+                },
+                child: Text('حذف التفريغ فقط', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+              ),
             TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red.shade800),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+              ),
               onPressed: () async {
-                final deleted = await _confirmDeleteTranscript(lesson);
-                if (deleted && ctx.mounted) {
-                  Navigator.pop(ctx);
+                Navigator.pop(ctx);
+                await widget.appProvider.updateLessonTranscript(lesson.id, controller.text);
+                if (sendNotification && controller.text.trim().isNotEmpty) {
+                  final series = widget.appProvider.getSeriesById(lesson.seriesId);
+                  final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
+                  final bookTitle = book?.title ?? series?.title ?? '';
+
+                  await widget.appProvider.sendNotification(
+                    title: 'تفريغ نصي جديد',
+                    body: 'تم توفير التفريغ النصي لـ (${lesson.title}) من شرح $bookTitle.',
+                    type: 'transcript',
+                  );
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('تم حفظ التفريغ النصي بنجاح!', style: GoogleFonts.readexPro()),
+                      backgroundColor: AppColors.primaryDarkBrown,
+                    ),
+                  );
                 }
               },
-              child: Text('حذف التفريغ فقط', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+              child: Text('حفظ التفريغ', style: GoogleFonts.readexPro()),
             ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDarkBrown,
-              foregroundColor: AppColors.textGoldLight,
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await widget.appProvider.updateLessonTranscript(lesson.id, controller.text);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('تم حفظ التفريغ النصي بنجاح!', style: GoogleFonts.readexPro()),
-                    backgroundColor: AppColors.primaryDarkBrown,
-                  ),
-                );
-              }
-            },
-            child: Text('حفظ التفريغ', style: GoogleFonts.readexPro()),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2340,7 +2452,665 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 7. تبويب إدارة عن التطبيق والتواصل والمشاريع (_AboutAppTab)
+// 7. تبويب إدارة الإشعارات والتحديثات (_NotificationsAndUpdatesTab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _NotificationsAndUpdatesTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _NotificationsAndUpdatesTab({required this.appProvider});
+
+  @override
+  State<_NotificationsAndUpdatesTab> createState() => _NotificationsAndUpdatesTabState();
+}
+
+class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab> {
+  // ── البطاقة الأولى: إرسال إشعار مخصص ───────────────────────────────────────
+  final _notifTitleController = TextEditingController();
+  final _notifBodyController = TextEditingController();
+  bool _isSending = false;
+
+  // ── البطاقة الثانية: إدارة تحديثات التطبيق ──────────────────────────────────
+  late TextEditingController _versionController;
+  late TextEditingController _downloadUrlController;
+  late TextEditingController _releaseNotesController;
+  late bool _isForceUpdate;
+  bool _notifyUsersOnUpdate = true;
+  bool _isSavingUpdate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final updateInfo = widget.appProvider.appUpdateInfo;
+    _versionController = TextEditingController(text: updateInfo.latestVersion);
+    _downloadUrlController = TextEditingController(text: updateInfo.downloadUrl);
+    _releaseNotesController = TextEditingController(text: updateInfo.releaseNotes);
+    _isForceUpdate = updateInfo.isForceUpdate;
+  }
+
+  @override
+  void dispose() {
+    _notifTitleController.dispose();
+    _notifBodyController.dispose();
+    _versionController.dispose();
+    _downloadUrlController.dispose();
+    _releaseNotesController.dispose();
+    super.dispose();
+  }
+
+  void _showSnack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: GoogleFonts.readexPro()),
+        backgroundColor: isError ? Colors.red.shade800 : AppColors.primaryDarkBrown,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleSendCustomNotification() async {
+    final title = _notifTitleController.text.trim();
+    final body = _notifBodyController.text.trim();
+
+    if (title.isEmpty || body.isEmpty) {
+      _showSnack('يرجى كتابة عنوان الإشعار ونصه بالكامل', isError: true);
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      await widget.appProvider.sendNotification(
+        title: title,
+        body: body,
+        type: 'general',
+      );
+      _notifTitleController.clear();
+      _notifBodyController.clear();
+      if (mounted) {
+        _showSnack('تم إرسال الإشعار للجميع ونشره بنجاح!');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('حدث خطأ أثناء الإرسال: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  Future<void> _handleSaveAppUpdate() async {
+    final version = _versionController.text.trim();
+    final downloadUrl = _downloadUrlController.text.trim();
+    final notes = _releaseNotesController.text.trim();
+
+    if (version.isEmpty) {
+      _showSnack('يرجى تحديد رقم الإصدار الجديد', isError: true);
+      return;
+    }
+
+    setState(() => _isSavingUpdate = true);
+    try {
+      final updatedModel = AppUpdateModel(
+        latestVersion: version,
+        downloadUrl: downloadUrl,
+        releaseNotes: notes,
+        isForceUpdate: _isForceUpdate,
+      );
+
+      await widget.appProvider.updateAppVersionInfo(
+        updatedModel,
+        notifyUsers: _notifyUsersOnUpdate,
+      );
+
+      if (mounted) {
+        _showSnack('تم حفظ ونشر بيانات التحديث الجديد بنجاح!');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('حدث خطأ أثناء حفظ التحديث: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingUpdate = false);
+    }
+  }
+
+  Future<void> _confirmDeleteNotification(AppNotificationModel notif) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف الإشعار',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف الإشعار "${notif.title}"؟\nسيتم مسحه من سجل الإشعارات وسحابة Firestore.',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('تأكيد الحذف', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await widget.appProvider.deleteNotification(notif.id);
+      if (mounted) {
+        _showSnack('تم حذف الإشعار من السجل بنجاح.');
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _getTypeLabel(String type) {
+    switch (type) {
+      case 'sheikh':
+        return 'شيخ جديد';
+      case 'lesson':
+        return 'درس جديد';
+      case 'transcript':
+        return 'تفريغ نصي';
+      case 'update':
+        return 'تحديث تطبيق';
+      case 'general':
+      default:
+        return 'إشعار عام';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = widget.appProvider.notifications;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── البطاقة الأولى: إرسال إشعار مخصص للمستخدمين ───────────────
+          _buildCustomNotificationCard(),
+
+          const SizedBox(height: 18),
+
+          // ── البطاقة الثانية: إدارة تحديثات التطبيق ───────────────────────
+          _buildAppUpdateCard(),
+
+          const SizedBox(height: 18),
+
+          // ── البطاقة الثالثة: سجل الإشعارات المرسلة ──────────────────────
+          _buildNotificationsHistoryCard(notifications),
+        ],
+      ),
+    );
+  }
+
+  // ── البطاقة الأولى: إرسال إشعار مخصص ───────────────────────────────────────
+  Widget _buildCustomNotificationCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLightBrown.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.campaign_rounded, color: AppColors.iconGold, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إرسال إشعار مخصص للمستخدمين',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                    Text(
+                      'نشر تنبيه أو خبر فوري لجميع مستخدمي تطبيق تسهيل',
+                      style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _notifTitleController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'عنوان الإشعار',
+              hintText: 'مثال: موعد بدء الدورة العلمية التأصيلية',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _notifBodyController,
+            maxLines: 3,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'نص الإشعار',
+              hintText: 'اكتب نص التنبيه بالتفصيل هنا...',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _isSending ? null : _handleSendCustomNotification,
+            icon: _isSending
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textGoldLight),
+                  )
+                : const Icon(Icons.send_rounded, size: 18),
+            label: Text(
+              _isSending ? 'جاري الإرسال...' : 'إرسال الإشعار للجميع الآن',
+              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.goldMuted),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── البطاقة الثانية: إدارة تحديثات التطبيق ──────────────────────────────────
+  Widget _buildAppUpdateCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.iconGold.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.iconGold.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDarkBrown,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.system_update_rounded, color: AppColors.iconGold, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إدارة تحديثات التطبيق (نشر إصدار جديد)',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                    Text(
+                      'التحكم في التحديثات السحابية والإلزامية ورابط التحميل',
+                      style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // شريط عرض إصدار التطبيق الحالي
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.scaffoldCream,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.dividerLight),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'إصدار التطبيق الحالي في هذا البناء:',
+                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDarkBrown,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    AppProvider.currentAppVersion,
+                    style: GoogleFonts.readexPro(
+                      color: AppColors.textGoldLight,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // حقل رقم الإصدار الجديد
+          TextFormField(
+            controller: _versionController,
+            textDirection: TextDirection.ltr,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رقم الإصدار الجديد (مثال: 1.1.0)',
+              hintText: '1.1.0',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // حقل رابط التحميل المباشر
+          TextFormField(
+            controller: _downloadUrlController,
+            textDirection: TextDirection.ltr,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط التحميل المباشر للتحديث (downloadUrl)',
+              hintText: 'https://example.com/tasheel-latest.apk أو صفحة التحميل',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // حقل ملاحظات ومميزات التحديث الجديد
+          TextFormField(
+            controller: _releaseNotesController,
+            maxLines: 3,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'ملاحظات ومميزات التحديث الجديد (releaseNotes)',
+              hintText: 'مثال: - إضافة شروحات جديدة\n- تحسين سرعة المشغل الصوتي وتحديث التفريغات',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // مفتاح التحديث الإجباري
+          SwitchListTile(
+            value: _isForceUpdate,
+            title: Text(
+              'تحديث إجباري (إلزام المستخدم بالتحديث)',
+              style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              'في حال تفعيله، لن يتمكن المستخدم من استخدام التطبيق حتى يحدّث للإصدار الجديد',
+              style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            activeThumbColor: Colors.red.shade700,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (val) => setState(() => _isForceUpdate = val),
+          ),
+
+          // مفتاح إرسال إشعار تنبيهي
+          SwitchListTile(
+            value: _notifyUsersOnUpdate,
+            title: Text(
+              'إرسال إشعار تنبيهي للمستخدمين بتوفر التحديث',
+              style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              'يبعث تلقائياً إشعاراً لجميع الطلاب برابط التحديث والمميزات الجديدة',
+              style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            activeThumbColor: AppColors.iconGold,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (val) => setState(() => _notifyUsersOnUpdate = val),
+          ),
+
+          const SizedBox(height: 14),
+
+          ElevatedButton.icon(
+            onPressed: _isSavingUpdate ? null : _handleSaveAppUpdate,
+            icon: _isSavingUpdate
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textGoldLight),
+                  )
+                : const Icon(Icons.cloud_done_rounded, size: 18),
+            label: Text(
+              _isSavingUpdate ? 'جاري الحفظ...' : 'حفظ ونشر التحديث',
+              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.goldMuted),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── البطاقة الثالثة: سجل الإشعارات المرسلة ────────────────────────────────
+  Widget _buildNotificationsHistoryCard(List<AppNotificationModel> notifications) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLightBrown.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.history_rounded, color: AppColors.iconGold, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'سجل الإشعارات المرسلة (${notifications.length})',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          if (notifications.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldCream,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.dividerLight),
+              ),
+              child: Text(
+                'لا توجد إشعارات مرسلة حتى الآن.',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: notifications.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+              itemBuilder: (ctx, index) {
+                final notif = notifications[index];
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.scaffoldCream,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.dividerLight),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // أيقونة النوع
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDarkBrown,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.notifications_rounded,
+                          color: AppColors.iconGold,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // تفاصيل الإشعار
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    notif.title,
+                                    style: GoogleFonts.readexPro(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.primaryDarkBrown,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryDarkBrown,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    _getTypeLabel(notif.type),
+                                    style: GoogleFonts.readexPro(
+                                      color: AppColors.textGoldLight,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              notif.body,
+                              style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textPrimary),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatDate(notif.createdAt),
+                              style: GoogleFonts.readexPro(fontSize: 10, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // زر حذف الإشعار
+                      IconButton(
+                        tooltip: 'حذف الإشعار',
+                        icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                        onPressed: () => _confirmDeleteNotification(notif),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 8. تبويب إدارة عن التطبيق والتواصل والمشاريع (_AboutAppTab)
 // ═══════════════════════════════════════════════════════════════════════════
 class _AboutAppTab extends StatefulWidget {
   final AppProvider appProvider;

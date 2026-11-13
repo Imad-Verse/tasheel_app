@@ -6,6 +6,7 @@ import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
 import '../widgets/global_search_delegate.dart';
 import 'lesson_player_screen.dart';
+import 'notifications_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// الشاشة الرئيسية (HomeScreen)
@@ -61,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // ── شريط الهيدر العلوي (الترحيب + الأزرار) ─────────
-                      _buildTopBar(context),
+                      _buildTopBar(context, appProvider),
 
                       const SizedBox(height: 18),
 
@@ -118,7 +119,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   /// شريط الهيدر العلوي: الأزرار على اليسار والترحيب على اليمين
-  Widget _buildTopBar(BuildContext context) {
+  Widget _buildTopBar(BuildContext context, AppProvider appProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -136,16 +137,13 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(width: 8),
               _buildHeaderCircleButton(
                 icon: Icons.notifications_none_rounded,
-                tooltip: 'التنبيهات',
+                tooltip: 'الإشعارات والتنبيهات',
+                badgeCount: appProvider.unreadNotificationsCount,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'لا توجد إشعارات جديدة حالياً',
-                        style: GoogleFonts.readexPro(),
-                      ),
-                      backgroundColor: AppColors.primaryDarkBrown,
-                      behavior: SnackBarBehavior.floating,
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
                     ),
                   );
                 },
@@ -167,33 +165,78 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// زر دائري أنيق للهيدر
+  /// زر دائري أنيق للهيدر مع شارة تنبيهية ذكية
   Widget _buildHeaderCircleButton({
     required IconData icon,
     required VoidCallback onTap,
     required String tooltip,
+    int badgeCount = 0,
   }) {
     return Tooltip(
       message: tooltip,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.patternBrown.withValues(alpha: 0.6),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.textGoldLight.withValues(alpha: 0.2),
-              width: 1,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.patternBrown.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.textGoldLight.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.textGoldLight,
+                size: 22,
+              ),
             ),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.textGoldLight,
-            size: 22,
-          ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -2,
+                left: -2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primaryDarkBrown,
+                      width: 1.5,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Center(
+                    child: Text(
+                      badgeCount > 99 ? '99+' : '$badgeCount',
+                      style: GoogleFonts.readexPro(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

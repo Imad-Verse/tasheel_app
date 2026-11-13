@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
 
@@ -10,6 +14,7 @@ import '../services/mock_data_service.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// يدير:
 /// - حالة الاتصال بـ Firebase أو الحفظ المحلي المستمر في SharedPreferences.
+/// - الاستماع اللحظي للإشعارات وتحديثات التطبيق من Cloud Firestore.
 /// - البيانات الحية: الأقسام، الشيوخ، الكتب، الشروحات، والدروس.
 /// - عمليات الإدارة الكاملة (CRUD) والإضافة الجماعية Bulk Add للدروس.
 /// - التحديث التلقائي للعدادات والإحصائيات عبر recalculateAllCounts().
@@ -17,6 +22,13 @@ import '../services/mock_data_service.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 class AppProvider extends ChangeNotifier {
   final bool isFirebaseConnected;
+
+  // مفتاح ScaffoldMessenger العام لعرض التنبيهات العلوية اللحظية للإشعارات
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  // ثابت إصدار التطبيق الحالي
+  static const String currentAppVersion = '1.0.0';
 
   AppProvider({this.isFirebaseConnected = false}) {
     _initData();
@@ -36,6 +48,9 @@ class AppProvider extends ChangeNotifier {
   static const String _keyAdminSeries = 'tasheel_admin_series';
   static const String _keyAdminLessons = 'tasheel_admin_lessons';
   static const String _keyAboutApp = 'tasheel_about_app_settings';
+  static const String _keyNotifications = 'tasheel_admin_notifications';
+  static const String _keyReadNotificationIds = 'tasheel_read_notification_ids';
+  static const String _keyAppUpdate = 'tasheel_app_update_info';
 
   // ─── 0. الملف الشخصي وإعدادات التطبيق ──────────────────────────────────────
   String _userName = 'أبو الحارث عماد بعلول';
@@ -171,6 +186,344 @@ class AppProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyAboutApp, jsonEncode(_aboutApp.toMap()));
+    } catch (_) {}
+  }
+
+  // ─── 0.2 إعدادات تحديث التطبيق والإشعارات اللحظية ──────────────────────────
+  AppUpdateModel _appUpdateInfo = const AppUpdateModel();
+  AppUpdateModel get appUpdateInfo => _appUpdateInfo;
+
+  /// دالة ذكية لمقارنة إصدارات التطبيق (Semantic Versioning)
+  static bool compareVersions(String current, String latest) {
+    try {
+      final currentParts = current
+          .split('.')
+          .map((p) => int.tryParse(p.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+          .toList();
+      final latestParts = latest
+          .split('.')
+          .map((p) => int.tryParse(p.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0)
+          .toList();
+      final maxLen = currentParts.length > latestParts.length
+          ? currentParts.length
+          : latestParts.length;
+      for (int i = 0; i < maxLen; i++) {
+        final c = i < currentParts.length ? currentParts[i] : 0;
+        final l = i < latestParts.length ? latestParts[i] : 0;
+        if (l > c) return true;
+        if (l < c) return false;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// هل يتوفر تحديث جديد للتطبيق مقارنة بالإصدار الحالي
+  bool get isUpdateAvailable =>
+      compareVersions(currentAppVersion, _appUpdateInfo.latestVersion);
+
+  final List<AppNotificationModel> _notifications = [];
+  List<AppNotificationModel> get notifications =>
+      List.unmodifiable(_notifications);
+
+  final List<String> _readNotificationIds = [];
+  List<String> get readNotificationIds =>
+      List.unmodifiable(_readNotificationIds);
+
+  /// عدد الإشعارات غير المقروءة
+  int get unreadNotificationsCount => _notifications
+      .where((n) => !_readNotificationIds.contains(n.id))
+      .length;
+
+  /// التحقق إن كان الإشعار مقروءاً
+  bool isNotificationRead(String id) => _readNotificationIds.contains(id);
+
+  /// تحديد جميع الإشعارات كمقروءة
+  Future<void> markAllNotificationsAsRead() async {
+    for (final n in _notifications) {
+      if (!_readNotificationIds.contains(n.id)) {
+        _readNotificationIds.add(n.id);
+      }
+    }
+    notifyListeners();
+    await _saveReadNotificationsLocally();
+  }
+
+  /// تحديد إشعار معين كمقروء
+  Future<void> markNotificationAsRead(String id) async {
+    if (!_readNotificationIds.contains(id)) {
+      _readNotificationIds.add(id);
+      notifyListeners();
+      await _saveReadNotificationsLocally();
+    }
+  }
+
+  /// إرسال إشعار جديد إلى Firestore ومحلياً
+  Future<void> sendNotification({
+    required String title,
+    required String body,
+    String type = 'general',
+    String? actionUrl,
+  }) async {
+    final newNotif = AppNotificationModel(
+      id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
+      title: title.trim(),
+      body: body.trim(),
+      type: type,
+      actionUrl: actionUrl?.trim(),
+      createdAt: DateTime.now(),
+    );
+
+    _notifications.insert(0, newNotif);
+    notifyListeners();
+    await _saveNotificationsLocally();
+
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(newNotif.id)
+            .set(newNotif.toMap());
+      } catch (e) {
+        debugPrint('Firestore sendNotification error: $e');
+      }
+    }
+  }
+
+  /// حذف إشعار من السجل السحابي والمحلي
+  Future<void> deleteNotification(String id) async {
+    _notifications.removeWhere((n) => n.id == id);
+    _readNotificationIds.remove(id);
+    notifyListeners();
+    await _saveNotificationsLocally();
+    await _saveReadNotificationsLocally();
+
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(id)
+            .delete();
+      } catch (e) {
+        debugPrint('Firestore deleteNotification error: $e');
+      }
+    }
+  }
+
+  /// تحديث معلومات إصدار التطبيق ونشرها للمستخدمين
+  Future<void> updateAppVersionInfo(
+    AppUpdateModel updateInfo, {
+    bool notifyUsers = true,
+  }) async {
+    _appUpdateInfo = updateInfo;
+    notifyListeners();
+    await _saveAppUpdateLocally();
+
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('settings')
+            .doc('app_update')
+            .set(updateInfo.toMap());
+      } catch (e) {
+        debugPrint('Firestore updateAppVersionInfo error: $e');
+      }
+    }
+
+    if (notifyUsers) {
+      await sendNotification(
+        title: 'تحديث جديد متوفر (${updateInfo.latestVersion})',
+        body: updateInfo.releaseNotes.trim().isNotEmpty
+            ? updateInfo.releaseNotes.trim()
+            : 'يتوفر إصدار جديد من تطبيق تسهيل، يرجى التحديث للاستفادة من أحدث الميزات والتحسينات.',
+        type: 'update',
+        actionUrl: updateInfo.downloadUrl.trim().isNotEmpty
+            ? updateInfo.downloadUrl.trim()
+            : null,
+      );
+    }
+  }
+
+  // ── الاستماع اللحظي للإشعارات والتحديثات ─────────────────────────────────────
+  StreamSubscription<QuerySnapshot>? _notificationsSub;
+  StreamSubscription<DocumentSnapshot>? _appUpdateSub;
+  bool _isFirstNotificationsSnapshot = true;
+
+  void _startFirestoreListeners() {
+    _notificationsSub?.cancel();
+    _appUpdateSub?.cancel();
+
+    // 1. الاستماع اللحظي لمجموعة الإشعارات
+    try {
+      _notificationsSub = FirebaseFirestore.instance
+          .collection('notifications')
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .listen(
+        (snapshot) {
+          final List<AppNotificationModel> fetched = [];
+          for (final doc in snapshot.docs) {
+            try {
+              final data = doc.data();
+              fetched.add(AppNotificationModel.fromMap(data, docId: doc.id));
+            } catch (e) {
+              debugPrint('Error parsing notification ${doc.id}: $e');
+            }
+          }
+          fetched.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+          if (!_isFirstNotificationsSnapshot) {
+            for (final change in snapshot.docChanges) {
+              if (change.type == DocumentChangeType.added) {
+                try {
+                  final data = change.doc.data() as Map<String, dynamic>;
+                  final newNotif =
+                      AppNotificationModel.fromMap(data, docId: change.doc.id);
+                  if (!_notifications.any((n) => n.id == newNotif.id)) {
+                    _showInAppNotificationBanner(newNotif);
+                  }
+                } catch (_) {}
+              }
+            }
+          } else {
+            _isFirstNotificationsSnapshot = false;
+          }
+
+          _notifications.clear();
+          _notifications.addAll(fetched);
+          notifyListeners();
+          _saveNotificationsLocally();
+        },
+        onError: (e) {
+          debugPrint('Firestore notifications listener error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore notifications stream setup error: $e');
+    }
+
+    // 2. الاستماع اللحظي لتحديثات التطبيق
+    try {
+      _appUpdateSub = FirebaseFirestore.instance
+          .collection('settings')
+          .doc('app_update')
+          .snapshots()
+          .listen(
+        (doc) {
+          if (doc.exists && doc.data() != null) {
+            _appUpdateInfo = AppUpdateModel.fromMap(doc.data()!);
+            notifyListeners();
+            _saveAppUpdateLocally();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore app_update listener error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore app_update stream setup error: $e');
+    }
+  }
+
+  /// إظهار تنبيه علوي أنيق مع اهتزاز خفيف عند وصول إشعار جديد أثناء فتح التطبيق
+  void _showInAppNotificationBanner(AppNotificationModel notification) {
+    HapticFeedback.lightImpact();
+
+    final messenger = scaffoldMessengerKey.currentState;
+    if (messenger == null) return;
+
+    messenger.clearMaterialBanners();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        elevation: 8,
+        backgroundColor: AppColors.primaryDarkBrown,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.patternBrown.withValues(alpha: 0.6),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.iconGold.withValues(alpha: 0.5),
+              width: 1,
+            ),
+          ),
+          child: const Icon(
+            Icons.notifications_active_rounded,
+            color: AppColors.iconGold,
+            size: 24,
+          ),
+        ),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              notification.title,
+              style: GoogleFonts.readexPro(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: AppColors.textGoldLight,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              notification.body,
+              style: GoogleFonts.readexPro(
+                fontSize: 11,
+                color: AppColors.textWhite,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              messenger.hideCurrentMaterialBanner();
+            },
+            child: Text(
+              'إغلاق',
+              style: GoogleFonts.readexPro(
+                color: AppColors.textGoldLight,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // إخفاء التنبيه تلقائياً بعد 4 ثوانٍ
+    Future.delayed(const Duration(seconds: 4), () {
+      messenger.hideCurrentMaterialBanner();
+    });
+  }
+
+  Future<void> _saveNotificationsLocally() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyNotifications,
+        jsonEncode(_notifications.map((n) => n.toMap()).toList()),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _saveReadNotificationsLocally() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_keyReadNotificationIds, _readNotificationIds);
+    } catch (_) {}
+  }
+
+  Future<void> _saveAppUpdateLocally() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyAppUpdate,
+        jsonEncode(_appUpdateInfo.toMap()),
+      );
     } catch (_) {}
   }
 
@@ -1051,6 +1404,12 @@ class AppProvider extends ChangeNotifier {
         _aboutApp.toMap(),
       );
 
+      // تضمين بيانات إصدار وتحديث التطبيق
+      batch.set(
+        firestore.collection('settings').doc('app_update'),
+        _appUpdateInfo.toMap(),
+      );
+
       await batch.commit();
       return true;
     } catch (e) {
@@ -1067,6 +1426,7 @@ class AppProvider extends ChangeNotifier {
     await _loadFromPreferences();
     if (isFirebaseConnected) {
       await _loadFromFirestore();
+      _startFirestoreListeners();
     }
   }
 
@@ -1083,6 +1443,20 @@ class AppProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Firestore load about_app error: $e');
+    }
+
+    try {
+      final updateDoc = await FirebaseFirestore.instance
+          .collection('settings')
+          .doc('app_update')
+          .get();
+      if (updateDoc.exists && updateDoc.data() != null) {
+        _appUpdateInfo = AppUpdateModel.fromMap(updateDoc.data()!);
+        notifyListeners();
+        await _saveAppUpdateLocally();
+      }
+    } catch (e) {
+      debugPrint('Firestore load app_update error: $e');
     }
   }
 
@@ -1161,6 +1535,27 @@ class AppProvider extends ChangeNotifier {
         _aboutApp = AboutAppModel.fromMap(Map<String, dynamic>.from(map as Map));
       }
 
+      // تحميل الإشعارات وتحديثات التطبيق المحفوظة محلياً
+      final rawNotifs = prefs.getString(_keyNotifications);
+      if (rawNotifs != null) {
+        final List list = jsonDecode(rawNotifs);
+        _notifications.clear();
+        _notifications.addAll(list.map((m) => AppNotificationModel.fromMap(m as Map<String, dynamic>)));
+        _notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
+
+      final savedRead = prefs.getStringList(_keyReadNotificationIds);
+      if (savedRead != null) {
+        _readNotificationIds.clear();
+        _readNotificationIds.addAll(savedRead);
+      }
+
+      final rawUpdate = prefs.getString(_keyAppUpdate);
+      if (rawUpdate != null) {
+        final map = jsonDecode(rawUpdate);
+        _appUpdateInfo = AppUpdateModel.fromMap(Map<String, dynamic>.from(map as Map));
+      }
+
       recalculateAllCounts();
 
       // تفضيلات الطالب
@@ -1212,5 +1607,12 @@ class AppProvider extends ChangeNotifier {
       await prefs.setString(_keyAdminSeries, jsonEncode(_series.map((s) => s.toMap()).toList()));
       await prefs.setString(_keyAdminLessons, jsonEncode(_lessons.map((l) => l.toMap()).toList()));
     } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _notificationsSub?.cancel();
+    _appUpdateSub?.cancel();
+    super.dispose();
   }
 }
