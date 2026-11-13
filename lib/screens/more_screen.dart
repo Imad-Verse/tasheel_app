@@ -22,102 +22,6 @@ import 'statistics_screen.dart';
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
 
-  /// فتح نافذة تعديل اسم طالب العلم
-  void _openEditNameDialog(BuildContext context, AppProvider appProvider) {
-    final controller = TextEditingController(text: appProvider.userName);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.cardWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text(
-          'إعدادات الحساب',
-          style: GoogleFonts.readexPro(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primaryDarkBrown,
-          ),
-          textAlign: TextAlign.right,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'اسم طالب العلم (الظاهر في الترحيب):',
-              style: GoogleFonts.readexPro(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: controller,
-              textAlign: TextAlign.right,
-              decoration: InputDecoration(
-                hintText: 'أدخل اسمك أو كنيتك...',
-                prefixIcon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                filled: true,
-                fillColor: AppColors.scaffoldCream,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.dividerLight),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.dividerLight),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primaryDarkBrown, width: 1.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'إلغاء',
-              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newName = controller.text.trim();
-              if (newName.isNotEmpty) {
-                appProvider.setUserName(newName);
-              }
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم تحديث الاسم بنجاح: ${appProvider.userName}',
-                    style: GoogleFonts.readexPro(),
-                  ),
-                  backgroundColor: AppColors.primaryDarkBrown,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDarkBrown,
-              foregroundColor: AppColors.textGoldLight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(
-              'حفظ التعديل',
-              style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// فتح واتساب للدعم الفني
   Future<void> _openWhatsAppSupport(BuildContext context) async {
     const message = 'السلام عليكم اراسلك من تطبيق تسهيل للعلوم الشرعية احتاج للتحدث معكم';
@@ -191,7 +95,25 @@ class MoreScreen extends StatelessWidget {
 
                       const SizedBox(height: 18),
 
-                      // حقوق وتذييل الصفحة
+                      // حقوق وتذييل الصفحة مع شعار التطبيق
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.accentGoldBeige,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         'تطبيق تسهيل للعلوم الشرعية • الإصدار 1.0.0',
                         style: GoogleFonts.readexPro(
@@ -215,8 +137,8 @@ class MoreScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        bottom: 22,
+        top: MediaQuery.of(context).padding.top + 20,
+        bottom: 24,
         left: 20,
         right: 20,
       ),
@@ -232,80 +154,37 @@ class MoreScreen extends StatelessWidget {
               painter: _MoreHeaderPatternPainter(),
             ),
           ),
-          Column(
+          // صف الصورة والاسم
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // صف الصورة والاسم
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // اسم طالب العلم
-                  Text(
-                    appProvider.userName,
-                    style: GoogleFonts.readexPro(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textWhite,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-
-                  // أيقونة المستخدم (خالية من صور ذوات الأرواح تماماً)
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.patternBrown.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.textGoldLight.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: AppColors.textGoldLight,
-                      size: 32,
-                    ),
-                  ),
-                ],
+              // اسم طالب العلم
+              Text(
+                appProvider.userName,
+                style: GoogleFonts.readexPro(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textWhite,
+                ),
               ),
+              const SizedBox(width: 14),
 
-              const SizedBox(height: 16),
-
-              // كبسولة عريضة: إعدادات الحساب (مطابقة للصورة المرجعية)
-              InkWell(
-                onTap: () => _openEditNameDialog(context, appProvider),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentGoldBeige,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              // أيقونة المستخدم (خالية من صور ذوات الأرواح تماماً)
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.patternBrown.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.textGoldLight.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.edit_note_rounded,
-                          size: 20, color: AppColors.textPrimary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'إعدادات الحساب',
-                        style: GoogleFonts.readexPro(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: AppColors.textGoldLight,
+                  size: 32,
                 ),
               ),
             ],

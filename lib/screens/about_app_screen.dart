@@ -164,7 +164,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
       child: GestureDetector(
         onTap: _handleLogoTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: AppColors.cardWhite,
             shape: BoxShape.circle,
@@ -181,33 +181,54 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
             ],
           ),
           child: Container(
-            width: 90,
-            height: 90,
+            width: 104,
+            height: 104,
             decoration: BoxDecoration(
-              color: AppColors.primaryDarkBrown,
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.textGoldLight.withValues(alpha: 0.3),
+                color: AppColors.textGoldLight.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                const Icon(
-                  Icons.auto_stories_rounded,
-                  color: AppColors.textGoldLight,
-                  size: 32,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'تسهيل',
-                  style: GoogleFonts.amiri(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textGoldLight,
-                    height: 1.1,
+                ClipOval(
+                  child: Image.asset(
+                    'assets/images/icon.png',
+                    fit: BoxFit.cover,
+                    width: 104,
+                    height: 104,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.primaryDarkBrown,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.auto_stories_rounded,
+                              color: AppColors.textGoldLight,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'تسهيل',
+                              style: GoogleFonts.amiri(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textGoldLight,
+                                height: 1.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
+                ),
+                const Text(
+                  'تسهيل',
+                  style: TextStyle(color: Colors.transparent, fontSize: 14),
                 ),
               ],
             ),

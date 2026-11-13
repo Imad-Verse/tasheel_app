@@ -409,18 +409,69 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// حذف القسم تتابعياً (Cascading Delete):
+  /// يحذف القسم، والكتب التابعة له، والشروحات التابعة لتلك الكتب،
+  /// وجميع الدروس والتفريغات التابعة لها، وأي شيخ لا يملك شروحات إلا في هذا القسم.
   Future<void> deleteCategory(String categoryId) async {
+    final booksToDelete = _books.where((b) => b.categoryId == categoryId).map((b) => b.id).toSet();
+    final seriesToDelete = _series
+        .where((s) => s.categoryId == categoryId || booksToDelete.contains(s.bookId))
+        .map((s) => s.id)
+        .toSet();
+    final lessonsToDelete = _lessons
+        .where((l) => seriesToDelete.contains(l.seriesId))
+        .map((l) => l.id)
+        .toSet();
+
+    final sheikhsInThisCategory = _series
+        .where((s) => seriesToDelete.contains(s.id))
+        .map((s) => s.sheikhId)
+        .toSet();
+    final sheikhsWithOtherSeries = _series
+        .where((s) => !seriesToDelete.contains(s.id))
+        .map((s) => s.sheikhId)
+        .toSet();
+    final sheikhsToDelete = sheikhsInThisCategory.difference(sheikhsWithOtherSeries);
+
     _categories.removeWhere((c) => c.id == categoryId);
+    _books.removeWhere((b) => booksToDelete.contains(b.id));
+    _series.removeWhere((s) => seriesToDelete.contains(s.id));
+    _lessons.removeWhere((l) => lessonsToDelete.contains(l.id));
+    _sheikhs.removeWhere((s) => sheikhsToDelete.contains(s.id));
+
+    _cleanUpAfterDeletion(
+      deletedLessonIds: lessonsToDelete,
+      deletedSeriesIds: seriesToDelete,
+      deletedBookIds: booksToDelete,
+      deletedSheikhIds: sheikhsToDelete,
+    );
+
     recalculateAllCounts();
     await _saveDataToPersistence();
+    await _savePreferences();
+
     if (isFirebaseConnected) {
       try {
-        await FirebaseFirestore.instance
-            .collection('categories')
-            .doc(categoryId)
-            .delete();
+        final firestore = FirebaseFirestore.instance;
+        final batch = firestore.batch();
+
+        batch.delete(firestore.collection('categories').doc(categoryId));
+        for (final bId in booksToDelete) {
+          batch.delete(firestore.collection('books').doc(bId));
+        }
+        for (final sId in seriesToDelete) {
+          batch.delete(firestore.collection('series').doc(sId));
+        }
+        for (final lId in lessonsToDelete) {
+          batch.delete(firestore.collection('lessons').doc(lId));
+        }
+        for (final shId in sheikhsToDelete) {
+          batch.delete(firestore.collection('sheikhs').doc(shId));
+        }
+
+        await batch.commit();
       } catch (e) {
-        debugPrint('Firestore category delete error: $e');
+        debugPrint('Firestore category cascade delete error: $e');
       }
     }
   }
@@ -461,18 +512,61 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// حذف الشيخ تتابعياً (Cascading Delete):
+  /// يحذف الشيخ، وجميع شروحاته، والدروس والتفريغات التابعة لها،
+  /// وأي كتاب لم يعد له أي شرح آخر في التطبيق.
   Future<void> deleteSheikh(String sheikhId) async {
+    final seriesToDelete = _series.where((s) => s.sheikhId == sheikhId).map((s) => s.id).toSet();
+    final lessonsToDelete = _lessons
+        .where((l) => seriesToDelete.contains(l.seriesId))
+        .map((l) => l.id)
+        .toSet();
+
+    final booksOfThisSheikh = _series
+        .where((s) => seriesToDelete.contains(s.id))
+        .map((s) => s.bookId)
+        .toSet();
+    final booksWithOtherSeries = _series
+        .where((s) => !seriesToDelete.contains(s.id))
+        .map((s) => s.bookId)
+        .toSet();
+    final booksToDelete = booksOfThisSheikh.difference(booksWithOtherSeries);
+
     _sheikhs.removeWhere((s) => s.id == sheikhId);
+    _series.removeWhere((s) => seriesToDelete.contains(s.id));
+    _lessons.removeWhere((l) => lessonsToDelete.contains(l.id));
+    _books.removeWhere((b) => booksToDelete.contains(b.id));
+
+    _cleanUpAfterDeletion(
+      deletedLessonIds: lessonsToDelete,
+      deletedSeriesIds: seriesToDelete,
+      deletedBookIds: booksToDelete,
+      deletedSheikhIds: {sheikhId},
+    );
+
     recalculateAllCounts();
     await _saveDataToPersistence();
+    await _savePreferences();
+
     if (isFirebaseConnected) {
       try {
-        await FirebaseFirestore.instance
-            .collection('sheikhs')
-            .doc(sheikhId)
-            .delete();
+        final firestore = FirebaseFirestore.instance;
+        final batch = firestore.batch();
+
+        batch.delete(firestore.collection('sheikhs').doc(sheikhId));
+        for (final sId in seriesToDelete) {
+          batch.delete(firestore.collection('series').doc(sId));
+        }
+        for (final lId in lessonsToDelete) {
+          batch.delete(firestore.collection('lessons').doc(lId));
+        }
+        for (final bId in booksToDelete) {
+          batch.delete(firestore.collection('books').doc(bId));
+        }
+
+        await batch.commit();
       } catch (e) {
-        debugPrint('Firestore sheikh delete error: $e');
+        debugPrint('Firestore sheikh cascade delete error: $e');
       }
     }
   }
@@ -513,18 +607,45 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// حذف الكتاب تتابعياً (Cascading Delete):
+  /// يحذف الكتاب، وجميع شروحاته، والدروس والتفريغات التابعة لتلك الشروحات.
   Future<void> deleteBook(String bookId) async {
+    final seriesToDelete = _series.where((s) => s.bookId == bookId).map((s) => s.id).toSet();
+    final lessonsToDelete = _lessons
+        .where((l) => seriesToDelete.contains(l.seriesId))
+        .map((l) => l.id)
+        .toSet();
+
     _books.removeWhere((b) => b.id == bookId);
+    _series.removeWhere((s) => seriesToDelete.contains(s.id));
+    _lessons.removeWhere((l) => lessonsToDelete.contains(l.id));
+
+    _cleanUpAfterDeletion(
+      deletedLessonIds: lessonsToDelete,
+      deletedSeriesIds: seriesToDelete,
+      deletedBookIds: {bookId},
+    );
+
     recalculateAllCounts();
     await _saveDataToPersistence();
+    await _savePreferences();
+
     if (isFirebaseConnected) {
       try {
-        await FirebaseFirestore.instance
-            .collection('books')
-            .doc(bookId)
-            .delete();
+        final firestore = FirebaseFirestore.instance;
+        final batch = firestore.batch();
+
+        batch.delete(firestore.collection('books').doc(bookId));
+        for (final sId in seriesToDelete) {
+          batch.delete(firestore.collection('series').doc(sId));
+        }
+        for (final lId in lessonsToDelete) {
+          batch.delete(firestore.collection('lessons').doc(lId));
+        }
+
+        await batch.commit();
       } catch (e) {
-        debugPrint('Firestore book delete error: $e');
+        debugPrint('Firestore book cascade delete error: $e');
       }
     }
   }
@@ -565,18 +686,36 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// حذف الشرح تتابعياً (Cascading Delete):
+  /// يحذف الشرح، وجميع الدروس والتفريغات التابعة له.
   Future<void> deleteSeries(String seriesId) async {
+    final lessonsToDelete = _lessons.where((l) => l.seriesId == seriesId).map((l) => l.id).toSet();
+
     _series.removeWhere((s) => s.id == seriesId);
+    _lessons.removeWhere((l) => lessonsToDelete.contains(l.id));
+
+    _cleanUpAfterDeletion(
+      deletedLessonIds: lessonsToDelete,
+      deletedSeriesIds: {seriesId},
+    );
+
     recalculateAllCounts();
     await _saveDataToPersistence();
+    await _savePreferences();
+
     if (isFirebaseConnected) {
       try {
-        await FirebaseFirestore.instance
-            .collection('series')
-            .doc(seriesId)
-            .delete();
+        final firestore = FirebaseFirestore.instance;
+        final batch = firestore.batch();
+
+        batch.delete(firestore.collection('series').doc(seriesId));
+        for (final lId in lessonsToDelete) {
+          batch.delete(firestore.collection('lessons').doc(lId));
+        }
+
+        await batch.commit();
       } catch (e) {
-        debugPrint('Firestore series delete error: $e');
+        debugPrint('Firestore series cascade delete error: $e');
       }
     }
   }
@@ -617,10 +756,17 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// حذف الدرس:
+  /// يحذف الدرس وتفريغه الصوتي وينظفه من سجلات المشغل والمحفوظات.
   Future<void> deleteLesson(String lessonId) async {
     _lessons.removeWhere((l) => l.id == lessonId);
+
+    _cleanUpAfterDeletion(deletedLessonIds: {lessonId});
+
     recalculateAllCounts();
     await _saveDataToPersistence();
+    await _savePreferences();
+
     if (isFirebaseConnected) {
       try {
         await FirebaseFirestore.instance
@@ -629,6 +775,73 @@ class AppProvider extends ChangeNotifier {
             .delete();
       } catch (e) {
         debugPrint('Firestore lesson delete error: $e');
+      }
+    }
+  }
+
+  /// حذف التفريغ النصي فقط للدرس مع الحفاظ على الملف الصوتي والدرس
+  Future<void> deleteLessonTranscript(String lessonId) async {
+    final idx = _lessons.indexWhere((l) => l.id == lessonId);
+    if (idx != -1) {
+      _lessons[idx] = _lessons[idx].copyWith(transcript: '');
+      if (_lastPlayedLesson?.id == lessonId) {
+        _lastPlayedLesson = _lastPlayedLesson!.copyWith(transcript: '');
+      }
+      await _saveDataToPersistence();
+      notifyListeners();
+      if (isFirebaseConnected) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('lessons')
+              .doc(lessonId)
+              .update({'transcript': ''});
+        } catch (e) {
+          debugPrint('Firestore transcript delete error: $e');
+        }
+      }
+    }
+  }
+
+  /// تنظيف مراجع الدروس والشروحات والكتب المحذوفة من سجلات المشغل والمحفوظات
+  void _cleanUpAfterDeletion({
+    Set<String> deletedLessonIds = const {},
+    Set<String> deletedSeriesIds = const {},
+    Set<String> deletedBookIds = const {},
+    Set<String> deletedSheikhIds = const {},
+  }) {
+    if (deletedLessonIds.isNotEmpty) {
+      _completedLessonIds.removeWhere((id) => deletedLessonIds.contains(id));
+    }
+    if (deletedSeriesIds.isNotEmpty) {
+      _studiedSeriesIds.removeWhere((id) => deletedSeriesIds.contains(id));
+    }
+
+    if (_lastPlayedLesson != null && deletedLessonIds.contains(_lastPlayedLesson!.id)) {
+      if (_lessons.isNotEmpty) {
+        _lastPlayedLesson = _lessons.first;
+        _lastPlayedSeries = _series.firstWhere(
+          (s) => s.id == _lastPlayedLesson!.seriesId,
+          orElse: () => _series.isNotEmpty
+              ? _series.first
+              : const SeriesModel(id: '', bookId: '', sheikhId: '', categoryId: '', title: ''),
+        );
+        _lastPlayedBook = getBookById(_lastPlayedSeries?.bookId ?? '');
+        _lastPlayedSheikh = getSheikhById(_lastPlayedSeries?.sheikhId ?? '');
+      } else {
+        _lastPlayedLesson = null;
+        _lastPlayedSeries = null;
+        _lastPlayedBook = null;
+        _lastPlayedSheikh = null;
+      }
+    } else {
+      if (_lastPlayedSeries != null && deletedSeriesIds.contains(_lastPlayedSeries!.id)) {
+        _lastPlayedSeries = null;
+      }
+      if (_lastPlayedBook != null && deletedBookIds.contains(_lastPlayedBook!.id)) {
+        _lastPlayedBook = null;
+      }
+      if (_lastPlayedSheikh != null && deletedSheikhIds.contains(_lastPlayedSheikh!.id)) {
+        _lastPlayedSheikh = null;
       }
     }
   }

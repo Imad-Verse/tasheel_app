@@ -2,12 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
 import '../providers/audio_provider.dart';
 import '../services/mock_data_service.dart';
 import '../widgets/decorated_header.dart';
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// دالة مساعدة ذكية لاستخراج معرف الفيديو (YouTube Video ID)
+/// من كافة صيغ روابط يوتيوب الممكنة (watch, youtu.be, embed, shorts, v, live, إلخ)
+/// ═══════════════════════════════════════════════════════════════════════════
+String? extractYoutubeVideoId(String url) {
+  final trimmed = url.trim();
+  if (trimmed.isEmpty) return null;
+
+  // إذا كان الرابط هو المعرف مباشرة بطول 11 محرفاً
+  if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(trimmed)) {
+    return trimmed;
+  }
+
+  // التعبير النمطي الشامل لكافة صيغ روابط يوتيوب
+  final regExp = RegExp(
+    r'(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+    caseSensitive: false,
+  );
+
+  final match = regExp.firstMatch(trimmed);
+  if (match != null && match.groupCount >= 1) {
+    return match.group(1);
+  }
+
+  // كمسار بديل آمن: محاولة قراءة المعلمات بواسطة Uri
+  try {
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null) {
+      if (uri.queryParameters.containsKey('v')) {
+        final v = uri.queryParameters['v'];
+        if (v != null && v.length == 11) return v;
+      }
+      if (uri.host.contains('youtu.be') && uri.pathSegments.isNotEmpty) {
+        final segment = uri.pathSegments.first;
+        if (segment.length == 11) return segment;
+      }
+    }
+  } catch (_) {}
+
+  return null;
+}
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة مشغل الدرس والتفريغ النصي التفاعلي (LessonPlayerScreen)
@@ -17,7 +60,8 @@ import '../widgets/decorated_header.dart';
 /// 2. زر التبديل بين الاستماع الصوتي وفيديو يوتيوب (إن توفر).
 /// 3. بطاقة المشغل الصوتي: شريط التقدم، أزرار التشغيل، التقديم/التأخير 5 ثوانٍ،
 ///    أزرار الدرس السابق/التالي، وأزرار السرعة، تخطي الصمت، مؤقت النوم، والتحميل.
-/// 4. قسم التفريغ النصي التفاعلي:
+/// 4. بطاقة مشغل الفيديو المدمج (In-App Player) وأزرار الانتقال الخارجي.
+/// 5. قسم التفريغ النصي التفاعلي:
 ///    - إذا توفر: تكبير/تصغير الخط، وحقل بحث فوري مع تظليل الكلمات المطابقة.
 ///    - إذا لم يتوفر: بطاقة الاعتذار وزر المساهمة في التفريغ عبر واتساب مباشرة.
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -38,6 +82,10 @@ class LessonPlayerScreen extends StatefulWidget {
 class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   // وضع العرض: 0 = استماع صوتي، 1 = مشاهدة فيديو يوتيوب
   int _selectedMediaMode = 0;
+
+  // متحكم مشغل يوتيوب المدمج والمعرف المحمّل حالياً
+  YoutubePlayerController? _youtubeController;
+  String? _currentLoadedVideoId;
 
   // خيارات التفريغ النصي
   double _transcriptFontSize = 17.0;
@@ -61,9 +109,74 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     });
   }
 
+  /// تهيئة متحكم يوتيوب للمعرف المعطى مع حماية كاملة من الأخطاء
+  void _initYoutubeController(String videoId) {
+    if (_currentLoadedVideoId == videoId && _youtubeController != null) {
+      return;
+    }
+    _disposeYoutubeController();
+    _currentLoadedVideoId = videoId;
+    try {
+      _youtubeController = YoutubePlayerController.fromVideoId(
+        videoId: videoId,
+        autoPlay: false,
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          enableCaption: true,
+          playsInline: true,
+          strictRelatedVideos: true,
+          captionLanguage: 'ar',
+          color: 'red',
+        ),
+      );
+    } catch (e) {
+      debugPrint('تعذر تهيئة مشغل يوتيوب: $e');
+      _youtubeController = null;
+    }
+  }
+
+  /// إغلاق وتفريغ متحكم مشغل يوتيوب بالكامل لمنع تسرب الذاكرة وبقاء الصوت في الخلفية
+  void _disposeYoutubeController() {
+    if (_youtubeController != null) {
+      try {
+        _youtubeController!.close();
+      } catch (_) {}
+      _youtubeController = null;
+      _currentLoadedVideoId = null;
+    }
+  }
+
+  /// تبديل وضع الوسائط بين الاستماع الصوتي ومشاهدة الفيديو
+  void _onMediaModeChanged(int newMode, LessonModel currentLesson) {
+    if (_selectedMediaMode == newMode) return;
+
+    if (newMode == 1) {
+      // 1. إيقاف المشغل الصوتي مؤقتاً فور التبديل لوضع الفيديو حتى لا يتداخل الصوتين
+      final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+      if (audioProvider.isPlaying) {
+        audioProvider.pause();
+      }
+
+      // 2. تهيئة مشغل يوتيوب الداخلي
+      final videoId = extractYoutubeVideoId(currentLesson.videoUrl);
+      if (videoId != null) {
+        _initYoutubeController(videoId);
+      }
+    } else {
+      // 3. تفريغ وإغلاق مشغل الفيديو عند العودة إلى وضع "الاستماع الصوتي"
+      _disposeYoutubeController();
+    }
+
+    setState(() {
+      _selectedMediaMode = newMode;
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _disposeYoutubeController();
     super.dispose();
   }
 
@@ -82,6 +195,12 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     final sheikh = MockDataService.getSheikhById(widget.series.sheikhId);
     final hasVideo = currentLesson.hasVideo;
 
+    // إذا تم الانتقال لدرس لا يحتوي على فيديو، العودة التلقائية لوضع الصوت
+    if (!hasVideo && _selectedMediaMode == 1) {
+      _selectedMediaMode = 0;
+      _disposeYoutubeController();
+    }
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldCream,
       body: Column(
@@ -99,7 +218,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                 children: [
                   // ── كبسولة التبديل (صوت / فيديو يوتيوب) إن توفر الفيديو ───
                   if (hasVideo) ...[
-                    _buildMediaToggleCapsule(),
+                    _buildMediaToggleCapsule(currentLesson),
                     const SizedBox(height: 14),
                   ],
 
@@ -173,7 +292,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   }
 
   /// كبسولة التبديل بين الاستماع الصوتي وفيديو يوتيوب
-  Widget _buildMediaToggleCapsule() {
+  Widget _buildMediaToggleCapsule(LessonModel currentLesson) {
     return Center(
       child: Container(
         padding: const EdgeInsets.all(4),
@@ -189,13 +308,13 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               title: 'استماع صوتي',
               icon: Icons.headphones_rounded,
               isSelected: _selectedMediaMode == 0,
-              onTap: () => setState(() => _selectedMediaMode = 0),
+              onTap: () => _onMediaModeChanged(0, currentLesson),
             ),
             _buildToggleItem(
               title: 'مشاهدة فيديو',
               icon: Icons.ondemand_video_rounded,
               isSelected: _selectedMediaMode == 1,
-              onTap: () => setState(() => _selectedMediaMode = 1),
+              onTap: () => _onMediaModeChanged(1, currentLesson),
             ),
           ],
         ),
@@ -242,10 +361,22 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     );
   }
 
-  /// بطاقة فيديو يوتيوب
+  /// بطاقة فيديو يوتيوب المدمجة مع زر الانتقال الخارجي
   Widget _buildYouTubeCard(LessonModel lesson, BookModel? book, SheikhModel? sheikh) {
+    final videoId = extractYoutubeVideoId(lesson.videoUrl);
+
+    // التحقق من توافق المتحكم مع المعرف الحالي للدرس
+    if (videoId != null && _currentLoadedVideoId != videoId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedMediaMode == 1) {
+          _initYoutubeController(videoId);
+          setState(() {});
+        }
+      });
+    }
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.circular(18),
@@ -259,64 +390,108 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── المشغل الداخلي الاحترافي بنسبة 16:9 وبحواف دائرية 16 وإطار ذهبي/بني ──
           Container(
-            height: 180,
-            width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.primaryDarkBrown,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.accentGoldBeige, width: 1.2),
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.accentGoldBeige,
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDarkBrown.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'يتوفر تسجيل مرئي لهذا الدرس على يوتيوب',
-                    style: GoogleFonts.readexPro(
-                      fontSize: 13,
-                      color: AppColors.textGoldLight,
-                    ),
-                  ),
-                ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14.5),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _youtubeController != null && videoId != null
+                    ? YoutubePlayer(
+                        controller: _youtubeController!,
+                        aspectRatio: 16 / 9,
+                      )
+                    : Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.ondemand_video_rounded,
+                                color: AppColors.textGoldLight,
+                                size: 40,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                videoId != null
+                                    ? 'جاري تجهيز مشغل الفيديو...'
+                                    : 'يتوفر تسجيل لهذا الدرس، يمكنك فتحه عبر الزر أدناه',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 12,
+                                  color: AppColors.textWhite,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ),
           ),
+
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () async {
-              if (lesson.videoUrl.isNotEmpty) {
-                final uri = Uri.parse(lesson.videoUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+          // ── زر الانتقال لتطبيق اليوتيوب الخارجي ───────────────────────
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                // إيقاف الفيديو الداخلي مؤقتاً فور فتح التطبيق الخارجي
+                try {
+                  await _youtubeController?.pauseVideo();
+                } catch (_) {}
+
+                if (lesson.videoUrl.isNotEmpty) {
+                  final uri = Uri.parse(lesson.videoUrl);
+                  try {
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      await launchUrl(uri);
+                    }
+                  } catch (_) {
+                    try {
+                      await launchUrl(uri);
+                    } catch (_) {}
+                  }
                 }
-              }
-            },
-            icon: const Icon(Icons.open_in_new_rounded, size: 18),
-            label: Text(
-              'مشاهدة الدرس على يوتيوب',
-              style: GoogleFonts.readexPro(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC62828),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              },
+              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+              label: Text(
+                'مشاهدة الدرس على اليوتوب',
+                style: GoogleFonts.readexPro(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC62828),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
             ),
           ),
         ],
@@ -645,8 +820,8 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isActive
-                      ? AppColors.accentGoldBeige
-                      : AppColors.dividerLight,
+                    ? AppColors.accentGoldBeige
+                    : AppColors.dividerLight,
                 ),
               ),
               child: Icon(

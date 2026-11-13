@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:tasheel_app/main.dart';
 import 'package:tasheel_app/providers/audio_provider.dart';
+import 'package:tasheel_app/screens/admin/admin_dashboard_screen.dart';
 import 'package:tasheel_app/screens/lesson_player_screen.dart';
 import 'package:tasheel_app/services/mock_data_service.dart';
 import 'package:tasheel_app/widgets/mini_player_widget.dart';
@@ -215,16 +216,10 @@ void main() {
     // ── 9. المرحلة الخامسة: اختبار شاشة المزيد (التبويب الخامس) ────────────
     await tester.tap(find.byIcon(Icons.menu_rounded).last);
     await tester.pumpAndSettle();
-    expect(find.text('إعدادات الحساب'), findsOneWidget);
-
-    // اختبار تعديل اسم المستخدم في إعدادات الحساب
-    await tester.tap(find.text('إعدادات الحساب'));
-    await tester.pumpAndSettle();
-    expect(find.text('اسم طالب العلم (الظاهر في الترحيب):'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'أبو الحارث عماد');
-    await tester.tap(find.text('حفظ التعديل'));
-    await tester.pumpAndSettle();
-    expect(find.text('أبو الحارث عماد'), findsWidgets);
+    expect(find.text('المزيد'), findsWidgets);
+    // التحقق من عدم وجود زر إعدادات الحساب في صفحة المزيد واقتصارها على الاسم والأيقونة
+    expect(find.text('إعدادات الحساب'), findsNothing);
+    expect(find.text('أبو الحارث عماد بعلول'), findsWidgets);
 
     // ── اختبار شاشة التنزيلات (DownloadsScreen) ─────────────────────────
     await tester.tap(find.text('التنزيلات'));
@@ -241,13 +236,24 @@ void main() {
     await tester.tap(find.byTooltip('رجوع'));
     await tester.pumpAndSettle();
 
-    // ── اختبار شاشة الإعدادات (SettingsScreen) ──────────────────────────
+    // ── اختبار شاشة الإعدادات (SettingsScreen) وتعديل اسم طالب العلم ────
     await tester.tap(find.text('الإعدادات'));
     await tester.pumpAndSettle();
     expect(find.text('إعدادات التطبيق'), findsOneWidget);
+    expect(find.text('اسمك يا طالب العلم'), findsOneWidget);
     expect(find.text('حجم خط التفريغ الافتراضي'), findsOneWidget);
     expect(find.text('مشغل الصوتيات'), findsOneWidget);
     expect(find.text('التشغيل التلقائي للدرس التالي'), findsOneWidget);
+
+    // اختبار تعديل اسم طالب العلم من شاشة الإعدادات
+    await tester.enterText(find.byKey(const ValueKey('student_name_field')), 'أبو عبد الرحمن');
+    await tester.ensureVisible(find.byKey(const ValueKey('save_student_name_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save_student_name_button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.textContaining('تم حفظ الاسم بنجاح'), findsOneWidget);
+    await tester.pumpAndSettle();
 
     // اختبار زر مسح الذاكرة المؤقتة
     await tester.scrollUntilVisible(
@@ -261,9 +267,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('تم مسح الذاكرة المؤقتة بنجاح'), findsOneWidget);
 
-    // الرجوع لشاشة المزيد
+    // الرجوع لشاشة المزيد والتحقق من انعكاس الاسم الجديد فوراً
     await tester.tap(find.byTooltip('رجوع'));
     await tester.pumpAndSettle();
+    expect(find.text('أبو عبد الرحمن'), findsWidgets);
 
     // ── اختبار شاشة الإحصائيات (StatisticsScreen) ──────────────────────
     await tester.tap(find.text('الإحصائيات'));
@@ -302,15 +309,23 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    // التحقق من فتح شاشة تسجيل دخول المدير (AdminLoginScreen)
+    // التحقق من فتح شاشة تسجيل دخول المدير المؤمنة (AdminLoginScreen)
     expect(find.text('بوابة إدارة تطبيق تسهيل'), findsOneWidget);
-    expect(find.text('التحكم في المتون والشيوخ والكتب والدروس والتفريغات'), findsOneWidget);
-    expect(find.text('دخول سريع للتجربة (بدون حساب)'), findsOneWidget);
+    expect(find.text('تسجيل الدخول المعتمد للتحكم بالمحتوى العلمي والمزامنة السحابية'), findsOneWidget);
+    expect(find.text('البريد الإلكتروني للمدير'), findsOneWidget);
+    expect(find.text('كلمة المرور'), findsOneWidget);
+    expect(find.text('تسجيل الدخول إلى لوحة الإدارة'), findsOneWidget);
+    // التأكد من إزالة زر الدخول السريع
+    expect(find.text('دخول سريع للتجربة (بدون حساب)'), findsNothing);
 
-    // الدخول للوحة التحكم عبر زر الدخول السريع
-    await tester.ensureVisible(find.text('دخول سريع للتجربة (بدون حساب)'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('دخول سريع للتجربة (بدون حساب)'));
+    // الانتقال للوحة التحكم لفحص واجهاتها
+    final adminContext = tester.element(find.text('بوابة إدارة تطبيق تسهيل'));
+    Navigator.pushReplacement(
+      adminContext,
+      MaterialPageRoute(
+        builder: (_) => const AdminDashboardScreen(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // التحقق من مكونات لوحة التحكم (AdminDashboardScreen)
@@ -344,17 +359,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('عرض الدروس غير المفرغة فقط'), findsOneWidget);
 
-    // تسجيل الخروج والعودة لشاشة الدخول ثم التطبيق
+    // تسجيل الخروج والعودة للتطبيق
     await tester.tap(find.byTooltip('تسجيل الخروج'));
     await tester.pumpAndSettle();
-    expect(find.text('بوابة إدارة تطبيق تسهيل'), findsOneWidget);
 
     await tester.tap(find.byTooltip('العودة للتطبيق'));
     await tester.pumpAndSettle();
 
-    // الرجوع لشاشة المزيد
+    // الرجوع من شاشة عن التطبيق لشاشة المزيد
     await tester.tap(find.byTooltip('رجوع'));
     await tester.pumpAndSettle();
-    expect(find.text('إعدادات الحساب'), findsOneWidget);
+    expect(find.text('المزيد'), findsWidgets);
+  });
+
+  test('Smart YouTube Video ID extraction tests', () {
+    expect(extractYoutubeVideoId('https://www.youtube.com/watch?v=7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://youtu.be/7_i1wN8eS74?t=10'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://www.youtube.com/embed/7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://www.youtube.com/v/7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://www.youtube.com/shorts/7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://m.youtube.com/watch?v=7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://www.youtube.com/watch?feature=youtu.be&v=7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('https://youtube.com/live/7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId('7_i1wN8eS74'), '7_i1wN8eS74');
+    expect(extractYoutubeVideoId(''), isNull);
+    expect(extractYoutubeVideoId('https://example.com/invalid_video.mp4'), isNull);
   });
 }

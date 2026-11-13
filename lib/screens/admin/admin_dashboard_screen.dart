@@ -387,10 +387,19 @@ class _CategoriesTab extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.scaffoldCream,
-        title: Text('حذف القسم', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف القسم تتابعياً',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
         content: Text(
-          'هل أنت متأكد من حذف قسم "${cat.name}"؟',
-          style: GoogleFonts.readexPro(fontSize: 13),
+          '⚠️ تحذير: حذف قسم "${cat.name}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
+          '• الكتب التابعة لهذا القسم\n'
+          '• كافة الشروحات المرتبطة بتلك الكتب\n'
+          '• جميع الدروس والتفريغات الصوتية والنصية التابعة لها\n'
+          '• أي شيخ ليس له شروحات إلا في هذا القسم\n\n'
+          'هل أنت متأكد من الاستمرار في الحذف؟',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -403,7 +412,7 @@ class _CategoriesTab extends StatelessWidget {
               Navigator.pop(ctx);
               await appProvider.deleteCategory(cat.id);
             },
-            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -583,10 +592,18 @@ class _SheikhsTab extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.scaffoldCream,
-        title: Text('حذف الشيخ', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف الشيخ تتابعياً',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
         content: Text(
-          'هل أنت متأكد من حذف الشيخ "${sheikh.name}"؟',
-          style: GoogleFonts.readexPro(fontSize: 13),
+          '⚠️ تحذير: حذف الشيخ "${sheikh.name}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
+          '• كافة الشروحات المسجلة للشيخ\n'
+          '• جميع الدروس والتفريغات التابعة لشروحاته\n'
+          '• أي كتاب لم يعد له أي شرح آخر في التطبيق\n\n'
+          'هل أنت متأكد من الاستمرار في الحذف؟',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -599,7 +616,7 @@ class _SheikhsTab extends StatelessWidget {
               Navigator.pop(ctx);
               await appProvider.deleteSheikh(sheikh.id);
             },
-            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -814,10 +831,17 @@ class _BooksTabState extends State<_BooksTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.scaffoldCream,
-        title: Text('حذف الكتاب', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف الكتاب تتابعياً',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
         content: Text(
-          'هل أنت متأكد من حذف كتاب "${book.title}"؟',
-          style: GoogleFonts.readexPro(fontSize: 13),
+          '⚠️ تحذير: حذف كتاب "${book.title}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
+          '• كافة الشروحات المسجلة لهذا الكتاب\n'
+          '• جميع الدروس والتفريغات الصوتية والنصية التابعة لها\n\n'
+          'هل أنت متأكد من الاستمرار في الحذف؟',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -830,7 +854,7 @@ class _BooksTabState extends State<_BooksTab> {
               Navigator.pop(ctx);
               await widget.appProvider.deleteBook(book.id);
             },
-            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1138,10 +1162,17 @@ class _SeriesTabState extends State<_SeriesTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.scaffoldCream,
-        title: Text('حذف الشرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف الشرح تتابعياً',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
         content: Text(
-          'هل أنت متأكد من حذف الشرح "${series.title}"؟',
-          style: GoogleFonts.readexPro(fontSize: 13),
+          '⚠️ تحذير: حذف الشرح "${series.title}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
+          '• كافة الدروس الصوتية المسجلة ضمن هذا الشرح\n'
+          '• جميع التفريغات النصية المرتبطة بهذه الدروس\n\n'
+          'هل أنت متأكد من الاستمرار في الحذف؟',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -1154,7 +1185,7 @@ class _SeriesTabState extends State<_SeriesTab> {
               Navigator.pop(ctx);
               await widget.appProvider.deleteSeries(series.id);
             },
-            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1372,6 +1403,40 @@ class _LessonsTabState extends State<_LessonsTab> {
     }
   }
 
+  void _confirmDeleteLesson(BuildContext context, LessonModel lesson) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف الدرس',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
+        content: Text(
+          '⚠️ هل أنت متأكد من حذف الدرس "${lesson.title}"؟\n'
+          'سيتم حذف التسجيل الصوتي والتفريغ النصي التابع له وإزالته من سجل المشغل والمحفوظات.',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.appProvider.deleteLesson(lesson.id);
+              _updateDefaultOrder();
+            },
+            child: Text('تأكيد الحذف', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _openEditLessonDialog(LessonModel lesson) {
     final titleController = TextEditingController(text: lesson.title);
     final orderController = TextEditingController(text: lesson.order.toString());
@@ -1417,6 +1482,61 @@ class _LessonsTabState extends State<_LessonsTab> {
                 controller: videoController,
                 decoration: const InputDecoration(labelText: 'رابط يوتيوب (اختياري)', filled: true, fillColor: AppColors.cardWhite),
               ),
+              if (lesson.hasTranscript) ...[
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 18),
+                  label: Text(
+                    'حذف التفريغ النصي فقط',
+                    style: GoogleFonts.readexPro(color: Colors.red.shade800, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.red.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        backgroundColor: AppColors.scaffoldCream,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        title: Text(
+                          'حذف التفريغ فقط',
+                          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+                        ),
+                        content: Text(
+                          'هل أنت متأكد من حذف التفريغ النصي لدرس "${lesson.title}"؟ سيبقى الدرس الصوتي متاحاً دون حذف.',
+                          style: GoogleFonts.readexPro(fontSize: 13),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c, false),
+                            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+                            onPressed: () => Navigator.pop(c, true),
+                            child: Text('حذف التفريغ', style: GoogleFonts.readexPro(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await widget.appProvider.deleteLessonTranscript(lesson.id);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('تم حذف تفريغ الدرس بنجاح!', style: GoogleFonts.readexPro()),
+                            backgroundColor: AppColors.primaryDarkBrown,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -1742,14 +1862,11 @@ class _LessonsTabState extends State<_LessonsTab> {
                           onPressed: () => _openEditLessonDialog(lesson),
                         ),
 
-                        // زر حذف
+                        // زر حذف الدرس
                         IconButton(
                           icon: Icon(Icons.delete_outline_rounded,
                               color: Colors.red.shade400, size: 18),
-                          onPressed: () async {
-                            await widget.appProvider.deleteLesson(lesson.id);
-                            _updateDefaultOrder();
-                          },
+                          onPressed: () => _confirmDeleteLesson(context, lesson),
                         ),
                       ],
                     ),
@@ -1951,6 +2068,50 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
   bool _onlyWithoutTranscript = false;
   String _searchQuery = '';
 
+  Future<bool> _confirmDeleteTranscript(LessonModel lesson) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'حذف تفريغ الدرس',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف التفريغ النصي لدرس "${lesson.title}"؟\n'
+          'سيبقى الدرس والملف الصوتي متاحاً للطلاب ولن يتأثر بالحذف.',
+          style: GoogleFonts.readexPro(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('تأكيد حذف التفريغ', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await widget.appProvider.deleteLessonTranscript(lesson.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم حذف تفريغ الدرس بنجاح مع بقاء الملف الصوتي!', style: GoogleFonts.readexPro()),
+            backgroundColor: AppColors.primaryDarkBrown,
+          ),
+        );
+      }
+      return true;
+    }
+    return false;
+  }
+
   void _openTranscriptEditor(LessonModel lesson) {
     final controller = TextEditingController(text: lesson.transcript);
 
@@ -1992,6 +2153,17 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
           ),
         ),
         actions: [
+          if (lesson.hasTranscript)
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red.shade800),
+              onPressed: () async {
+                final deleted = await _confirmDeleteTranscript(lesson);
+                if (deleted && ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
+              },
+              child: Text('حذف التفريغ فقط', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
@@ -2121,27 +2293,38 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                         color: hasTranscript ? Colors.green.shade800 : AppColors.textSecondary,
                       ),
                     ),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: hasTranscript
-                            ? AppColors.primaryLightBrown.withValues(alpha: 0.2)
-                            : AppColors.primaryDarkBrown,
-                        foregroundColor: hasTranscript
-                            ? AppColors.primaryDarkBrown
-                            : AppColors.textGoldLight,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(
-                            color: hasTranscript ? AppColors.goldMuted : Colors.transparent,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasTranscript)
+                          IconButton(
+                            tooltip: 'حذف التفريغ فقط',
+                            icon: Icon(Icons.delete_sweep_rounded, color: Colors.red.shade400, size: 20),
+                            onPressed: () => _confirmDeleteTranscript(lesson),
+                          ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: hasTranscript
+                                ? AppColors.primaryLightBrown.withValues(alpha: 0.2)
+                                : AppColors.primaryDarkBrown,
+                            foregroundColor: hasTranscript
+                                ? AppColors.primaryDarkBrown
+                                : AppColors.textGoldLight,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: hasTranscript ? AppColors.goldMuted : Colors.transparent,
+                              ),
+                            ),
+                          ),
+                          onPressed: () => _openTranscriptEditor(lesson),
+                          child: Text(
+                            hasTranscript ? 'تعديل التفريغ' : 'إضافة تفريغ',
+                            style: GoogleFonts.readexPro(fontSize: 11, fontWeight: FontWeight.w600),
                           ),
                         ),
-                      ),
-                      onPressed: () => _openTranscriptEditor(lesson),
-                      child: Text(
-                        hasTranscript ? 'تعديل التفريغ' : 'إضافة تفريغ',
-                        style: GoogleFonts.readexPro(fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
+                      ],
                     ),
                   ),
                 );

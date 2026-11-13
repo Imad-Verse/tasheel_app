@@ -9,12 +9,10 @@ import 'admin_dashboard_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة تسجيل دخول المدير (AdminLoginScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// البوابة السرية لإدارة محتوى تطبيق تسهيل:
+/// البوابة الرسمية الآمنة لإدارة محتوى تطبيق تسهيل:
 /// - هيدر بني داكن فاخر مع أيقونة القفل الذهبي والزخارف الهندسية.
-/// - إدخال البريد الإلكتروني وكلمة المرور مع كشف/إخفاء الرمز السري.
-/// - دعم المصادقة الحقيقية عبر FirebaseAuth إن كان مهيأ، أو البيانات التجريبية
-///   (admin@tasheel.app / 123456) في وضع الحفظ المحلي.
-/// - زر الوصول السريع التجريبي لاختبار ومراجعة جميع أقسام لوحة التحكم فوراً.
+/// - إدخال البريد الإلكتروني وكلمة المرور في حقول فارغة تماماً مع كشف/إخفاء الرمز.
+/// - مصادقة حصرية وفعلية عبر Firebase Authentication مع رسائل تنبيه عربية دقيقة.
 /// ═══════════════════════════════════════════════════════════════════════════
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -25,8 +23,8 @@ class AdminLoginScreen extends StatefulWidget {
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'admin@tasheel.app');
-  final _passwordController = TextEditingController(text: '123456');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -55,53 +53,47 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+    if (!appProvider.isFirebaseConnected) {
+      _showErrorSnackBar(
+        'خدمة Firebase غير متصلة حالياً. يلزم توفر اتصال بالإنترنت لتسجيل دخول المدير.',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
 
     try {
-      if (appProvider.isFirebaseConnected) {
-        // مصادقة سحابية عبر Firebase Auth
-        try {
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-          if (mounted) {
-            _navigateToDashboard();
-          }
-        } on FirebaseAuthException catch (e) {
-          // إذا لم يكن الحساب موجوداً في Firebase، نسمح ببيانات التجربة للمعاينة
-          if (email == 'admin@tasheel.app' && password == '123456') {
-            if (mounted) _navigateToDashboard();
-            return;
-          }
-          if (mounted) {
-            String message = 'فشل تسجيل الدخول';
-            if (e.code == 'user-not-found') {
-              message = 'البريد الإلكتروني غير مسجل في قاعدة البيانات';
-            } else if (e.code == 'wrong-password') {
-              message = 'كلمة المرور غير صحيحة';
-            } else if (e.code == 'invalid-email') {
-              message = 'صيغة البريد الإلكتروني غير صحيحة';
-            }
-            _showErrorSnackBar(message);
-          }
-        }
-      } else {
-        // الوضع المحلي / التجريبي
-        await Future.delayed(const Duration(milliseconds: 300));
-        if ((email == 'admin@tasheel.app' && password == '123456') ||
-            (email.isNotEmpty && password.length >= 6)) {
-          if (mounted) {
-            _navigateToDashboard();
-          }
+      // مصادقة سحابية حصرية عبر FirebaseAuth
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (mounted) {
+        _navigateToDashboard();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        String message = 'فشل تسجيل الدخول';
+        if (e.code == 'user-not-found') {
+          message = 'البريد الإلكتروني غير مسجل في قاعدة البيانات';
+        } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          message = 'كلمة المرور غير صحيحة أو بيانات الدخول غير متطابقة';
+        } else if (e.code == 'invalid-email') {
+          message = 'صيغة البريد الإلكتروني غير صحيحة';
+        } else if (e.code == 'user-disabled') {
+          message = 'تم تعطيل هذا الحساب من قِبل إدارة النظام';
+        } else if (e.code == 'too-many-requests') {
+          message = 'تم حظر المحاولات مؤقتاً لكثرة المحاولات الخاطئة. يرجى المحاولة لاحقاً.';
+        } else if (e.code == 'network-request-failed') {
+          message = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت.';
         } else {
-          if (mounted) {
-            _showErrorSnackBar('بيانات الدخول غير صحيحة (التجريبي: admin@tasheel.app / 123456)');
-          }
+          message = 'تعذر تسجيل الدخول: ${e.message ?? e.code}';
         }
+        _showErrorSnackBar(message);
       }
     } catch (e) {
       if (mounted) {
@@ -153,48 +145,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                     const SizedBox(height: 24),
 
-                    // حقل البريد الإلكتروني
+                    // حقل البريد الإلكتروني (فارغ تماماً)
                     _buildEmailField(),
 
                     const SizedBox(height: 16),
 
-                    // حقل كلمة المرور
+                    // حقل كلمة المرور (فارغ تماماً)
                     _buildPasswordField(),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 26),
 
                     // زر تسجيل الدخول الرئيسي
                     _buildLoginButton(),
-
-                    const SizedBox(height: 16),
-
-                    // فاصل أنيق
-                    Row(
-                      children: [
-                        const Expanded(child: Divider(color: AppColors.dividerLight)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'أو',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: Divider(color: AppColors.dividerLight)),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // زر الدخول السريع للتجربة
-                    _buildQuickDemoButton(),
-
-                    const SizedBox(height: 24),
-
-                    // تلميح الحساب التجريبي
-                    _buildDemoHint(),
                   ],
                 ),
               ),
@@ -291,7 +253,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           const SizedBox(height: 6),
 
           Text(
-            'التحكم في المتون والشيوخ والكتب والدروس والتفريغات',
+            'تسجيل الدخول المعتمد للتحكم بالمحتوى العلمي والمزامنة السحابية',
             style: GoogleFonts.readexPro(
               fontSize: 13,
               color: AppColors.textWhite.withValues(alpha: 0.85),
@@ -320,7 +282,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            isConnected ? Icons.cloud_done_rounded : Icons.save_rounded,
+            isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
             size: 18,
             color: isConnected ? Colors.green.shade800 : AppColors.primaryDarkBrown,
           ),
@@ -328,8 +290,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           Flexible(
             child: Text(
               isConnected
-                  ? 'متصل بالسحابة Firebase (مزامنة فورية)'
-                  : 'وضع الحفظ المحلي SharedPreferences (جاهز للعمل)',
+                  ? 'بوابة المصادقة: متصل بـ Firebase Authentication'
+                  : 'بوابة المصادقة: يلزم توفر اتصال بـ Firebase',
               style: GoogleFonts.readexPro(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -362,7 +324,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           textDirection: TextDirection.ltr,
           style: GoogleFonts.readexPro(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'admin@tasheel.app',
+            hintText: 'name@example.com',
             hintStyle: GoogleFonts.readexPro(
               fontSize: 13,
               color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -497,64 +459,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildQuickDemoButton() {
-    return OutlinedButton(
-      onPressed: _navigateToDashboard,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primaryDarkBrown,
-        side: const BorderSide(color: AppColors.goldMuted, width: 1.5),
-        backgroundColor: AppColors.cardWhite,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.flash_on_rounded, color: AppColors.iconGold, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'دخول سريع للتجربة (بدون حساب)',
-            style: GoogleFonts.readexPro(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryDarkBrown,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDemoHint() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.dividerLight),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline_rounded, color: AppColors.iconGold, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'بيانات المدير الافتراضية للتجربة:\nالبريد: admin@tasheel.app\nالرمز: 123456\nتتيح إضافة وتعديل المتون والدروس محلياً أو سحابياً.',
-              style: GoogleFonts.readexPro(
-                fontSize: 12,
-                height: 1.6,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,11 +1,11 @@
 {
-    "name": "tasheel_app",
-    "short_name": "tasheel_app",
+    "name": "تسهيل للعلوم الشرعية",
+    "short_name": "تسهيل",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#3E2E1F",
+    "theme_color": "#4A3B32",
+    "description": "تطبيق تسهيل - طريقك لتيسير العلوم الشرعية",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
