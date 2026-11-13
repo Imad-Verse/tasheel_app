@@ -159,23 +159,23 @@ class SheikhsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // ── 1. أيقونة الشيخ / الكتاب على اليمين في RTL ─────────────
+                // ── 1. أيقونة الشيخ (شخص) بخلفية داكنة ولون فاتح على اليمين في RTL ──
                 Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.accentGoldBeige.withValues(alpha: 0.18),
+                    color: const Color(0xFF3E2723), // بني قاتم داكن
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.accentGoldBeige.withValues(alpha: 0.4),
+                      color: AppColors.accentGoldBeige.withValues(alpha: 0.35),
                       width: 1,
                     ),
                   ),
                   child: const Center(
                     child: Icon(
-                      Icons.menu_book_rounded,
-                      color: AppColors.iconGold,
-                      size: 22,
+                      Icons.person_rounded, // مطابقة لأيقونة الشيوخ في الشريط السفلي
+                      color: Color(0xFFFFF8E7), // كريمي فاتح وقور
+                      size: 24,
                     ),
                   ),
                 ),

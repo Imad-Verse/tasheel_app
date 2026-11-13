@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
@@ -34,7 +35,7 @@ class CategoriesScreen extends StatelessWidget {
             children: [
               // ── 1. الهيدر البني العلوي المزخرف ─────────────────────────
               DecoratedHeader(
-                title: 'المتون',
+                title: 'المتون العلمية',
                 showSearchIcon: true,
                 onSearchPressed: () => GlobalSearchDelegate.show(context),
               ),
@@ -98,9 +99,7 @@ class CategoriesScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isGrid
-                        ? Icons.view_list_rounded
-                        : Icons.grid_view_rounded,
+                    isGrid ? Icons.view_list_rounded : Icons.grid_view_rounded,
                     color: AppColors.iconGold,
                     size: 20,
                   ),
@@ -123,10 +122,7 @@ class CategoriesScreen extends StatelessWidget {
   }
 
   /// ── 3.1 وضع القائمة (مطابق للصورة المرجعية الثالثة) ────────────────────
-  Widget _buildListView(
-    BuildContext context,
-    List<CategoryModel> categories,
-  ) {
+  Widget _buildListView(BuildContext context, List<CategoryModel> categories) {
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -161,15 +157,16 @@ class CategoriesScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // ── 1. أيقونة النجمة والزخرفة الإسلامية الذهبية على اليمين في RTL ──
-                _buildIslamicStarBadge(cat.iconName),
+                // ── 1. أيقونة الكتاب بخلفية بنية قاتمة ولون فاتح على اليمين في RTL ──
+                _buildBookBadge(),
 
                 const SizedBox(width: 14),
 
                 // ── 2. معلومات القسم في المنتصف بمحاذاة اليمين ─────────────
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                     children: [
                       Text(
                         cat.name,
@@ -209,34 +206,31 @@ class CategoriesScreen extends StatelessWidget {
     );
   }
 
-  /// أيقونة النجمة الإسلامية الزخرفية
-  Widget _buildIslamicStarBadge(String iconName) {
+  /// أيقونة الكتاب للبطاقة في وضع القائمة
+  Widget _buildBookBadge() {
     return Container(
-      width: 46,
-      height: 46,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: AppColors.accentGoldBeige.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF3E2723), // بني قاتم معتمد
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.accentGoldBeige.withValues(alpha: 0.4),
+          color: AppColors.accentGoldBeige.withValues(alpha: 0.35),
           width: 1,
         ),
       ),
       child: const Center(
         child: Icon(
-          Icons.auto_awesome,
-          color: AppColors.iconGold,
-          size: 22,
+          Icons.menu_book_rounded,
+          color: Color(0xFFFFF8E7), // كريمي فاتح وقور
+          size: 24,
         ),
       ),
     );
   }
 
   /// ── 3.2 وضع المربعات (Grid View - 3 في كل سطر) ─────────────────────────
-  Widget _buildGridView(
-    BuildContext context,
-    List<CategoryModel> categories,
-  ) {
+  Widget _buildGridView(BuildContext context, List<CategoryModel> categories) {
     return GridView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
@@ -244,7 +238,8 @@ class CategoriesScreen extends StatelessWidget {
         crossAxisCount: 3, // 3 مربعات في كل سطر كما طُلب
         crossAxisSpacing: 12,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.72, // نسبة تسمح بالمربع 1:1 مع النص تحته بدون overflow
+        childAspectRatio:
+            0.72, // نسبة تسمح بالمربع 1:1 مع النص تحته بدون overflow
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -286,9 +281,7 @@ class CategoriesScreen extends StatelessWidget {
                   children: [
                     // زخرفة إسلامية خفيفة في زوايا المربع
                     Positioned.fill(
-                      child: CustomPaint(
-                        painter: _SquareOrnamentPainter(),
-                      ),
+                      child: CustomPaint(painter: _SquareOrnamentPainter()),
                     ),
                     // أيقونة القسم في الوسط
                     Center(
@@ -296,7 +289,9 @@ class CategoriesScreen extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                          color: AppColors.accentGoldBeige.withValues(
+                            alpha: 0.2,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -311,7 +306,10 @@ class CategoriesScreen extends StatelessWidget {
                       top: 6,
                       left: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryDarkBrown,
                           borderRadius: BorderRadius.circular(8),
@@ -374,9 +372,7 @@ class CategoriesScreen extends StatelessWidget {
   void _openCategoryBooks(BuildContext context, CategoryModel cat) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CategoryBooksScreen(category: cat),
-      ),
+      MaterialPageRoute(builder: (_) => CategoryBooksScreen(category: cat)),
     );
   }
 }
@@ -398,16 +394,40 @@ class _SquareOrnamentPainter extends CustomPainter {
     canvas.drawLine(const Offset(4, 4), const Offset(4 + cornerSize, 4), paint);
 
     // أعلى يمين
-    canvas.drawLine(Offset(size.width - 4, 4 + cornerSize), Offset(size.width - 4, 4), paint);
-    canvas.drawLine(Offset(size.width - 4, 4), Offset(size.width - 4 - cornerSize, 4), paint);
+    canvas.drawLine(
+      Offset(size.width - 4, 4 + cornerSize),
+      Offset(size.width - 4, 4),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width - 4, 4),
+      Offset(size.width - 4 - cornerSize, 4),
+      paint,
+    );
 
     // أسفل يسار
-    canvas.drawLine(Offset(4, size.height - 4 - cornerSize), Offset(4, size.height - 4), paint);
-    canvas.drawLine(Offset(4, size.height - 4), Offset(4 + cornerSize, size.height - 4), paint);
+    canvas.drawLine(
+      Offset(4, size.height - 4 - cornerSize),
+      Offset(4, size.height - 4),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(4, size.height - 4),
+      Offset(4 + cornerSize, size.height - 4),
+      paint,
+    );
 
     // أسفل يمين
-    canvas.drawLine(Offset(size.width - 4, size.height - 4 - cornerSize), Offset(size.width - 4, size.height - 4), paint);
-    canvas.drawLine(Offset(size.width - 4, size.height - 4), Offset(size.width - 4 - cornerSize, size.height - 4), paint);
+    canvas.drawLine(
+      Offset(size.width - 4, size.height - 4 - cornerSize),
+      Offset(size.width - 4, size.height - 4),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width - 4, size.height - 4),
+      Offset(size.width - 4 - cornerSize, size.height - 4),
+      paint,
+    );
   }
 
   @override

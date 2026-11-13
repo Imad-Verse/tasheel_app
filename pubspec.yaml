@@ -1,7 +1,7 @@
 name: tasheel_app
 description: "تطبيق تسهيل - طريقك لتيسير العلوم الشرعية"
-publish_to: 'none'
-version: 1.0.0+1
+publish_to: "none"
+version: 1.0.5+2
 
 environment:
   sdk: ^3.14.0
