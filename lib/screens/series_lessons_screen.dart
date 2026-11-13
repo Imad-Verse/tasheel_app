@@ -33,9 +33,9 @@ class SeriesLessonsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, appProvider, child) {
-        final actualBook = book ?? MockDataService.getBookById(series.bookId);
-        final actualSheikh = sheikh ?? MockDataService.getSheikhById(series.sheikhId);
-        final category = MockDataService.getCategoryById(series.categoryId);
+        final actualBook = book ?? appProvider.getBookById(series.bookId) ?? MockDataService.getBookById(series.bookId);
+        final actualSheikh = sheikh ?? appProvider.getSheikhById(series.sheikhId) ?? MockDataService.getSheikhById(series.sheikhId);
+        final category = appProvider.getCategoryById(series.categoryId) ?? MockDataService.getCategoryById(series.categoryId);
         final lessons = appProvider.getLessonsBySeries(series.id);
         final isStudied = appProvider.isSeriesStudied(series.id);
         final progress = appProvider.getSeriesProgress(series.id);

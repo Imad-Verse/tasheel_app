@@ -30,6 +30,10 @@ class AudioProvider extends ChangeNotifier {
   late final AudioPlayer _player;
   Dio? _dio;
 
+  StreamSubscription<PlayerState>? _playerStateSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration?>? _durationSub;
+
   static const String _keyDownloadedMap = 'tasheel_downloaded_lessons_map';
 
   // ─── بيانات الدرس والشرح الحالي ──────────────────────────────────────────
@@ -121,7 +125,7 @@ class AudioProvider extends ChangeNotifier {
     _player = AudioPlayer();
 
     // الاستماع لحالة التشغيل
-    _player.playerStateStream.listen((state) {
+    _playerStateSub = _player.playerStateStream.listen((state) {
       final isNowPlaying = state.playing;
       final processingState = state.processingState;
 
@@ -140,13 +144,13 @@ class AudioProvider extends ChangeNotifier {
     });
 
     // الاستماع لتغير موضع الصوت
-    _player.positionStream.listen((pos) {
+    _positionSub = _player.positionStream.listen((pos) {
       _currentPosition = pos;
       notifyListeners();
     });
 
     // الاستماع لإجمالي المدة
-    _player.durationStream.listen((dur) {
+    _durationSub = _player.durationStream.listen((dur) {
       if (dur != null) {
         _totalDuration = dur;
         notifyListeners();
@@ -514,6 +518,9 @@ class AudioProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _playerStateSub?.cancel();
+    _positionSub?.cancel();
+    _durationSub?.cancel();
     _player.dispose();
     _sleepTimer?.cancel();
     _countdownTimer?.cancel();

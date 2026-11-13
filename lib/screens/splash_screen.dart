@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -26,6 +27,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  Timer? _splashTimer;
 
   @override
   void initState() {
@@ -55,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // الانتقال بعد 2.5 ثانية بحركة تلاشٍ أنيقة
-    Future.delayed(const Duration(milliseconds: 2500), () {
+    _splashTimer = Timer(const Duration(milliseconds: 2500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -77,6 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _splashTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

@@ -191,8 +191,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
         ? audioProvider.currentLesson!
         : widget.lesson;
 
-    final book = MockDataService.getBookById(widget.series.bookId);
-    final sheikh = MockDataService.getSheikhById(widget.series.sheikhId);
+    final book = appProvider.getBookById(widget.series.bookId) ??
+        MockDataService.getBookById(widget.series.bookId);
+    final sheikh = appProvider.getSheikhById(widget.series.sheikhId) ??
+        MockDataService.getSheikhById(widget.series.sheikhId);
     final hasVideo = currentLesson.hasVideo;
 
     // إذا تم الانتقال لدرس لا يحتوي على فيديو، العودة التلقائية لوضع الصوت

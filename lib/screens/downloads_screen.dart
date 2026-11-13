@@ -43,7 +43,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           Expanded(
             child: downloadedSeries.isEmpty
                 ? _buildEmptyDownloadsState(context, appProvider)
-                : _buildDownloadedSeriesList(context, audioProvider, downloadedSeries),
+                : _buildDownloadedSeriesList(context, audioProvider, appProvider, downloadedSeries),
           ),
         ],
       ),
@@ -215,6 +215,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   Widget _buildDownloadedSeriesList(
     BuildContext context,
     AudioProvider audioProvider,
+    AppProvider appProvider,
     List<SeriesModel> seriesList,
   ) {
     return ListView.builder(
@@ -223,9 +224,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       itemCount: seriesList.length,
       itemBuilder: (context, index) {
         final series = seriesList[index];
-        final book = MockDataService.getBookById(series.bookId);
-        final sheikh = MockDataService.getSheikhById(series.sheikhId);
-        final category = MockDataService.getCategoryById(series.categoryId);
+        final book = appProvider.getBookById(series.bookId) ?? MockDataService.getBookById(series.bookId);
+        final sheikh = appProvider.getSheikhById(series.sheikhId) ?? MockDataService.getSheikhById(series.sheikhId);
+        final category = appProvider.getCategoryById(series.categoryId) ?? MockDataService.getCategoryById(series.categoryId);
         final lessons = audioProvider.getDownloadedLessonsForSeries(series.id);
         final isExpanded = _expandedSeriesIds.contains(series.id);
 

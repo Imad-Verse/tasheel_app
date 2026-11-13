@@ -169,9 +169,9 @@ class BookmarksScreen extends StatelessWidget {
       itemCount: list.length,
       itemBuilder: (context, index) {
         final series = list[index];
-        final book = MockDataService.getBookById(series.bookId);
-        final sheikh = MockDataService.getSheikhById(series.sheikhId);
-        final category = MockDataService.getCategoryById(series.categoryId);
+        final book = appProvider.getBookById(series.bookId) ?? MockDataService.getBookById(series.bookId);
+        final sheikh = appProvider.getSheikhById(series.sheikhId) ?? MockDataService.getSheikhById(series.sheikhId);
+        final category = appProvider.getCategoryById(series.categoryId) ?? MockDataService.getCategoryById(series.categoryId);
 
         final totalLessons = series.lessonsCount;
         final completedLessons = appProvider.getCompletedLessonsInSeries(series.id);

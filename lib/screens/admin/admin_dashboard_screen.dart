@@ -2026,15 +2026,18 @@ class _LessonsTabState extends State<_LessonsTab> {
             ),
           ),
           const SizedBox(height: 12),
-          SwitchListTile(
-            value: _singleSendNotification,
-            title: Text(
-              'إرسال إشعار للمستخدمين بهذه الإضافة',
-              style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              value: _singleSendNotification,
+              title: Text(
+                'إرسال إشعار للمستخدمين بهذه الإضافة',
+                style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              activeThumbColor: AppColors.iconGold,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) => setState(() => _singleSendNotification = val),
             ),
-            activeThumbColor: AppColors.iconGold,
-            contentPadding: EdgeInsets.zero,
-            onChanged: (val) => setState(() => _singleSendNotification = val),
           ),
           const SizedBox(height: 14),
           ElevatedButton.icon(
@@ -2107,15 +2110,18 @@ class _LessonsTabState extends State<_LessonsTab> {
             ),
           ),
           const SizedBox(height: 12),
-          SwitchListTile(
-            value: _bulkSendNotification,
-            title: Text(
-              'إرسال إشعار للمستخدمين بهذه الإضافة',
-              style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              value: _bulkSendNotification,
+              title: Text(
+                'إرسال إشعار للمستخدمين بهذه الإضافة',
+                style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              activeThumbColor: AppColors.iconGold,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) => setState(() => _bulkSendNotification = val),
             ),
-            activeThumbColor: AppColors.iconGold,
-            contentPadding: EdgeInsets.zero,
-            onChanged: (val) => setState(() => _bulkSendNotification = val),
           ),
           const SizedBox(height: 14),
           ElevatedButton.icon(
@@ -2886,35 +2892,41 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
           const SizedBox(height: 12),
 
           // مفتاح التحديث الإجباري
-          SwitchListTile(
-            value: _isForceUpdate,
-            title: Text(
-              'تحديث إجباري (إلزام المستخدم بالتحديث)',
-              style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              value: _isForceUpdate,
+              title: Text(
+                'تحديث إجباري (إلزام المستخدم بالتحديث)',
+                style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                'في حال تفعيله، لن يتمكن المستخدم من استخدام التطبيق حتى يحدّث للإصدار الجديد',
+                style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+              ),
+              activeThumbColor: Colors.red.shade700,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) => setState(() => _isForceUpdate = val),
             ),
-            subtitle: Text(
-              'في حال تفعيله، لن يتمكن المستخدم من استخدام التطبيق حتى يحدّث للإصدار الجديد',
-              style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
-            ),
-            activeThumbColor: Colors.red.shade700,
-            contentPadding: EdgeInsets.zero,
-            onChanged: (val) => setState(() => _isForceUpdate = val),
           ),
 
           // مفتاح إرسال إشعار تنبيهي
-          SwitchListTile(
-            value: _notifyUsersOnUpdate,
-            title: Text(
-              'إرسال إشعار تنبيهي للمستخدمين بتوفر التحديث',
-              style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              value: _notifyUsersOnUpdate,
+              title: Text(
+                'إرسال إشعار تنبيهي للمستخدمين بتوفر التحديث',
+                style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                'يبعث تلقائياً إشعاراً لجميع الطلاب برابط التحديث والمميزات الجديدة',
+                style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+              ),
+              activeThumbColor: AppColors.iconGold,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (val) => setState(() => _notifyUsersOnUpdate = val),
             ),
-            subtitle: Text(
-              'يبعث تلقائياً إشعاراً لجميع الطلاب برابط التحديث والمميزات الجديدة',
-              style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
-            ),
-            activeThumbColor: AppColors.iconGold,
-            contentPadding: EdgeInsets.zero,
-            onChanged: (val) => setState(() => _notifyUsersOnUpdate = val),
           ),
 
           const SizedBox(height: 14),

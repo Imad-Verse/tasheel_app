@@ -19,10 +19,18 @@ class StatisticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, appProvider, child) {
-        final totalSheikhs = MockDataService.sheikhs.length;
-        final totalBooks = MockDataService.books.length;
-        final totalSeries = MockDataService.series.length;
-        final totalLessons = MockDataService.lessons.length;
+        final totalSheikhs = appProvider.sheikhs.isNotEmpty
+            ? appProvider.sheikhs.length
+            : MockDataService.sheikhs.length;
+        final totalBooks = appProvider.books.isNotEmpty
+            ? appProvider.books.length
+            : MockDataService.books.length;
+        final totalSeries = appProvider.series.isNotEmpty
+            ? appProvider.series.length
+            : MockDataService.series.length;
+        final totalLessons = appProvider.lessons.isNotEmpty
+            ? appProvider.lessons.length
+            : MockDataService.lessons.length;
 
         final completedLessons = appProvider.completedLessonsCount;
         final studiedSeries = appProvider.studiedSeriesCount;
