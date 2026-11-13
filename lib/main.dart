@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'providers/audio_provider.dart';
@@ -19,14 +20,16 @@ import 'screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة ذكية وآمنة لـ Firebase لمنع تعطل التطبيق قبل ربط ملفات الإعداد
+  // تهيئة Firebase عبر DefaultFirebaseOptions مع معالجة الأخطاء بأمان
   bool isFirebaseConnected = false;
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     isFirebaseConnected = true;
-    debugPrint('Firebase initialized successfully.');
+    debugPrint('Firebase initialized successfully with DefaultFirebaseOptions.');
   } catch (e) {
-    debugPrint('Firebase not configured yet, running in local/persistence mode: $e');
+    debugPrint('Firebase not configured yet or platform offline, running in local mode: $e');
   }
 
   // ضبط ألوان شريط الحالة
