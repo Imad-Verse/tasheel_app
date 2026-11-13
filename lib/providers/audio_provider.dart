@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
 
@@ -78,9 +81,13 @@ class AudioProvider extends ChangeNotifier {
   Timer? _sleepTimer;
   Timer? _countdownTimer;
   Duration? _remainingSleepTime;
+  bool _sleepAtEndOfLesson = false;
+
   Duration? get remainingSleepTime => _remainingSleepTime;
+  bool get sleepAtEndOfLesson => _sleepAtEndOfLesson;
   bool get hasActiveSleepTimer =>
-      _remainingSleepTime != null && _remainingSleepTime! > Duration.zero;
+      (_remainingSleepTime != null && _remainingSleepTime! > Duration.zero) ||
+      _sleepAtEndOfLesson;
 
   // ─── إدارة التنزيلات للاستماع بدون إنترنت ──────────────────────────────
   /// خريطة معرف الدرس إلى مسار الملف المحلي على الجهاز
@@ -95,9 +102,31 @@ class AudioProvider extends ChangeNotifier {
   /// الدروس قيد التنزيل حالياً
   final Set<String> _downloadingLessonIds = {};
 
-  bool isDownloaded(String lessonId) => _downloadedFilePaths.containsKey(lessonId);
-  bool isDownloading(String lessonId) => _downloadingLessonIds.contains(lessonId);
-  double getDownloadProgress(String lessonId) => _downloadProgress[lessonId] ?? 0.0;
+  // ─── التنزيل الجماعي للشرح (Bulk Download) ──────────────────────────────
+  String? _bulkDownloadingSeriesId;
+  int _bulkTotal = 0;
+  int _bulkCurrent = 0;
+  bool _bulkCancelRequested = false;
+
+  String? get bulkDownloadingSeriesId => _bulkDownloadingSeriesId;
+  bool isDownloadingSeries(String seriesId) =>
+      _bulkDownloadingSeriesId == seriesId;
+  double get bulkDownloadProgress =>
+      _bulkTotal > 0 ? (_bulkCurrent / _bulkTotal) : 0.0;
+  int get bulkCurrent => _bulkCurrent;
+  int get bulkTotal => _bulkTotal;
+
+  bool isSeriesFullyDownloaded(List<LessonModel> lessons) {
+    if (lessons.isEmpty) return false;
+    return lessons.every((l) => isDownloaded(l.id));
+  }
+
+  bool isDownloaded(String lessonId) =>
+      _downloadedFilePaths.containsKey(lessonId);
+  bool isDownloading(String lessonId) =>
+      _downloadingLessonIds.contains(lessonId);
+  double getDownloadProgress(String lessonId) =>
+      _downloadProgress[lessonId] ?? 0.0;
   String? getLocalFilePath(String lessonId) => _downloadedFilePaths[lessonId];
 
   /// جميع الدروس المحملة على الجهاز
@@ -109,7 +138,9 @@ class AudioProvider extends ChangeNotifier {
 
   /// جميع الشروحات التي تحتوي على دروس محملة (مجمعة حسب الشرح)
   List<SeriesModel> get downloadedSeries {
-    final downloadedSeriesIds = downloadedLessons.map((l) => l.seriesId).toSet();
+    final downloadedSeriesIds = downloadedLessons
+        .map((l) => l.seriesId)
+        .toSet();
     return MockDataService.series
         .where((s) => downloadedSeriesIds.contains(s.id))
         .toList();
@@ -130,13 +161,16 @@ class AudioProvider extends ChangeNotifier {
       final processingState = state.processingState;
 
       _isPlaying = isNowPlaying && processingState != ProcessingState.completed;
-      _isBuffering = processingState == ProcessingState.buffering ||
+      _isBuffering =
+          processingState == ProcessingState.buffering ||
           processingState == ProcessingState.loading;
 
       if (processingState == ProcessingState.completed) {
         _currentPosition = _totalDuration;
-        // إذا كان هناك درس تالٍ، يمكن الانتقال له تلقائياً
-        if (hasNextLesson) {
+        if (_sleepAtEndOfLesson) {
+          pause();
+          cancelSleepTimer();
+        } else if (hasNextLesson) {
           playNextLesson();
         }
       }
@@ -175,6 +209,27 @@ class AudioProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final albumName = _currentBook?.title.isNotEmpty == true
+          ? _currentBook!.title
+          : _currentSeries?.title ?? 'تطبيق تسهيل';
+      final artistName = _currentSheikh?.name.isNotEmpty == true
+          ? _currentSheikh!.name
+          : 'تطبيق تسهيل للعلوم الشرعية';
+      Uri? artUri;
+      if (_currentBook?.coverUrl.isNotEmpty == true &&
+          (_currentBook!.coverUrl.startsWith('http://') ||
+              _currentBook!.coverUrl.startsWith('https://'))) {
+        artUri = Uri.tryParse(_currentBook!.coverUrl);
+      }
+
+      final mediaItem = MediaItem(
+        id: lesson.id,
+        album: albumName,
+        title: lesson.title,
+        artist: artistName,
+        artUri: artUri,
+      );
+
       bool playedLocally = false;
       final localPath = _downloadedFilePaths[lesson.id];
 
@@ -182,14 +237,18 @@ class AudioProvider extends ChangeNotifier {
       if (localPath != null && !kIsWeb && !localPath.startsWith('web_cached')) {
         final file = File(localPath);
         if (await file.exists()) {
-          await _player.setFilePath(localPath);
+          await _player.setAudioSource(
+            AudioSource.file(localPath, tag: mediaItem),
+          );
           playedLocally = true;
         }
       }
 
       // إذا لم يتوفر محلياً وكان هناك رابط صوتي، يتم تشغيله عبر الإنترنت
       if (!playedLocally && lesson.audioUrl.isNotEmpty) {
-        await _player.setUrl(lesson.audioUrl);
+        await _player.setAudioSource(
+          AudioSource.uri(Uri.parse(lesson.audioUrl), tag: mediaItem),
+        );
       }
 
       await _player.setSpeed(_playbackSpeed);
@@ -270,22 +329,34 @@ class AudioProvider extends ChangeNotifier {
   // ─── التنقل بين الدروس (التالي / السابق) ──────────────────────────────────
   bool get hasNextLesson {
     if (_currentLesson == null || _currentSeries == null) return false;
-    final seriesLessons = MockDataService.getLessonsBySeries(_currentSeries!.id);
-    final currentIndex = seriesLessons.indexWhere((l) => l.id == _currentLesson!.id);
+    final seriesLessons = MockDataService.getLessonsBySeries(
+      _currentSeries!.id,
+    );
+    final currentIndex = seriesLessons.indexWhere(
+      (l) => l.id == _currentLesson!.id,
+    );
     return currentIndex != -1 && currentIndex < seriesLessons.length - 1;
   }
 
   bool get hasPreviousLesson {
     if (_currentLesson == null || _currentSeries == null) return false;
-    final seriesLessons = MockDataService.getLessonsBySeries(_currentSeries!.id);
-    final currentIndex = seriesLessons.indexWhere((l) => l.id == _currentLesson!.id);
+    final seriesLessons = MockDataService.getLessonsBySeries(
+      _currentSeries!.id,
+    );
+    final currentIndex = seriesLessons.indexWhere(
+      (l) => l.id == _currentLesson!.id,
+    );
     return currentIndex > 0;
   }
 
   Future<void> playNextLesson() async {
     if (!hasNextLesson) return;
-    final seriesLessons = MockDataService.getLessonsBySeries(_currentSeries!.id);
-    final currentIndex = seriesLessons.indexWhere((l) => l.id == _currentLesson!.id);
+    final seriesLessons = MockDataService.getLessonsBySeries(
+      _currentSeries!.id,
+    );
+    final currentIndex = seriesLessons.indexWhere(
+      (l) => l.id == _currentLesson!.id,
+    );
     final nextLesson = seriesLessons[currentIndex + 1];
     await loadAndPlayLesson(
       lesson: nextLesson,
@@ -298,8 +369,12 @@ class AudioProvider extends ChangeNotifier {
 
   Future<void> playPreviousLesson() async {
     if (!hasPreviousLesson) return;
-    final seriesLessons = MockDataService.getLessonsBySeries(_currentSeries!.id);
-    final currentIndex = seriesLessons.indexWhere((l) => l.id == _currentLesson!.id);
+    final seriesLessons = MockDataService.getLessonsBySeries(
+      _currentSeries!.id,
+    );
+    final currentIndex = seriesLessons.indexWhere(
+      (l) => l.id == _currentLesson!.id,
+    );
     final prevLesson = seriesLessons[currentIndex - 1];
     await loadAndPlayLesson(
       lesson: prevLesson,
@@ -343,11 +418,13 @@ class AudioProvider extends ChangeNotifier {
   void setSleepTimer(Duration duration) {
     cancelSleepTimer();
     _remainingSleepTime = duration;
+    _sleepAtEndOfLesson = false;
     notifyListeners();
 
     // عداد تنازلي كل ثانية
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remainingSleepTime == null || _remainingSleepTime! <= const Duration(seconds: 1)) {
+      if (_remainingSleepTime == null ||
+          _remainingSleepTime! <= const Duration(seconds: 1)) {
         timer.cancel();
         _remainingSleepTime = null;
         notifyListeners();
@@ -364,12 +441,20 @@ class AudioProvider extends ChangeNotifier {
     });
   }
 
+  /// إيقاف الصوت تلقائياً عند انتهاء الدرس الحالي
+  void setSleepAtEndOfLesson() {
+    cancelSleepTimer();
+    _sleepAtEndOfLesson = true;
+    notifyListeners();
+  }
+
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _countdownTimer?.cancel();
     _countdownTimer = null;
     _remainingSleepTime = null;
+    _sleepAtEndOfLesson = false;
     notifyListeners();
   }
 
@@ -407,8 +492,10 @@ class AudioProvider extends ChangeNotifier {
             savePath,
             onReceiveProgress: (received, total) {
               if (total > 0) {
-                _downloadProgress[lesson.id] =
-                    (received / total).clamp(0.0, 1.0);
+                _downloadProgress[lesson.id] = (received / total).clamp(
+                  0.0,
+                  1.0,
+                );
                 notifyListeners();
               }
             },
@@ -438,7 +525,10 @@ class AudioProvider extends ChangeNotifier {
   /// حذف درس محمل من الجهاز لتفريغ المساحة
   Future<void> deleteDownload(String lessonId) async {
     final path = _downloadedFilePaths[lessonId];
-    if (path != null && !kIsWeb && !path.startsWith('web_cached') && !path.startsWith('cached_')) {
+    if (path != null &&
+        !kIsWeb &&
+        !path.startsWith('web_cached') &&
+        !path.startsWith('cached_')) {
       try {
         final file = File(path);
         if (await file.exists()) {
@@ -460,7 +550,8 @@ class AudioProvider extends ChangeNotifier {
     if (isDownloaded(lessonId)) {
       await deleteDownload(lessonId);
     } else {
-      final targetLesson = lesson ??
+      final targetLesson =
+          lesson ??
           MockDataService.lessons.firstWhere(
             (l) => l.id == lessonId,
             orElse: () => MockDataService.lessons.first,
@@ -469,10 +560,46 @@ class AudioProvider extends ChangeNotifier {
     }
   }
 
+  /// تحميل جميع دروس الشرح غير المحملة بالتتابع مع متابعة التقدم وإمكانية الإلغاء
+  Future<void> downloadSeriesBulk(
+    SeriesModel series,
+    List<LessonModel> lessons,
+  ) async {
+    final undownloaded = lessons.where((l) => !isDownloaded(l.id)).toList();
+    if (undownloaded.isEmpty) return;
+
+    _bulkDownloadingSeriesId = series.id;
+    _bulkTotal = undownloaded.length;
+    _bulkCurrent = 0;
+    _bulkCancelRequested = false;
+    notifyListeners();
+
+    for (final lesson in undownloaded) {
+      if (_bulkCancelRequested) break;
+      await downloadLesson(lesson);
+      _bulkCurrent++;
+      notifyListeners();
+    }
+
+    _bulkDownloadingSeriesId = null;
+    _bulkTotal = 0;
+    _bulkCurrent = 0;
+    _bulkCancelRequested = false;
+    notifyListeners();
+  }
+
+  /// إلغاء التحميل الجماعي الجاري
+  void cancelBulkDownload() {
+    _bulkCancelRequested = true;
+    notifyListeners();
+  }
+
   /// إفراغ كافة التنزيلات
   Future<void> clearAllDownloads() async {
     for (final path in _downloadedFilePaths.values) {
-      if (!kIsWeb && !path.startsWith('web_cached') && !path.startsWith('cached_')) {
+      if (!kIsWeb &&
+          !path.startsWith('web_cached') &&
+          !path.startsWith('cached_')) {
         try {
           final file = File(path);
           if (await file.exists()) {
@@ -501,8 +628,10 @@ class AudioProvider extends ChangeNotifier {
         });
       } else {
         // تنزيل مبدئي اختباري لدرسين لتسهيل معاينة شاشة التنزيلات
-        _downloadedFilePaths['lesson_tawheed_uth_01'] = 'cached_lesson_tawheed_uth_01';
-        _downloadedFilePaths['lesson_tawheed_uth_02'] = 'cached_lesson_tawheed_uth_02';
+        _downloadedFilePaths['lesson_tawheed_uth_01'] =
+            'cached_lesson_tawheed_uth_01';
+        _downloadedFilePaths['lesson_tawheed_uth_02'] =
+            'cached_lesson_tawheed_uth_02';
       }
       notifyListeners();
     } catch (_) {}

@@ -72,11 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       // ── بطاقة الذاكرة المؤقتة ────────────────────────────
                       _buildCacheSettingsCard(context, appProvider),
-
-                      const SizedBox(height: 16),
-
-                      // ── بطاقة الإصدار والمعلومات ─────────────────────────
-                      _buildAppInfoCard(),
                     ],
                   ),
                 ),
@@ -557,33 +552,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// بطاقة الإصدار
-  Widget _buildAppInfoCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          Text(
-            'تطبيق تسهيل • الإصدار 1.0.0 (بناء 1)',
-            style: GoogleFonts.readexPro(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'جميع الحقوق محفوظة لتطبيق تسهيل © 2026',
-            style: GoogleFonts.readexPro(
-              fontSize: 11,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
             ),
           ),
         ],

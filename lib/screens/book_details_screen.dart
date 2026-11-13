@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
@@ -129,8 +130,8 @@ class BookDetailsScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // غلاف فني إسلامي وقور للكتاب على اليمين في RTL
-              _buildArtisticBookCover(book.title),
+              // غلاف فني إسلامي وقور للكتاب على اليمين في RTL (يدعم التخزين المؤقت للصور)
+              _buildArtisticBookCover(book),
 
               const SizedBox(width: 16),
 
@@ -214,8 +215,58 @@ class BookDetailsScreen extends StatelessWidget {
     );
   }
 
-  /// غلاف فني إسلامي مربع
-  Widget _buildArtisticBookCover(String title) {
+  /// غلاف فني إسلامي مربع (يدعم الصور الشبكية مع التخزين المؤقت والغلاف الإنشائي كبديل)
+  Widget _buildArtisticBookCover(BookModel book) {
+    if (book.coverUrl.trim().isNotEmpty &&
+        (book.coverUrl.startsWith('http://') ||
+            book.coverUrl.startsWith('https://'))) {
+      return Container(
+        width: 90,
+        height: 110,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.accentGoldBeige,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10.5),
+          child: CachedNetworkImage(
+            imageUrl: book.coverUrl.trim(),
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: AppColors.primaryDarkBrown,
+              child: const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.iconGold),
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) =>
+                _buildProceduralCover(book.title),
+          ),
+        ),
+      );
+    }
+
+    return _buildProceduralCover(book.title);
+  }
+
+  Widget _buildProceduralCover(String title) {
     return Container(
       width: 90,
       height: 110,

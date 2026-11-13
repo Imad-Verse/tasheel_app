@@ -9,6 +9,7 @@ import '../screens/category_books_screen.dart';
 import '../screens/book_details_screen.dart';
 import '../screens/sheikh_details_screen.dart';
 import '../screens/series_lessons_screen.dart';
+import '../screens/lesson_player_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// واجهة البحث الشامل لتطبيق تسهيل (GlobalSearchDelegate)
@@ -250,6 +251,7 @@ class GlobalSearchDelegate extends SearchDelegate<String?> {
     final allBooks = appProvider?.books ?? MockDataService.books;
     final allSheikhs = appProvider?.sheikhs ?? MockDataService.sheikhs;
     final allSeries = appProvider?.series ?? MockDataService.series;
+    final allLessons = appProvider?.lessons ?? MockDataService.lessons;
 
     // فلترة الأقسام
     final matchingCategories = allCategories
@@ -276,10 +278,35 @@ class GlobalSearchDelegate extends SearchDelegate<String?> {
         .where((s) => s.title.toLowerCase().contains(cleanQuery))
         .toList();
 
+    // فلترة نصوص التفريغات للدروس (Full-text transcript search)
+    final matchingTranscriptLessons = <Map<String, dynamic>>[];
+    if (cleanQuery.isNotEmpty) {
+      for (final l in allLessons) {
+        if (l.hasTranscript && l.transcript.toLowerCase().contains(cleanQuery)) {
+          final transcript = l.transcript;
+          final lowerTranscript = transcript.toLowerCase();
+          final index = lowerTranscript.indexOf(cleanQuery);
+          final start = (index - 35).clamp(0, transcript.length);
+          final end = (index + cleanQuery.length + 55).clamp(0, transcript.length);
+          final prefix = start > 0 ? '...' : '';
+          final suffix = end < transcript.length ? '...' : '';
+          final snippet = prefix +
+              transcript.substring(start, end).replaceAll('\n', ' ') +
+              suffix;
+
+          matchingTranscriptLessons.add({
+            'lesson': l,
+            'snippet': snippet,
+          });
+        }
+      }
+    }
+
     final totalCount = matchingCategories.length +
         matchingBooks.length +
         matchingSheikhs.length +
-        matchingSeries.length;
+        matchingSeries.length +
+        matchingTranscriptLessons.length;
 
     if (totalCount == 0) {
       return Center(
@@ -357,6 +384,24 @@ class GlobalSearchDelegate extends SearchDelegate<String?> {
           if (matchingSeries.isNotEmpty) ...[
             _buildSectionHeader('الشروحات العلمية', matchingSeries.length),
             ...matchingSeries.map((s) => _buildSeriesResultTile(context, s)),
+            const SizedBox(height: 16),
+          ],
+
+          // ── نتائج البحث في نصوص التفريغات ────────────────────────
+          if (matchingTranscriptLessons.isNotEmpty) ...[
+            _buildSectionHeader(
+              'في نصوص التفريغات للدروس',
+              matchingTranscriptLessons.length,
+            ),
+            ...matchingTranscriptLessons.map(
+              (item) => _buildTranscriptResultTile(
+                context,
+                item['lesson'] as LessonModel,
+                item['snippet'] as String,
+                cleanQuery,
+                appProvider,
+              ),
+            ),
             const SizedBox(height: 16),
           ],
         ],
@@ -583,6 +628,163 @@ class GlobalSearchDelegate extends SearchDelegate<String?> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildTranscriptResultTile(
+    BuildContext context,
+    LessonModel lesson,
+    String snippet,
+    String highlightQuery,
+    AppProvider? appProvider,
+  ) {
+    final series = appProvider?.getSeriesById(lesson.seriesId) ??
+        MockDataService.series
+            .where((s) => s.id == lesson.seriesId)
+            .firstOrNull;
+    final book = appProvider?.getBookById(series?.bookId ?? '') ??
+        MockDataService.getBookById(series?.bookId ?? '');
+    final sheikh = appProvider?.getSheikhById(series?.sheikhId ?? '') ??
+        MockDataService.getSheikhById(series?.sheikhId ?? '');
+
+    return Card(
+      color: AppColors.cardWhite,
+      elevation: 0.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.dividerLight),
+      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          close(context, highlightQuery);
+          final actualSeries = series ??
+              SeriesModel(
+                id: lesson.seriesId,
+                title: lesson.title,
+                bookId: '',
+                sheikhId: '',
+                categoryId: '',
+                lessonsCount: 1,
+              );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LessonPlayerScreen(
+                lesson: lesson,
+                series: actualSeries,
+                initialSearchQuery: highlightQuery,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.description_rounded,
+                  color: AppColors.iconGold,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lesson.title,
+                      style: GoogleFonts.readexPro(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${book?.title ?? ""} • ${sheikh?.name ?? ""}',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11.5,
+                        color: AppColors.iconGold,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildHighlightedSnippet(snippet, highlightQuery),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_left_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHighlightedSnippet(String snippet, String q) {
+    if (q.isEmpty) {
+      return Text(
+        snippet,
+        style: GoogleFonts.amiri(
+          fontSize: 13,
+          color: AppColors.textSecondary,
+        ),
+      );
+    }
+
+    final lowerSnippet = snippet.toLowerCase();
+    final lowerQuery = q.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+
+    while (true) {
+      final index = lowerSnippet.indexOf(lowerQuery, start);
+      if (index == -1) {
+        spans.add(TextSpan(text: snippet.substring(start)));
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: snippet.substring(start, index)));
+      }
+      spans.add(
+        TextSpan(
+          text: snippet.substring(index, index + q.length),
+          style: const TextStyle(
+            backgroundColor: Color(0xFFFFE082),
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF3E2723),
+          ),
+        ),
+      );
+      start = index + q.length;
+    }
+
+    return Text.rich(
+      TextSpan(
+        style: GoogleFonts.amiri(
+          fontSize: 13,
+          color: AppColors.textSecondary,
+          height: 1.4,
+        ),
+        children: spans,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
+import '../providers/audio_provider.dart';
 import '../services/mock_data_service.dart';
 import '../widgets/decorated_header.dart';
 import 'lesson_player_screen.dart';
@@ -32,15 +34,25 @@ class SeriesLessonsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final actualBook = book ?? appProvider.getBookById(series.bookId) ?? MockDataService.getBookById(series.bookId);
-        final actualSheikh = sheikh ?? appProvider.getSheikhById(series.sheikhId) ?? MockDataService.getSheikhById(series.sheikhId);
-        final category = appProvider.getCategoryById(series.categoryId) ?? MockDataService.getCategoryById(series.categoryId);
+    return Consumer2<AppProvider, AudioProvider>(
+      builder: (context, appProvider, audioProvider, child) {
+        final actualBook =
+            book ??
+            appProvider.getBookById(series.bookId) ??
+            MockDataService.getBookById(series.bookId);
+        final actualSheikh =
+            sheikh ??
+            appProvider.getSheikhById(series.sheikhId) ??
+            MockDataService.getSheikhById(series.sheikhId);
+        final category =
+            appProvider.getCategoryById(series.categoryId) ??
+            MockDataService.getCategoryById(series.categoryId);
         final lessons = appProvider.getLessonsBySeries(series.id);
         final isStudied = appProvider.isSeriesStudied(series.id);
         final progress = appProvider.getSeriesProgress(series.id);
-        final completedInSeries = appProvider.getCompletedLessonsInSeries(series.id);
+        final completedInSeries = appProvider.getCompletedLessonsInSeries(
+          series.id,
+        );
 
         return Scaffold(
           backgroundColor: AppColors.scaffoldCream,
@@ -63,6 +75,9 @@ class SeriesLessonsScreen extends StatelessWidget {
                     _buildSeriesHeaderCard(
                       context,
                       appProvider: appProvider,
+                      audioProvider: audioProvider,
+                      series: series,
+                      lessons: lessons,
                       actualBook: actualBook,
                       actualSheikh: actualSheikh,
                       category: category,
@@ -109,7 +124,9 @@ class SeriesLessonsScreen extends StatelessWidget {
                       _buildEmptyLessonsState()
                     else
                       ...lessons.map((lesson) {
-                        final isCompleted = appProvider.isLessonCompleted(lesson.id);
+                        final isCompleted = appProvider.isLessonCompleted(
+                          lesson.id,
+                        );
                         return _buildLessonCard(
                           context,
                           lesson: lesson,
@@ -131,6 +148,9 @@ class SeriesLessonsScreen extends StatelessWidget {
   Widget _buildSeriesHeaderCard(
     BuildContext context, {
     required AppProvider appProvider,
+    required AudioProvider audioProvider,
+    required SeriesModel series,
+    required List<LessonModel> lessons,
     required BookModel? actualBook,
     required SheikhModel? actualSheikh,
     required CategoryModel? category,
@@ -179,7 +199,8 @@ class SeriesLessonsScreen extends StatelessWidget {
               // ── 2. اسم الكتاب والشارح بمحاذاة اليمين ─────────────────────
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                   children: [
                     Text(
                       actualBook?.title ?? series.title,
@@ -208,7 +229,10 @@ class SeriesLessonsScreen extends StatelessWidget {
               // ── 3. كبسولة القسم على اليسار في RTL ───────────────────────
               if (category != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(10),
@@ -257,7 +281,9 @@ class SeriesLessonsScreen extends StatelessWidget {
               value: progress,
               minHeight: 7,
               backgroundColor: AppColors.dividerLight,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentGoldBeige),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.accentGoldBeige,
+              ),
             ),
           ),
 
@@ -327,7 +353,188 @@ class SeriesLessonsScreen extends StatelessWidget {
               ),
             ),
           ),
+
+          const SizedBox(height: 10),
+
+          // ── زر التحميل الجماعي للشرح كاملاً ───────────────────────
+          _buildBulkDownloadButton(
+            context,
+            series: series,
+            lessons: lessons,
+            audioProvider: audioProvider,
+          ),
         ],
+      ),
+    );
+  }
+
+  /// زر وشريط التحميل الجماعي لكامل دروس الشرح
+  Widget _buildBulkDownloadButton(
+    BuildContext context, {
+    required SeriesModel series,
+    required List<LessonModel> lessons,
+    required AudioProvider audioProvider,
+  }) {
+    if (lessons.isEmpty) return const SizedBox.shrink();
+
+    final isDownloading = audioProvider.isDownloadingSeries(series.id);
+    final isAllDownloaded = audioProvider.isSeriesFullyDownloaded(lessons);
+    final undownloadedCount = lessons
+        .where((l) => !audioProvider.isDownloaded(l.id))
+        .length;
+
+    // 1. حالة الشرح قيد التحميل بالتتابع حالياً
+    if (isDownloading) {
+      final current = audioProvider.bulkCurrent;
+      final total = audioProvider.bulkTotal;
+      final progress = audioProvider.bulkDownloadProgress;
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.scaffoldCream,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.accentGoldBeige),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'جاري تحميل الشرح: درس ${current + 1} من $total (${(progress * 100).toInt()}%)',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => audioProvider.cancelBulkDownload(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFC62828),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'إلغاء',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 5,
+                backgroundColor: AppColors.dividerLight,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primaryDarkBrown,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 2. حالة اكتمال تحميل جميع دروس الشرح على الهاتف
+    if (isAllDownloaded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFA5D6A7)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF2E7D32),
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'تم تحميل الشرح بالكامل ✓ (${lessons.length} درس على جهازك)',
+              style: GoogleFonts.readexPro(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 3. حالة توفر دروس للتحميل
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          audioProvider.downloadSeriesBulk(series, lessons);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'بدأ تحميل الشرح كاملاً ($undownloadedCount درس) بالتتابع...',
+                style: GoogleFonts.readexPro(),
+              ),
+              backgroundColor: AppColors.primaryDarkBrown,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.scaffoldCream,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.dividerLight),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.download_for_offline_rounded,
+                color: AppColors.primaryDarkBrown,
+                size: 19,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'تحميل الشرح كاملاً ($undownloadedCount ${undownloadedCount == 1 ? "درس" : "دروس"})',
+                style: GoogleFonts.readexPro(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -345,9 +552,7 @@ class SeriesLessonsScreen extends StatelessWidget {
         color: AppColors.cardWhite,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isCompleted
-              ? const Color(0x332E7D32)
-              : AppColors.dividerLight,
+          color: isCompleted ? const Color(0x332E7D32) : AppColors.dividerLight,
           width: isCompleted ? 1.2 : 1.0,
         ),
         boxShadow: [
@@ -367,10 +572,8 @@ class SeriesLessonsScreen extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => LessonPlayerScreen(
-                  lesson: lesson,
-                  series: series,
-                ),
+                builder: (_) =>
+                    LessonPlayerScreen(lesson: lesson, series: series),
               ),
             );
           },
@@ -414,7 +617,8 @@ class SeriesLessonsScreen extends StatelessWidget {
                 // ── 2. معلومات الدرس والتفاصيل في المنتصف بمحاذاة اليمين ───
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                     children: [
                       Text(
                         lesson.title,
@@ -448,7 +652,10 @@ class SeriesLessonsScreen extends StatelessWidget {
                           ),
                           if (lesson.hasTranscript) ...[
                             const SizedBox(width: 6),
-                            _buildFeatureBadge('مفرغ نصياً', Icons.description_rounded),
+                            _buildFeatureBadge(
+                              'مفرغ نصياً',
+                              Icons.description_rounded,
+                            ),
                           ],
                           if (lesson.hasVideo) ...[
                             const SizedBox(width: 6),
@@ -527,7 +734,11 @@ class SeriesLessonsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            const Icon(Icons.menu_book_rounded, size: 48, color: AppColors.iconGold),
+            const Icon(
+              Icons.menu_book_rounded,
+              size: 48,
+              color: AppColors.iconGold,
+            ),
             const SizedBox(height: 12),
             Text(
               'لا توجد دروس مضافة لهذا الشرح حالياً',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
@@ -158,7 +159,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                 child: Row(
                   children: [
                     // ── 1. غلاف مصغر للكتاب على اليمين في RTL ─────────────
-                    _buildMiniCover(book.title),
+                    _buildMiniCover(book),
 
                     const SizedBox(width: 14),
 
@@ -254,40 +255,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                     );
                   },
                   borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryDarkBrown,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.accentGoldBeige,
-                        width: 1.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.cardShadow,
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          book.title,
-                          style: GoogleFonts.amiri(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textGoldLight,
-                            height: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ),
+                  child: _buildGridCover(book),
                 ),
               ),
             ),
@@ -309,7 +277,137 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 
-  Widget _buildMiniCover(String title) {
+  /// غلاف الكتاب في وضع الشبكة (يدعم الصور الشبكية مع التخزين المؤقت)
+  Widget _buildGridCover(BookModel book) {
+    if (book.coverUrl.trim().isNotEmpty &&
+        (book.coverUrl.startsWith('http://') ||
+            book.coverUrl.startsWith('https://'))) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.accentGoldBeige,
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.8),
+          child: CachedNetworkImage(
+            imageUrl: book.coverUrl.trim(),
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: AppColors.primaryDarkBrown,
+              child: const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.iconGold),
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) =>
+                _buildProceduralGridCover(book.title),
+          ),
+        ),
+      );
+    }
+
+    return _buildProceduralGridCover(book.title);
+  }
+
+  Widget _buildProceduralGridCover(String title) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primaryDarkBrown,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.accentGoldBeige,
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Text(
+            title,
+            style: GoogleFonts.amiri(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textGoldLight,
+              height: 1.2,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// غلاف مصغر للكتاب في وضع القائمة (يدعم التخزين المؤقت)
+  Widget _buildMiniCover(BookModel book) {
+    if (book.coverUrl.trim().isNotEmpty &&
+        (book.coverUrl.startsWith('http://') ||
+            book.coverUrl.startsWith('https://'))) {
+      return Container(
+        width: 52,
+        height: 64,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.accentGoldBeige,
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: CachedNetworkImage(
+            imageUrl: book.coverUrl.trim(),
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: AppColors.primaryDarkBrown,
+              child: const Center(
+                child: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.iconGold),
+                  ),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) =>
+                _buildProceduralMiniCover(book.title),
+          ),
+        ),
+      );
+    }
+
+    return _buildProceduralMiniCover(book.title);
+  }
+
+  Widget _buildProceduralMiniCover(String title) {
     return Container(
       width: 52,
       height: 64,

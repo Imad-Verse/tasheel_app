@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
@@ -68,11 +70,13 @@ String? extractYoutubeVideoId(String url) {
 class LessonPlayerScreen extends StatefulWidget {
   final LessonModel lesson;
   final SeriesModel series;
+  final String? initialSearchQuery;
 
   const LessonPlayerScreen({
     super.key,
     required this.lesson,
     required this.series,
+    this.initialSearchQuery,
   });
 
   @override
@@ -96,6 +100,15 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   @override
   void initState() {
     super.initState();
+
+    // تفعيل البحث وتظليله إذا تم فتح الشاشة من نتائج بحث التفريغ
+    if (widget.initialSearchQuery != null &&
+        widget.initialSearchQuery!.trim().isNotEmpty) {
+      _isSearchVisible = true;
+      _searchQuery = widget.initialSearchQuery!.trim();
+      _searchController.text = _searchQuery;
+    }
+
     // تهيئة الصوت فور فتح الشاشة
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final audioProvider = Provider.of<AudioProvider>(context, listen: false);
@@ -152,11 +165,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     if (_selectedMediaMode == newMode) return;
 
     if (newMode == 1) {
-      // 1. إيقاف المشغل الصوتي مؤقتاً فور التبديل لوضع الفيديو حتى لا يتداخل الصوتين
+      // 1. إيقاف المشغل الصوتي فور التبديل لوضع الفيديو حتى لا يتداخل الصوتين وتتوقف خدمة الخلفية
       final audioProvider = Provider.of<AudioProvider>(context, listen: false);
-      if (audioProvider.isPlaying) {
-        audioProvider.pause();
-      }
+      audioProvider.pause();
 
       // 2. تهيئة مشغل يوتيوب الداخلي
       final videoId = extractYoutubeVideoId(currentLesson.videoUrl);
@@ -186,16 +197,21 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     final appProvider = Provider.of<AppProvider>(context);
 
     // استخدام الدرس الحالي من المزود إذا كان نفس السلسلة، لتحديث الشاشة عند الانتقال للتالي/السابق مع دعم التحديثات اللحظية
-    final baseLesson = (audioProvider.currentSeries?.id == widget.series.id &&
+    final baseLesson =
+        (audioProvider.currentSeries?.id == widget.series.id &&
             audioProvider.currentLesson != null)
         ? audioProvider.currentLesson!
         : widget.lesson;
-    final currentLesson = appProvider.getLessonById(baseLesson.id) ?? baseLesson;
+    final currentLesson =
+        appProvider.getLessonById(baseLesson.id) ?? baseLesson;
 
-    final currentSeries = appProvider.getSeriesById(widget.series.id) ?? widget.series;
-    final book = appProvider.getBookById(currentSeries.bookId) ??
+    final currentSeries =
+        appProvider.getSeriesById(widget.series.id) ?? widget.series;
+    final book =
+        appProvider.getBookById(currentSeries.bookId) ??
         MockDataService.getBookById(currentSeries.bookId);
-    final sheikh = appProvider.getSheikhById(currentSeries.sheikhId) ??
+    final sheikh =
+        appProvider.getSheikhById(currentSeries.sheikhId) ??
         MockDataService.getSheikhById(currentSeries.sheikhId);
     final hasVideo = currentLesson.hasVideo;
 
@@ -239,6 +255,18 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                       book,
                       sheikh,
                     ),
+
+                  const SizedBox(height: 20),
+
+                  // ── قسم فوائد الدرس (كناشة الفوائد) ─────────────────────
+                  _buildLessonNotesCard(
+                    context,
+                    currentLesson,
+                    audioProvider,
+                    appProvider,
+                    book,
+                    sheikh,
+                  ),
 
                   const SizedBox(height: 20),
 
@@ -349,7 +377,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             Icon(
               icon,
               size: 16,
-              color: isSelected ? AppColors.textGoldLight : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textGoldLight
+                  : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -357,7 +387,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               style: GoogleFonts.readexPro(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? AppColors.textWhite : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.textWhite
+                    : AppColors.textSecondary,
               ),
             ),
           ],
@@ -367,7 +399,11 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   }
 
   /// بطاقة فيديو يوتيوب المدمجة مع زر الانتقال الخارجي
-  Widget _buildYouTubeCard(LessonModel lesson, BookModel? book, SheikhModel? sheikh) {
+  Widget _buildYouTubeCard(
+    LessonModel lesson,
+    BookModel? book,
+    SheikhModel? sheikh,
+  ) {
     final videoId = extractYoutubeVideoId(lesson.videoUrl);
 
     // التحقق من توافق المتحكم مع المعرف الحالي للدرس
@@ -402,10 +438,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.accentGoldBeige,
-                width: 1.5,
-              ),
+              border: Border.all(color: AppColors.accentGoldBeige, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primaryDarkBrown.withValues(alpha: 0.15),
@@ -436,9 +469,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                videoId != null
-                                    ? 'جاري تجهيز مشغل الفيديو...'
-                                    : 'يتوفر تسجيل لهذا الدرس، يمكنك فتحه عبر الزر أدناه',
+                                videoId != null ? 'جاري تجهيز مشغل الفيديو...' : 'يتوفر تسجيل لهذا الدرس، يمكنك فتحه عبر الزر أدناه',
                                 style: GoogleFonts.readexPro(
                                   fontSize: 12,
                                   color: AppColors.textWhite,
@@ -469,7 +500,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   final uri = Uri.parse(lesson.videoUrl);
                   try {
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     } else {
                       await launchUrl(uri);
                     }
@@ -491,7 +525,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFC62828),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 13,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -517,7 +554,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     final currentPos = audioProvider.currentPosition;
     final totalDur = audioProvider.totalDuration;
     final maxMs = totalDur.inMilliseconds.toDouble();
-    final curMs = currentPos.inMilliseconds.toDouble().clamp(0.0, maxMs > 0 ? maxMs : 1.0);
+    final curMs = currentPos.inMilliseconds.toDouble().clamp(
+      0.0,
+      maxMs > 0 ? maxMs : 1.0,
+    );
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -571,7 +611,11 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   ),
                 ),
                 Text(
-                  _formatDuration(totalDur.inSeconds > 0 ? totalDur : _parseDurationString(lesson.duration)),
+                  _formatDuration(
+                    totalDur.inSeconds > 0
+                        ? totalDur
+                        : _parseDurationString(lesson.duration),
+                  ),
                   style: GoogleFonts.readexPro(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -643,7 +687,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryDarkBrown.withValues(alpha: 0.35),
+                        color: AppColors.primaryDarkBrown.withValues(
+                          alpha: 0.35,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -656,7 +702,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                             height: 28,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textGoldLight),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textGoldLight,
+                              ),
                             ),
                           )
                         : Icon(
@@ -745,8 +793,8 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                       content: Text(
                         success
                             ? (audioProvider.isSkipSilenceEnabled
-                                ? 'تم تفعيل تخطي الصمت'
-                                : 'تم إلغاء تخطي الصمت')
+                                  ? 'تم تفعيل تخطي الصمت'
+                                  : 'تم إلغاء تخطي الصمت')
                             : 'ميزة تخطي الصمت مدعومة على تطبيق الهواتف فقط',
                         style: GoogleFonts.readexPro(),
                       ),
@@ -762,7 +810,11 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               _buildToolCapsule(
                 icon: Icons.bedtime_rounded,
                 label: audioProvider.hasActiveSleepTimer
-                    ? _formatDuration(audioProvider.remainingSleepTime!)
+                    ? (audioProvider.sleepAtEndOfLesson
+                        ? 'نهاية الدرس'
+                        : (audioProvider.remainingSleepTime != null
+                            ? _formatDuration(audioProvider.remainingSleepTime!)
+                            : 'مؤقت نشط'))
                     : 'مؤقت النوم',
                 isActive: audioProvider.hasActiveSleepTimer,
                 onTap: () => _openSleepTimerBottomSheet(context, audioProvider),
@@ -773,13 +825,13 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                 icon: audioProvider.isDownloaded(lesson.id)
                     ? Icons.download_done_rounded
                     : audioProvider.isDownloading(lesson.id)
-                        ? Icons.downloading_rounded
-                        : Icons.download_rounded,
+                    ? Icons.downloading_rounded
+                    : Icons.download_rounded,
                 label: audioProvider.isDownloaded(lesson.id)
                     ? 'تم التحميل'
                     : audioProvider.isDownloading(lesson.id)
-                        ? '${(audioProvider.getDownloadProgress(lesson.id) * 100).toInt()}%'
-                        : 'تحميل',
+                    ? '${(audioProvider.getDownloadProgress(lesson.id) * 100).toInt()}%'
+                    : 'تحميل',
                 isActive: audioProvider.isDownloaded(lesson.id),
                 onTap: () {
                   audioProvider.toggleDownload(lesson.id, lesson: lesson);
@@ -796,6 +848,21 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                     ),
                   );
                 },
+              ),
+
+              // 5. زر تدوين فائدة (كناشة الفوائد)
+              _buildToolCapsule(
+                icon: Icons.edit_note_rounded,
+                label: 'تدوين فائدة',
+                isActive: false,
+                onTap: () => _openAddNoteDialog(
+                  context,
+                  audioProvider,
+                  appProvider,
+                  lesson,
+                  book,
+                  sheikh,
+                ),
               ),
             ],
           ),
@@ -828,20 +895,28 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     required AppProvider appProvider,
   }) {
     // جلب قائمة دروس الشرح الحالي مرتبة حسب order
-    final seriesLessons = appProvider.getLessonsBySeries(currentSeries.id).isNotEmpty
+    final seriesLessons =
+        appProvider.getLessonsBySeries(currentSeries.id).isNotEmpty
         ? appProvider.getLessonsBySeries(currentSeries.id)
         : MockDataService.getLessonsBySeries(currentSeries.id);
 
-    int currentIndex = seriesLessons.indexWhere((l) => l.id == currentLesson.id);
+    int currentIndex = seriesLessons.indexWhere(
+      (l) => l.id == currentLesson.id,
+    );
     if (currentIndex == -1) {
-      currentIndex = seriesLessons.indexWhere((l) => l.order == currentLesson.order);
+      currentIndex = seriesLessons.indexWhere(
+        (l) => l.order == currentLesson.order,
+      );
     }
 
-    final hasNextLesson = currentIndex != -1 && currentIndex < seriesLessons.length - 1;
+    final hasNextLesson =
+        currentIndex != -1 && currentIndex < seriesLessons.length - 1;
     final nextLesson = hasNextLesson ? seriesLessons[currentIndex + 1] : null;
 
     final hasPreviousLesson = currentIndex > 0;
-    final prevLesson = hasPreviousLesson ? seriesLessons[currentIndex - 1] : null;
+    final prevLesson = hasPreviousLesson
+        ? seriesLessons[currentIndex - 1]
+        : null;
 
     return Row(
       children: [
@@ -1062,8 +1137,8 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isActive
-                    ? AppColors.accentGoldBeige
-                    : AppColors.dividerLight,
+                      ? AppColors.accentGoldBeige
+                      : AppColors.dividerLight,
                 ),
               ),
               child: Icon(
@@ -1078,7 +1153,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               style: GoogleFonts.readexPro(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+                color: isActive
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
               ),
             ),
           ],
@@ -1088,7 +1165,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   }
 
   /// نافذة اختيار السرعة
-  void _openSpeedBottomSheet(BuildContext context, AudioProvider audioProvider) {
+  void _openSpeedBottomSheet(
+    BuildContext context,
+    AudioProvider audioProvider,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1136,10 +1216,14 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                       width: 58,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primaryDarkBrown : AppColors.cardWhite,
+                        color: isSelected
+                            ? AppColors.primaryDarkBrown
+                            : AppColors.cardWhite,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+                          color: isSelected
+                              ? AppColors.primaryDarkBrown
+                              : AppColors.dividerLight,
                         ),
                       ),
                       child: Text(
@@ -1147,7 +1231,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                         style: GoogleFonts.readexPro(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? AppColors.textWhite : AppColors.textPrimary,
+                          color: isSelected
+                              ? AppColors.textWhite
+                              : AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -1163,7 +1249,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   }
 
   /// نافذة مؤقت النوم
-  void _openSleepTimerBottomSheet(BuildContext context, AudioProvider audioProvider) {
+  void _openSleepTimerBottomSheet(
+    BuildContext context,
+    AudioProvider audioProvider,
+  ) {
     final timerOptions = [
       {'label': '15 دقيقة', 'duration': const Duration(minutes: 15)},
       {'label': '30 دقيقة', 'duration': const Duration(minutes: 30)},
@@ -1217,7 +1306,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                           side: const BorderSide(color: AppColors.dividerLight),
                         ),
                         child: ListTile(
-                          leading: const Icon(Icons.timer_outlined, color: AppColors.iconGold),
+                          leading: const Icon(
+                            Icons.timer_outlined,
+                            color: AppColors.iconGold,
+                          ),
                           title: Text(
                             opt['label'] as String,
                             style: GoogleFonts.readexPro(
@@ -1226,7 +1318,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.iconGold),
+                          trailing: const Icon(
+                            Icons.chevron_left_rounded,
+                            color: AppColors.iconGold,
+                          ),
                           onTap: () {
                             audioProvider.setSleepTimer(dur);
                             Navigator.pop(ctx);
@@ -1245,24 +1340,95 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                       ),
                     );
                   }),
+                  // خيار "عند انتهاء الدرس الحالي"
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: AppColors.cardWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: audioProvider.sleepAtEndOfLesson
+                              ? AppColors.primaryDarkBrown
+                              : AppColors.dividerLight,
+                          width: audioProvider.sleepAtEndOfLesson ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.hourglass_bottom_rounded,
+                          color: audioProvider.sleepAtEndOfLesson
+                              ? AppColors.primaryDarkBrown
+                              : AppColors.iconGold,
+                        ),
+                        title: Text(
+                          'عند انتهاء الدرس الحالي',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        trailing: audioProvider.sleepAtEndOfLesson
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: AppColors.primaryDarkBrown,
+                              )
+                            : const Icon(
+                                Icons.chevron_left_rounded,
+                                color: AppColors.iconGold,
+                              ),
+                        onTap: () {
+                          audioProvider.setSleepAtEndOfLesson();
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'سيتم إيقاف الصوت تلقائياً عند انتهاء هذا الدرس',
+                                style: GoogleFonts.readexPro(),
+                              ),
+                              backgroundColor: AppColors.primaryDarkBrown,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                   if (audioProvider.hasActiveSleepTimer) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
+                      child: OutlinedButton.icon(
                         onPressed: () {
                           audioProvider.cancelSleepTimer();
                           Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'تم إلغاء مؤقت النوم',
+                                style: GoogleFonts.readexPro(),
+                              ),
+                              backgroundColor: AppColors.primaryDarkBrown,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         },
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: Text(
+                          'إلغاء المؤقت',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFFC62828),
                           side: const BorderSide(color: Color(0xFFC62828)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          'إيقاف المؤقت النشط',
-                          style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -1271,6 +1437,499 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  /// ── بطاقة كناشة الفوائد الخاصة بهذا الدرس ─────────────────────────────────
+  Widget _buildLessonNotesCard(
+    BuildContext context,
+    LessonModel lesson,
+    AudioProvider audioProvider,
+    AppProvider appProvider,
+    BookModel? book,
+    SheikhModel? sheikh,
+  ) {
+    final notes = appProvider.getNotesForLesson(lesson.id);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // شريط رأس البطاقة
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // زر إضافة فائدة سريع على اليسار في RTL
+                OutlinedButton.icon(
+                  onPressed: () => _openAddNoteDialog(
+                    context,
+                    audioProvider,
+                    appProvider,
+                    lesson,
+                    book,
+                    sheikh,
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text(
+                    'تدوين فائدة',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryDarkBrown,
+                    side: const BorderSide(color: AppColors.accentGoldBeige),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+
+                // عنوان القسم وشارة العدد على اليمين في RTL
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (notes.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentGoldBeige.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${notes.length}',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryDarkBrown,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      'كناشة فوائد الدرس',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.edit_note_rounded,
+                      color: AppColors.iconGold,
+                      size: 22,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(color: AppColors.dividerLight, height: 1),
+
+          // المحتوى: قائمة الفوائد أو الحالة الفارغة
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: notes.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 36,
+                            color: AppColors.textSecondary.withValues(alpha: 0.4),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'لم تدوّن أي فائدة لهذا الدرس بعد.',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'اضغط على "تدوين فائدة" لتوثيق فوائدك وفرائدك مرتبطة بالتوقيت الصوتي.',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 11.5,
+                              color: AppColors.textSecondary.withValues(alpha: 0.8),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: notes.map((note) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.scaffoldCream,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.dividerLight),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // أزرار الإجراءات (نسخ، تعديل، حذف)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.copy_rounded, size: 16),
+                                      color: AppColors.iconGold,
+                                      tooltip: 'نسخ الفائدة',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        final copyText =
+                                            '"${note.content}"\n\n— من درس: ${note.lessonTitle} (عند ${note.formattedTimestamp})\n— شرح: ${note.bookTitle}\n— للشيخ: ${note.sheikhName}\n(تطبيق تسهيل للعلوم الشرعية)';
+                                        Clipboard.setData(ClipboardData(text: copyText));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'تم نسخ الفائدة مع مصدرها بنجاح',
+                                              style: GoogleFonts.readexPro(),
+                                            ),
+                                            backgroundColor: AppColors.primaryDarkBrown,
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined, size: 16),
+                                      color: AppColors.textSecondary,
+                                      tooltip: 'تعديل',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => _openAddNoteDialog(
+                                        context,
+                                        audioProvider,
+                                        appProvider,
+                                        lesson,
+                                        book,
+                                        sheikh,
+                                        note,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                                      color: const Color(0xFFC62828),
+                                      tooltip: 'حذف',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (c) => AlertDialog(
+                                            backgroundColor: AppColors.cardWhite,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            title: Text(
+                                              'حذف الفائدة',
+                                              style: GoogleFonts.readexPro(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.primaryDarkBrown,
+                                              ),
+                                            ),
+                                            content: Text(
+                                              'هل أنت متأكد من رغبتك في حذف هذه الفائدة؟',
+                                              style: GoogleFonts.readexPro(fontSize: 13),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(c, false),
+                                                child: Text(
+                                                  'إلغاء',
+                                                  style: GoogleFonts.readexPro(
+                                                    color: AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFFC62828),
+                                                ),
+                                                onPressed: () => Navigator.pop(c, true),
+                                                child: Text(
+                                                  'حذف',
+                                                  style: GoogleFonts.readexPro(),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await appProvider.deleteLessonNote(note.id);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+
+                                // شارة التوقيت الزمني القابلة للضغط للانتقال في الصوت
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    audioProvider.seek(Duration(seconds: note.timestampSeconds));
+                                    if (!audioProvider.isPlaying) {
+                                      audioProvider.play();
+                                    }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'تم الانتقال إلى الدقيقة ${note.formattedTimestamp}',
+                                          style: GoogleFonts.readexPro(),
+                                        ),
+                                        backgroundColor: AppColors.primaryDarkBrown,
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryDarkBrown,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.play_arrow_rounded,
+                                          size: 14,
+                                          color: AppColors.textGoldLight,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          note.formattedTimestamp,
+                                          style: GoogleFonts.readexPro(
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textGoldLight,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              note.content,
+                              style: GoogleFonts.readexPro(
+                                fontSize: 13,
+                                height: 1.6,
+                                color: AppColors.textPrimary,
+                              ),
+                              textAlign: TextAlign.justify,
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// نافذة إضافة أو تعديل فائدة
+  void _openAddNoteDialog(
+    BuildContext context,
+    AudioProvider audioProvider,
+    AppProvider appProvider,
+    LessonModel lesson,
+    BookModel? book,
+    SheikhModel? sheikh, [
+    LessonNoteModel? existingNote,
+  ]) {
+    final isEditing = existingNote != null;
+    final timestampSeconds = isEditing
+        ? existingNote.timestampSeconds
+        : audioProvider.currentPosition.inSeconds;
+    final formattedTime = isEditing
+        ? existingNote.formattedTimestamp
+        : _formatDuration(audioProvider.currentPosition);
+    final textController =
+        TextEditingController(text: existingNote?.content ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.edit_note_rounded,
+                color: AppColors.iconGold,
+                size: 26,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isEditing ? 'تعديل الفائدة' : 'تدوين فائدة علمية',
+                style: GoogleFonts.readexPro(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.scaffoldCream,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.dividerLight),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 16,
+                      color: AppColors.iconGold,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'توقيت الفائدة في الدرس: ',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      formattedTime,
+                      style: GoogleFonts.readexPro(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                autofocus: true,
+                style: GoogleFonts.readexPro(fontSize: 13.5),
+                decoration: InputDecoration(
+                  hintText: 'اكتب نص الفائدة هنا...',
+                  hintStyle: GoogleFonts.readexPro(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary.withValues(alpha: 0.6),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.scaffoldCream,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.dividerLight),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = textController.text.trim();
+                if (text.isEmpty) return;
+
+                if (isEditing) {
+                  final updated = existingNote.copyWith(content: text);
+                  appProvider.updateLessonNote(updated);
+                } else {
+                  final newNote = LessonNoteModel(
+                    id: 'note_${DateTime.now().millisecondsSinceEpoch}',
+                    lessonId: lesson.id,
+                    lessonTitle: lesson.title,
+                    bookTitle: book?.title ?? '',
+                    sheikhName: sheikh?.name ?? '',
+                    timestampSeconds: timestampSeconds,
+                    content: text,
+                    createdAt: DateTime.now(),
+                  );
+                  appProvider.addLessonNote(newNote);
+                }
+
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isEditing
+                          ? 'تم تحديث الفائدة بنجاح'
+                          : 'تم حفظ الفائدة في كناشة الفوائد',
+                      style: GoogleFonts.readexPro(),
+                    ),
+                    backgroundColor: AppColors.primaryDarkBrown,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: Text(
+                isEditing ? 'حفظ التعديل' : 'حفظ الفائدة',
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1314,22 +1973,30 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                     children: [
                       _buildMiniTextButton('A+', () {
                         setState(() {
-                          if (_transcriptFontSize < 26.0) _transcriptFontSize += 2.0;
+                          if (_transcriptFontSize < 26.0) {
+                            _transcriptFontSize += 2.0;
+                          }
                         });
                       }),
                       const SizedBox(width: 6),
                       _buildMiniTextButton('A-', () {
                         setState(() {
-                          if (_transcriptFontSize > 13.0) _transcriptFontSize -= 2.0;
+                          if (_transcriptFontSize > 13.0) {
+                            _transcriptFontSize -= 2.0;
+                          }
                         });
                       }),
                       const SizedBox(width: 6),
                       IconButton(
                         tooltip: 'بحث في التفريغ',
                         icon: Icon(
-                          _isSearchVisible ? Icons.search_off_rounded : Icons.search_rounded,
+                          _isSearchVisible
+                              ? Icons.search_off_rounded
+                              : Icons.search_rounded,
                           size: 20,
-                          color: _isSearchVisible ? AppColors.primaryDarkBrown : AppColors.iconGold,
+                          color: _isSearchVisible
+                              ? AppColors.primaryDarkBrown
+                              : AppColors.iconGold,
                         ),
                         onPressed: () {
                           setState(() {
@@ -1382,7 +2049,11 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                 decoration: InputDecoration(
                   hintText: 'ابحث عن كلمة في نص الدرس...',
                   isDense: true,
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.iconGold),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: AppColors.iconGold,
+                  ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 18),
@@ -1530,7 +2201,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
 
           // النص المطلوب بدقة
           Text(
-            'لم يتم تفريغ الدرس بعد، إن أحببت المساعدة في ذلك راسلنا من زر الدعم الفني في القائمة الجانبية',
+            'لم يتم تفريغ الدرس بعد، إن أحببت المساعدة في ذلك راسلنا من زر الدعم الفني في القائمة الجانبية، أول اضغط على الزر أدناه',
             style: GoogleFonts.readexPro(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -1545,7 +2216,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
           // زر المساهمة عبر واتساب
           ElevatedButton.icon(
             onPressed: () async {
-              final appProvider = Provider.of<AppProvider>(context, listen: false);
+              final appProvider = Provider.of<AppProvider>(
+                context,
+                listen: false,
+              );
               final rawPhone = appProvider.aboutApp.supportWhatsapp;
               final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
               final encoded = Uri.encodeComponent(whatsappMessage);
@@ -1575,7 +2249,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             },
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
             label: Text(
-              'ساهم في تفريغ الدرس (عبر واتساب)',
+              'راسلنا (عبر واتساب) للمساهمة',
               style: GoogleFonts.readexPro(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -1585,7 +2259,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 0,
             ),
           ),
@@ -1609,7 +2285,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     try {
       final parts = str.split(':');
       if (parts.length == 2) {
-        return Duration(minutes: int.parse(parts[0]), seconds: int.parse(parts[1]));
+        return Duration(
+          minutes: int.parse(parts[0]),
+          seconds: int.parse(parts[1]),
+        );
       } else if (parts.length == 3) {
         return Duration(
           hours: int.parse(parts[0]),

@@ -13,6 +13,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: 'ReadexPro',
 
       // ─── الألوان الأساسية ──────────────────────────────────────
       primaryColor: AppColors.primaryDarkBrown,

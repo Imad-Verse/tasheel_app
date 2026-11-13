@@ -10,6 +10,7 @@ import 'about_app_screen.dart';
 import 'downloads_screen.dart';
 import 'settings_screen.dart';
 import 'statistics_screen.dart';
+import 'notes_notebook_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة المزيد (MoreScreen) - مطابقة للصورة المرجعية
@@ -218,6 +219,16 @@ class MoreScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+          );
+        },
+      ),
+      _MenuItemData(
+        title: 'كناشة الفوائد',
+        icon: Icons.edit_note_rounded,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotesNotebookScreen()),
           );
         },
       ),

@@ -52,6 +52,7 @@ class AppProvider extends ChangeNotifier {
   static const String _keyNotifications = 'tasheel_admin_notifications';
   static const String _keyReadNotificationIds = 'tasheel_read_notification_ids';
   static const String _keyAppUpdate = 'tasheel_app_update_info';
+  static const String _keyLessonNotes = 'tasheel_lesson_notes_list';
 
   // ─── 0. الملف الشخصي وإعدادات التطبيق ──────────────────────────────────────
   String _userName = 'أبو الحارث عماد بعلول';
@@ -341,6 +342,66 @@ class AppProvider extends ChangeNotifier {
             ? updateInfo.downloadUrl.trim()
             : null,
       );
+    }
+  }
+
+  // ─── 0.4 كناشة الفوائد العلمية المرتبطة بوقت الدرس ─────────────────────────
+  final List<LessonNoteModel> _lessonNotes = [];
+  List<LessonNoteModel> get lessonNotes => List.unmodifiable(_lessonNotes);
+
+  /// جلب جميع فوائد درس معين مرتبة زمنياً
+  List<LessonNoteModel> getNotesForLesson(String lessonId) {
+    final list = _lessonNotes.where((n) => n.lessonId == lessonId).toList();
+    list.sort((a, b) => a.timestampSeconds.compareTo(b.timestampSeconds));
+    return list;
+  }
+
+  /// إضافة فائدة جديدة
+  Future<void> addLessonNote(LessonNoteModel note) async {
+    _lessonNotes.add(note);
+    notifyListeners();
+    await _saveLessonNotes();
+  }
+
+  /// تعديل فائدة موجودة
+  Future<void> updateLessonNote(LessonNoteModel note) async {
+    final index = _lessonNotes.indexWhere((n) => n.id == note.id);
+    if (index != -1) {
+      _lessonNotes[index] = note;
+      notifyListeners();
+      await _saveLessonNotes();
+    }
+  }
+
+  /// حذف فائدة
+  Future<void> deleteLessonNote(String id) async {
+    _lessonNotes.removeWhere((n) => n.id == id);
+    notifyListeners();
+    await _saveLessonNotes();
+  }
+
+  Future<void> _loadLessonNotes(SharedPreferences prefs) async {
+    try {
+      final rawNotes = prefs.getString(_keyLessonNotes);
+      if (rawNotes != null) {
+        final List list = jsonDecode(rawNotes);
+        _lessonNotes.clear();
+        _lessonNotes.addAll(
+          list.map((m) => LessonNoteModel.fromMap(m as Map<String, dynamic>)),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error loading lesson notes: $e');
+    }
+  }
+
+  Future<void> _saveLessonNotes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = jsonEncode(_lessonNotes.map((n) => n.toMap()).toList());
+      await prefs.setString(_keyLessonNotes, raw);
+    } catch (e) {
+      debugPrint('Error saving lesson notes: $e');
     }
   }
 
@@ -1847,6 +1908,9 @@ class AppProvider extends ChangeNotifier {
       if (savedAutoPlay != null) {
         _autoPlayNextLesson = savedAutoPlay;
       }
+
+      // تحميل فوائد الدروس المسجلة
+      await _loadLessonNotes(prefs);
       notifyListeners();
     } catch (_) {
       // الاعتماد على البيانات الافتراضية

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
@@ -19,6 +20,17 @@ import 'screens/splash_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // تهيئة مشغل الصوتيات للعمل في الخلفية وشاشة القفل
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.tasheel.tasheel_app.channel.audio',
+    androidNotificationChannelName: 'تطبيق تسهيل - مشغل الدروس الصوتية',
+    androidNotificationChannelDescription: 'شريط التحكم في تشغيل الدروس والشروحات الشرعية',
+    androidNotificationOngoing: true,
+    androidStopForegroundOnPause: true,
+    androidNotificationIcon: 'mipmap/ic_launcher',
+    notificationColor: const Color(0xFF4A3B32),
+  );
 
   // تهيئة Firebase عبر DefaultFirebaseOptions مع معالجة الأخطاء بأمان
   bool isFirebaseConnected = false;
