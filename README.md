@@ -10,23 +10,23 @@
 
 <!-- الشارات التعريفية -->
 <p align="center">
-  <img src="https://img.shields.io/badge/الإصدار-1.0.0-C5A059?style=flat-square&labelColor=4E342E" alt="الإصدار 1.0.0" />
-  <img src="https://img.shields.io/badge/المنصات-Android%20%7C%20iOS%20%7C%20Web-4E342E?style=flat-square&labelColor=2B1810" alt="المنصات المدعومة" />
-  <img src="https://img.shields.io/badge/الهوية-بني%20داكن%20%D9%88%D8%B0%D9%87%D8%A8%D9%8A-C5A059?style=flat-square&labelColor=4E342E" alt="الهوية البصرية" />
-  <img src="https://img.shields.io/badge/الترخيص-وقفي%20لوجه%20الله-4E342E?style=flat-square&labelColor=2B1810" alt="الترخيص" />
+  <img src="https://img.shields.io/badge/Version-1.0.0-C5A059?style=flat-square&labelColor=4E342E" alt="الإصدار 1.0.0" />
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Web-4E342E?style=flat-square&labelColor=2B1810" alt="المنصات المدعومة" />
+  <img src="https://img.shields.io/badge/Build-Flutter%20%26%20Dart-C5A059?style=flat-square&labelColor=4E342E" alt="التقنيات" />
+  <img src="https://img.shields.io/badge/License-Waqf%20%2F%20Open%20Source-4E342E?style=flat-square&labelColor=2B1810" alt="الترخيص" />
 </p>
 
 ---
 
-### 📥 تحميل التطبيق
+### 📥 تحميل التطبيق المباشر (Download App)
 
 <p align="center">
   <a href="https://github.com/Imad-Verse/tasheel_app/releases/latest" target="_blank">
-    <img src="https://img.shields.io/badge/تحميل_عبر-GitHub_Releases-4E342E?style=for-the-badge&logo=github&logoColor=C5A059&labelColor=2B1810" alt="تحميل من GitHub Releases" height="42" />
+    <img src="https://img.shields.io/badge/Download_APK-GitHub_Releases-4E342E?style=for-the-badge&logo=android&logoColor=C5A059&labelColor=2B1810" alt="تحميل APK من GitHub Releases" height="42" />
   </a>
   &nbsp;&nbsp;
   <a href="https://madoverse.site/tasheel" target="_blank">
-    <img src="https://img.shields.io/badge/الموقع_الرسمي-MadoVerse-C5A059?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4E342E" alt="الموقع الرسمي" height="42" />
+    <img src="https://img.shields.io/badge/Official_Website-MadoVerse-C5A059?style=for-the-badge&logo=googlechrome&logoColor=white&labelColor=4E342E" alt="الموقع الرسمي" height="42" />
   </a>
 </p>
 
