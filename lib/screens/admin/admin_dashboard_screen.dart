@@ -1,0 +1,2155 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme/app_colors.dart';
+import '../../models/models.dart';
+import '../../providers/app_provider.dart';
+import '../../providers/audio_provider.dart';
+import 'admin_login_screen.dart';
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// لوحة التحكم الإدارية الشاملة (AdminDashboardScreen)
+/// ═══════════════════════════════════════════════════════════════════════════
+/// تتيح الإدارة الكاملة لـ 6 أقسام رئيسية:
+/// 1. الأقسام العلمية (Categories Management).
+/// 2. الشيوخ والعلماء (Sheikhs Management).
+/// 3. الكتب والمتون (Books Management).
+/// 4. الشروحات العلمية (Series Management) مع قوائم منسدلة مترابطة.
+/// 5. إدارة الدروس (Lessons Management) بإضافة فردية وإضافة جماعية (Bulk Add).
+/// 6. محرر التفريغات السريعة (Quick Transcripts Editor).
+/// ═══════════════════════════════════════════════════════════════════════════
+class AdminDashboardScreen extends StatefulWidget {
+  const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isSeedingData = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 6, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // ── رفع البيانات الأولية إلى السحابة ──────────────────────────────────────
+  Future<void> _handleSeedData() async {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+    if (!appProvider.isFirebaseConnected) {
+      _showSnackBar(
+        'تنبيه: Firebase غير مهيأ حالياً في هذا الجهاز. البيانات محفوظة وتعمل بكفاءة في وضع التخزين المحلي.',
+        isError: false,
+      );
+      return;
+    }
+
+    setState(() => _isSeedingData = true);
+    try {
+      final success = await appProvider.seedDataToFirestore();
+      if (mounted) {
+        if (success) {
+          _showSnackBar('تم رفع وتحديث جميع البيانات في Cloud Firestore بنجاح!');
+        } else {
+          _showSnackBar('تعذر رفع البيانات، يرجى مراجعة إعدادات وصلاحيات Firebase.', isError: true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('حدث خطأ أثناء الرفع: $e', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isSeedingData = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.readexPro(color: AppColors.textWhite),
+        ),
+        backgroundColor: isError ? Colors.red.shade800 : AppColors.primaryDarkBrown,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _handleLogout() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appProvider = Provider.of<AppProvider>(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      body: Column(
+        children: [
+          // ── 1. الهيدر العلوي وشريط الحالة ────────────────────────────────
+          _buildTopHeader(appProvider),
+
+          // ── 2. شريط التبويبات الستة ───────────────────────────────────────
+          _buildTabBar(),
+
+          // ── 3. صفحات الأقسام الإدارية ─────────────────────────────────────
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _CategoriesTab(appProvider: appProvider),
+                _SheikhsTab(appProvider: appProvider),
+                _BooksTab(appProvider: appProvider),
+                _SeriesTab(appProvider: appProvider),
+                _LessonsTab(appProvider: appProvider),
+                _TranscriptsTab(appProvider: appProvider),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── الهيدر وشريط الحالة ──────────────────────────────────────────────────
+  Widget _buildTopHeader(AppProvider appProvider) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final isConnected = appProvider.isFirebaseConnected;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16, topPadding + 10, 16, 14),
+      decoration: const BoxDecoration(
+        color: AppColors.primaryDarkBrown,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // زر تسجيل الخروج
+              IconButton(
+                tooltip: 'تسجيل الخروج',
+                icon: const Icon(Icons.logout_rounded, color: AppColors.textGoldLight),
+                onPressed: _handleLogout,
+              ),
+
+              const SizedBox(width: 4),
+
+              // العنوان
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'لوحة إدارة تسهيل',
+                      style: GoogleFonts.amiri(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textGoldLight,
+                      ),
+                    ),
+                    Text(
+                      'إدارة المحتوى والمزامنة السحابية',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textWhite.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // زر رفع البيانات الأولية للسحابة (Seed Data)
+              ElevatedButton.icon(
+                onPressed: _isSeedingData ? null : _handleSeedData,
+                icon: _isSeedingData
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.textGoldLight,
+                        ),
+                      )
+                    : const Icon(Icons.cloud_upload_rounded, size: 16),
+                label: Text(
+                  'رفع للسحابة',
+                  style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryLightBrown,
+                  foregroundColor: AppColors.textGoldLight,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: AppColors.goldMuted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // شريط حالة الاتصال
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isConnected
+                  ? Colors.green.shade900.withValues(alpha: 0.6)
+                  : AppColors.primaryLightBrown.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isConnected ? Colors.green.shade400 : AppColors.goldMuted,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isConnected ? Colors.greenAccent : AppColors.textGoldLight,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isConnected
+                      ? 'قاعدة البيانات: متصل بـ Cloud Firestore'
+                      : 'قاعدة البيانات: وضع الحفظ المحلي (SharedPreferences)',
+                  style: GoogleFonts.readexPro(
+                    fontSize: 11,
+                    color: AppColors.textWhite,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── شريط التبويبات الستة ──────────────────────────────────────────────────
+  Widget _buildTabBar() {
+    return Container(
+      color: AppColors.cardWhite,
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        indicatorColor: AppColors.iconGold,
+        indicatorWeight: 3,
+        labelColor: AppColors.primaryDarkBrown,
+        unselectedLabelColor: AppColors.textSecondary,
+        labelStyle: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: GoogleFonts.readexPro(fontSize: 13),
+        tabs: const [
+          Tab(icon: Icon(Icons.category_rounded, size: 20), text: 'الأقسام'),
+          Tab(icon: Icon(Icons.people_alt_rounded, size: 20), text: 'الشيوخ'),
+          Tab(icon: Icon(Icons.menu_book_rounded, size: 20), text: 'الكتب'),
+          Tab(icon: Icon(Icons.library_books_rounded, size: 20), text: 'الشروحات'),
+          Tab(icon: Icon(Icons.audiotrack_rounded, size: 20), text: 'الدروس'),
+          Tab(icon: Icon(Icons.subtitles_rounded, size: 20), text: 'التفريغات'),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 1. تبويب إدارة الأقسام العلمية (Categories Tab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _CategoriesTab extends StatelessWidget {
+  final AppProvider appProvider;
+  const _CategoriesTab({required this.appProvider});
+
+  void _openAddEditDialog(BuildContext context, {CategoryModel? category}) {
+    final nameController = TextEditingController(text: category?.name ?? '');
+    String selectedIcon = category?.iconName ?? 'category';
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            category == null ? 'إضافة قسم علمي جديد' : 'تعديل القسم العلمي',
+            style: GoogleFonts.readexPro(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDarkBrown,
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  style: GoogleFonts.readexPro(fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'اسم القسم (مثال: متون العقيدة)',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                  validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم القسم' : null,
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedIcon,
+                  decoration: const InputDecoration(
+                    labelText: 'رمز الأيقونة',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'category', child: Text('تصنيف عام')),
+                    DropdownMenuItem(value: 'menu_book', child: Text('كتاب شرعي')),
+                    DropdownMenuItem(value: 'balance', child: Text('ميزان الفقه')),
+                    DropdownMenuItem(value: 'mosque', child: Text('مسجد وعقيدة')),
+                    DropdownMenuItem(value: 'auto_stories', child: Text('متون وحفظ')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedIcon = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(ctx);
+                if (category == null) {
+                  final newCat = CategoryModel(
+                    id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
+                    name: nameController.text.trim(),
+                    iconName: selectedIcon,
+                  );
+                  await appProvider.addCategory(newCat);
+                } else {
+                  final updated = category.copyWith(
+                    name: nameController.text.trim(),
+                    iconName: selectedIcon,
+                  );
+                  await appProvider.updateCategory(updated);
+                }
+              },
+              child: Text(category == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, CategoryModel cat) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        title: Text('حذف القسم', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد من حذف قسم "${cat.name}"؟',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await appProvider.deleteCategory(cat.id);
+            },
+            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = appProvider.categories;
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primaryDarkBrown,
+        foregroundColor: AppColors.textGoldLight,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('إضافة قسم', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        onPressed: () => _openAddEditDialog(context),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: categories.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          return Card(
+            color: AppColors.cardWhite,
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.dividerLight),
+            ),
+            child: ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.category_rounded, color: AppColors.iconGold),
+              ),
+              title: Text(
+                cat.name,
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${cat.booksCount} كتب • ${cat.sheikhsCount} شيوخ • ${cat.lessonsCount} درس',
+                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    onPressed: () => _openAddEditDialog(context, category: cat),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    onPressed: () => _confirmDelete(context, cat),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. تبويب إدارة الشيوخ والعلماء (Sheikhs Tab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _SheikhsTab extends StatelessWidget {
+  final AppProvider appProvider;
+  const _SheikhsTab({required this.appProvider});
+
+  void _openAddEditDialog(BuildContext context, {SheikhModel? sheikh}) {
+    final nameController = TextEditingController(text: sheikh?.name ?? '');
+    final shortBioController = TextEditingController(text: sheikh?.shortBio ?? '');
+    final fullBioController = TextEditingController(text: sheikh?.fullBio ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          sheikh == null ? 'إضافة شيخ جديد' : 'تعديل بيانات الشيخ',
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDarkBrown,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  style: GoogleFonts.readexPro(fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'اسم الشيخ (مثال: الشيخ عبد الرزاق البدر)',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                  validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم الشيخ' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: shortBioController,
+                  style: GoogleFonts.readexPro(fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'نبذة قصيرة',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: fullBioController,
+                  style: GoogleFonts.readexPro(fontSize: 14),
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'السيرة والتفاصيل',
+                    filled: true,
+                    fillColor: AppColors.cardWhite,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+            ),
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(ctx);
+              if (sheikh == null) {
+                final newSheikh = SheikhModel(
+                  id: 'sheikh_${DateTime.now().millisecondsSinceEpoch}',
+                  name: nameController.text.trim(),
+                  shortBio: shortBioController.text.trim(),
+                  fullBio: fullBioController.text.trim(),
+                );
+                await appProvider.addSheikh(newSheikh);
+              } else {
+                final updated = sheikh.copyWith(
+                  name: nameController.text.trim(),
+                  shortBio: shortBioController.text.trim(),
+                  fullBio: fullBioController.text.trim(),
+                );
+                await appProvider.updateSheikh(updated);
+              }
+            },
+            child: Text(sheikh == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, SheikhModel sheikh) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        title: Text('حذف الشيخ', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد من حذف الشيخ "${sheikh.name}"؟',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await appProvider.deleteSheikh(sheikh.id);
+            },
+            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sheikhs = appProvider.sheikhs;
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primaryDarkBrown,
+        foregroundColor: AppColors.textGoldLight,
+        icon: const Icon(Icons.person_add_rounded),
+        label: Text('إضافة شيخ', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        onPressed: () => _openAddEditDialog(context),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: sheikhs.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final sh = sheikhs[index];
+          return Card(
+            color: AppColors.cardWhite,
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.dividerLight),
+            ),
+            child: ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_rounded, color: AppColors.iconGold),
+              ),
+              title: Text(
+                sh.name,
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                '${sh.booksCount} شروحات • ${sh.lessonsCount} درس\n${sh.shortBio}',
+                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    onPressed: () => _openAddEditDialog(context, sheikh: sh),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    onPressed: () => _confirmDelete(context, sh),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. تبويب إدارة الكتب والمتون (Books Tab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _BooksTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _BooksTab({required this.appProvider});
+
+  @override
+  State<_BooksTab> createState() => _BooksTabState();
+}
+
+class _BooksTabState extends State<_BooksTab> {
+  String? _selectedCategoryFilter;
+
+  void _openAddEditDialog(BuildContext context, {BookModel? book}) {
+    final titleController = TextEditingController(text: book?.title ?? '');
+    final authorController = TextEditingController(text: book?.author ?? '');
+    final descController = TextEditingController(text: book?.description ?? '');
+    String selectedCatId = book?.categoryId ??
+        (_selectedCategoryFilter ?? (widget.appProvider.categories.isNotEmpty
+            ? widget.appProvider.categories.first.id
+            : ''));
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            book == null ? 'إضافة كتاب أو متن جديد' : 'تعديل بيانات الكتاب',
+            style: GoogleFonts.readexPro(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDarkBrown,
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // اختيار القسم
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCatId.isNotEmpty ? selectedCatId : null,
+                    decoration: const InputDecoration(
+                      labelText: 'القسم العلمي التابع له',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    items: widget.appProvider.categories.map((c) {
+                      return DropdownMenuItem(value: c.id, child: Text(c.name));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedCatId = val);
+                    },
+                    validator: (val) => val == null ? 'يرجى اختيار القسم' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: titleController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'عنوان الكتاب (مثال: كتاب التوحيد)',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال العنوان' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: authorController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'المؤلف / الماتن',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال المؤلف' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: descController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'وصف مختصر للمتن',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(ctx);
+                if (book == null) {
+                  final newBook = BookModel(
+                    id: 'book_${DateTime.now().millisecondsSinceEpoch}',
+                    categoryId: selectedCatId,
+                    title: titleController.text.trim(),
+                    author: authorController.text.trim(),
+                    description: descController.text.trim(),
+                  );
+                  await widget.appProvider.addBook(newBook);
+                } else {
+                  final updated = book.copyWith(
+                    categoryId: selectedCatId,
+                    title: titleController.text.trim(),
+                    author: authorController.text.trim(),
+                    description: descController.text.trim(),
+                  );
+                  await widget.appProvider.updateBook(updated);
+                }
+              },
+              child: Text(book == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, BookModel book) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        title: Text('حذف الكتاب', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد من حذف كتاب "${book.title}"؟',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.appProvider.deleteBook(book.id);
+            },
+            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final books = _selectedCategoryFilter == null
+        ? widget.appProvider.books
+        : widget.appProvider.books.where((b) => b.categoryId == _selectedCategoryFilter).toList();
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primaryDarkBrown,
+        foregroundColor: AppColors.textGoldLight,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('إضافة كتاب', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        onPressed: () => _openAddEditDialog(context),
+      ),
+      body: Column(
+        children: [
+          // تصفية حسب القسم
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: AppColors.cardWhite,
+            child: Row(
+              children: [
+                const Icon(Icons.filter_list_rounded, color: AppColors.iconGold, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'فلترة بالقسم:',
+                  style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButton<String?>(
+                    value: _selectedCategoryFilter,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('جميع الأقسام'),
+                      ),
+                      ...widget.appProvider.categories.map((c) {
+                        return DropdownMenuItem<String?>(
+                          value: c.id,
+                          child: Text(c.name),
+                        );
+                      }),
+                    ],
+                    onChanged: (val) => setState(() => _selectedCategoryFilter = val),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // قائمة الكتب
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+              itemCount: books.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final b = books[index];
+                final cat = widget.appProvider.getCategoryById(b.categoryId);
+                return Card(
+                  color: AppColors.cardWhite,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: const BorderSide(color: AppColors.dividerLight),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.menu_book_rounded, color: AppColors.iconGold),
+                    ),
+                    title: Text(
+                      b.title,
+                      style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      'المؤلف: ${b.author} • القسم: ${cat?.name ?? "-"}\n${b.seriesCount} شروحات متوفرة',
+                      style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                          onPressed: () => _openAddEditDialog(context, book: b),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                          onPressed: () => _confirmDelete(context, b),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. تبويب إدارة الشروحات العلمية (Series Tab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _SeriesTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _SeriesTab({required this.appProvider});
+
+  @override
+  State<_SeriesTab> createState() => _SeriesTabState();
+}
+
+class _SeriesTabState extends State<_SeriesTab> {
+  void _openAddEditDialog(BuildContext context, {SeriesModel? seriesItem}) {
+    String selectedCatId = seriesItem?.categoryId ??
+        (widget.appProvider.categories.isNotEmpty ? widget.appProvider.categories.first.id : '');
+
+    List<BookModel> availableBooks = widget.appProvider.getBooksByCategory(selectedCatId);
+    String selectedBookId = seriesItem?.bookId ??
+        (availableBooks.isNotEmpty ? availableBooks.first.id : '');
+
+    String selectedSheikhId = seriesItem?.sheikhId ??
+        (widget.appProvider.sheikhs.isNotEmpty ? widget.appProvider.sheikhs.first.id : '');
+
+    final titleController = TextEditingController(text: seriesItem?.title ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    // توليد العنوان تلقائياً إن كان جديداً
+    void generateTitle() {
+      final book = widget.appProvider.getBookById(selectedBookId);
+      final sheikh = widget.appProvider.getSheikhById(selectedSheikhId);
+      if (book != null && sheikh != null) {
+        titleController.text = 'شرح ${book.title} - ${sheikh.name}';
+      }
+    }
+
+    if (seriesItem == null && titleController.text.isEmpty) {
+      generateTitle();
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            seriesItem == null ? 'إضافة شرح علمي جديد' : 'تعديل الشرح العلمي',
+            style: GoogleFonts.readexPro(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDarkBrown,
+            ),
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1. اختيار القسم
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCatId.isNotEmpty ? selectedCatId : null,
+                    decoration: const InputDecoration(
+                      labelText: '1. القسم العلمي',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    items: widget.appProvider.categories.map((c) {
+                      return DropdownMenuItem(value: c.id, child: Text(c.name));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedCatId = val;
+                          availableBooks = widget.appProvider.getBooksByCategory(val);
+                          selectedBookId = availableBooks.isNotEmpty ? availableBooks.first.id : '';
+                          generateTitle();
+                        });
+                      }
+                    },
+                    validator: (val) => val == null ? 'يرجى اختيار القسم' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 2. اختيار الكتاب (مفلتر بالقسم)
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedBookId.isNotEmpty ? selectedBookId : null,
+                    decoration: const InputDecoration(
+                      labelText: '2. الكتاب أو المتن',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    items: availableBooks.map((b) {
+                      return DropdownMenuItem(value: b.id, child: Text(b.title));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedBookId = val;
+                          generateTitle();
+                        });
+                      }
+                    },
+                    validator: (val) => val == null ? 'يرجى اختيار الكتاب' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. اختيار الشيخ
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedSheikhId.isNotEmpty ? selectedSheikhId : null,
+                    decoration: const InputDecoration(
+                      labelText: '3. الشيخ الشارح',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    items: widget.appProvider.sheikhs.map((s) {
+                      return DropdownMenuItem(value: s.id, child: Text(s.name));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedSheikhId = val;
+                          generateTitle();
+                        });
+                      }
+                    },
+                    validator: (val) => val == null ? 'يرجى اختيار الشيخ' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 4. العنوان
+                  TextFormField(
+                    controller: titleController,
+                    style: GoogleFonts.readexPro(fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'عنوان الشرح (توليد تلقائي)',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
+                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال عنوان الشرح' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(ctx);
+                if (seriesItem == null) {
+                  final newSeries = SeriesModel(
+                    id: 'series_${DateTime.now().millisecondsSinceEpoch}',
+                    bookId: selectedBookId,
+                    sheikhId: selectedSheikhId,
+                    categoryId: selectedCatId,
+                    title: titleController.text.trim(),
+                  );
+                  await widget.appProvider.addSeries(newSeries);
+                } else {
+                  final updated = seriesItem.copyWith(
+                    bookId: selectedBookId,
+                    sheikhId: selectedSheikhId,
+                    categoryId: selectedCatId,
+                    title: titleController.text.trim(),
+                  );
+                  await widget.appProvider.updateSeries(updated);
+                }
+              },
+              child: Text(seriesItem == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, SeriesModel series) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        title: Text('حذف الشرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+        content: Text(
+          'هل أنت متأكد من حذف الشرح "${series.title}"؟',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.appProvider.deleteSeries(series.id);
+            },
+            child: Text('حذف', style: GoogleFonts.readexPro(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seriesList = widget.appProvider.series;
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primaryDarkBrown,
+        foregroundColor: AppColors.textGoldLight,
+        icon: const Icon(Icons.add_rounded),
+        label: Text('إضافة شرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        onPressed: () => _openAddEditDialog(context),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: seriesList.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final s = seriesList[index];
+          final book = widget.appProvider.getBookById(s.bookId);
+          final sheikh = widget.appProvider.getSheikhById(s.sheikhId);
+
+          return Card(
+            color: AppColors.cardWhite,
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.dividerLight),
+            ),
+            child: ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.library_books_rounded, color: AppColors.iconGold),
+              ),
+              title: Text(
+                s.title,
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: Text(
+                'الشارح: ${sheikh?.name ?? "-"} • المتن: ${book?.title ?? "-"}\nعدد الدروس: ${s.lessonsCount}',
+                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    onPressed: () => _openAddEditDialog(context, seriesItem: s),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    onPressed: () => _confirmDelete(context, s),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5. تبويب إدارة الدروس الصوتية والمرئية (Lessons Tab - ميزة Bulk Add)
+// ═══════════════════════════════════════════════════════════════════════════
+class _LessonsTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _LessonsTab({required this.appProvider});
+
+  @override
+  State<_LessonsTab> createState() => _LessonsTabState();
+}
+
+class _LessonsTabState extends State<_LessonsTab> {
+  String? _selectedSeriesId;
+  bool _isBulkMode = false;
+
+  // حقول الإضافة الفردية
+  final _singleTitleController = TextEditingController();
+  final _singleOrderController = TextEditingController();
+  final _singleDurationController = TextEditingController(text: '45:00');
+  final _singleAudioUrlController = TextEditingController();
+  final _singleVideoUrlController = TextEditingController();
+  final _singleTranscriptController = TextEditingController();
+
+  // حقول الإضافة الجماعية Bulk Add
+  final _bulkPrefixController = TextEditingController(text: 'الدرس');
+  final _bulkTextAreaController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.appProvider.series.isNotEmpty) {
+      _selectedSeriesId = widget.appProvider.series.first.id;
+      _updateDefaultOrder();
+    }
+  }
+
+  void _updateDefaultOrder() {
+    final seriesId = _selectedSeriesId;
+    if (seriesId == null) return;
+    final lessons = widget.appProvider.getLessonsBySeries(seriesId);
+    final nextOrder = lessons.isEmpty
+        ? 1
+        : (lessons.map((l) => l.order).reduce((a, b) => a > b ? a : b) + 1);
+    _singleOrderController.text = nextOrder.toString();
+    _singleTitleController.text = 'الدرس $nextOrder';
+  }
+
+  @override
+  void dispose() {
+    _singleTitleController.dispose();
+    _singleOrderController.dispose();
+    _singleDurationController.dispose();
+    _singleAudioUrlController.dispose();
+    _singleVideoUrlController.dispose();
+    _singleTranscriptController.dispose();
+    _bulkPrefixController.dispose();
+    _bulkTextAreaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSingleAdd() async {
+    final seriesId = _selectedSeriesId;
+    if (seriesId == null) return;
+    final title = _singleTitleController.text.trim();
+    final audioUrl = _singleAudioUrlController.text.trim();
+    final order = int.tryParse(_singleOrderController.text.trim()) ?? 1;
+
+    if (title.isEmpty || audioUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى كتابة عنوان الدرس ورابط MP3', style: GoogleFonts.readexPro()),
+          backgroundColor: Colors.red.shade800,
+        ),
+      );
+      return;
+    }
+
+    final newLesson = LessonModel(
+      id: 'lesson_${seriesId}_${DateTime.now().millisecondsSinceEpoch}',
+      seriesId: seriesId,
+      title: title,
+      order: order,
+      duration: _singleDurationController.text.trim().isNotEmpty
+          ? _singleDurationController.text.trim()
+          : '45:00',
+      audioUrl: audioUrl,
+      videoUrl: _singleVideoUrlController.text.trim(),
+      transcript: _singleTranscriptController.text.trim(),
+    );
+
+    await widget.appProvider.addLesson(newLesson);
+    _singleAudioUrlController.clear();
+    _singleVideoUrlController.clear();
+    _singleTranscriptController.clear();
+    _updateDefaultOrder();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تمت إضافة الدرس بنجاح', style: GoogleFonts.readexPro()),
+          backgroundColor: AppColors.primaryDarkBrown,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleBulkAdd() async {
+    final seriesId = _selectedSeriesId;
+    if (seriesId == null) return;
+    final rawText = _bulkTextAreaController.text.trim();
+    if (rawText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى لصق الروابط الصوتية أولاً', style: GoogleFonts.readexPro()),
+          backgroundColor: Colors.red.shade800,
+        ),
+      );
+      return;
+    }
+
+    final lines = rawText.split('\n');
+    final added = await widget.appProvider.bulkAddLessons(
+      seriesId: seriesId,
+      titlePrefix: _bulkPrefixController.text.trim(),
+      rawEntries: lines,
+    );
+
+    _bulkTextAreaController.clear();
+    _updateDefaultOrder();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تمت إضافة $added درساً دفعة واحدة وترتيبها بنجاح!',
+            style: GoogleFonts.readexPro(),
+          ),
+          backgroundColor: AppColors.primaryDarkBrown,
+        ),
+      );
+    }
+  }
+
+  void _openEditLessonDialog(LessonModel lesson) {
+    final titleController = TextEditingController(text: lesson.title);
+    final orderController = TextEditingController(text: lesson.order.toString());
+    final durationController = TextEditingController(text: lesson.duration);
+    final audioController = TextEditingController(text: lesson.audioUrl);
+    final videoController = TextEditingController(text: lesson.videoUrl);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'تعديل الدرس',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: AppColors.primaryDarkBrown),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'عنوان الدرس', filled: true, fillColor: AppColors.cardWhite),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: orderController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'الترتيب', filled: true, fillColor: AppColors.cardWhite),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: durationController,
+                decoration: const InputDecoration(labelText: 'المدة (مثال: 45:00)', filled: true, fillColor: AppColors.cardWhite),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: audioController,
+                decoration: const InputDecoration(labelText: 'رابط الصوت MP3', filled: true, fillColor: AppColors.cardWhite),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: videoController,
+                decoration: const InputDecoration(labelText: 'رابط يوتيوب (اختياري)', filled: true, fillColor: AppColors.cardWhite),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final updated = lesson.copyWith(
+                title: titleController.text.trim(),
+                order: int.tryParse(orderController.text.trim()) ?? lesson.order,
+                duration: durationController.text.trim(),
+                audioUrl: audioController.text.trim(),
+                videoUrl: videoController.text.trim(),
+              );
+              await widget.appProvider.updateLesson(updated);
+            },
+            child: Text('حفظ', style: GoogleFonts.readexPro()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seriesList = widget.appProvider.series;
+    final selectedId = _selectedSeriesId;
+    final currentSeriesLessons = selectedId != null
+        ? widget.appProvider.getLessonsBySeries(selectedId)
+        : <LessonModel>[];
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── 1. اختيار الشرح ──────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.cardWhite,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.dividerLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'اختر الشرح العلمي للتحكم بدروسه:',
+                    style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedSeriesId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.scaffoldCream,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    items: seriesList.map((s) {
+                      return DropdownMenuItem(
+                        value: s.id,
+                        child: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSeriesId = val;
+                        _updateDefaultOrder();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // ── 2. محول النمط: إضافة فردية أم جماعية (Bulk Add) ─────────
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.cardWhite,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.dividerLight),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isBulkMode = false),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: !_isBulkMode ? AppColors.primaryDarkBrown : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_rounded,
+                              size: 18,
+                              color: !_isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'إضافة درس فردي',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: !_isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isBulkMode = true),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _isBulkMode ? AppColors.primaryDarkBrown : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.dynamic_feed_rounded,
+                              size: 18,
+                              color: _isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'إضافة جماعية Bulk Add (🌟)',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: _isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // ── 3. نموذج الإضافة ──────────────────────────────────────────
+            if (!_isBulkMode) _buildSingleAddForm() else _buildBulkAddForm(),
+
+            const SizedBox(height: 20),
+
+            // ── 4. جدول/قائمة الدروس الحالية في هذا الشرح ───────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'دروس هذا الشرح (${currentSeriesLessons.length})',
+                  style: GoogleFonts.readexPro(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'ترتيب تصاعدي',
+                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            if (currentSeriesLessons.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(24),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.cardWhite,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.dividerLight),
+                ),
+                child: Text(
+                  'لا توجد دروس مضافة لهذا الشرح حتى الآن.',
+                  style: GoogleFonts.readexPro(color: AppColors.textSecondary, fontSize: 13),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: currentSeriesLessons.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, idx) {
+                  final lesson = currentSeriesLessons[idx];
+                  final hasTranscript = lesson.hasTranscript;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.dividerLight),
+                    ),
+                    child: Row(
+                      children: [
+                        // دائرة الترتيب
+                        Container(
+                          width: 32,
+                          height: 32,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryDarkBrown,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${lesson.order}',
+                            style: GoogleFonts.readexPro(
+                              color: AppColors.textGoldLight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        // معلومات الدرس
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                lesson.title,
+                                style: GoogleFonts.readexPro(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    lesson.duration,
+                                    style: GoogleFonts.readexPro(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: hasTranscript
+                                          ? Colors.green.shade50
+                                          : Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: hasTranscript
+                                            ? Colors.green.shade300
+                                            : Colors.orange.shade300,
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      hasTranscript ? 'مفرغ' : 'غير مفرغ',
+                                      style: GoogleFonts.readexPro(
+                                        fontSize: 10,
+                                        color: hasTranscript
+                                            ? Colors.green.shade900
+                                            : Colors.orange.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // زر تشغيل تجريبي في المشغل
+                        IconButton(
+                          tooltip: 'تشغيل المعاينة',
+                          icon: const Icon(Icons.play_circle_fill_rounded,
+                              color: AppColors.iconGold, size: 26),
+                          onPressed: () {
+                            final series = widget.appProvider.getSeriesById(lesson.seriesId);
+                            if (series != null) {
+                              Provider.of<AudioProvider>(context, listen: false)
+                                  .loadAndPlayLesson(lesson: lesson, series: series);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('بدأ تشغيل المعاينة: ${lesson.title}',
+                                      style: GoogleFonts.readexPro()),
+                                  backgroundColor: AppColors.primaryDarkBrown,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+
+                        // زر تعديل
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 18),
+                          onPressed: () => _openEditLessonDialog(lesson),
+                        ),
+
+                        // زر حذف
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded,
+                              color: Colors.red.shade400, size: 18),
+                          onPressed: () async {
+                            await widget.appProvider.deleteLesson(lesson.id);
+                            _updateDefaultOrder();
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── نموذج الإضافة الفردية ────────────────────────────────────────────────
+  Widget _buildSingleAddForm() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.dividerLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: TextFormField(
+                  controller: _singleOrderController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'الترتيب',
+                    filled: true,
+                    fillColor: AppColors.scaffoldCream,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 3,
+                child: TextFormField(
+                  controller: _singleTitleController,
+                  decoration: const InputDecoration(
+                    labelText: 'عنوان الدرس (مثال: الدرس 1)',
+                    filled: true,
+                    fillColor: AppColors.scaffoldCream,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  controller: _singleDurationController,
+                  decoration: const InputDecoration(
+                    labelText: 'المدة (45:00)',
+                    filled: true,
+                    fillColor: AppColors.scaffoldCream,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _singleAudioUrlController,
+            textDirection: TextDirection.ltr,
+            decoration: const InputDecoration(
+              labelText: 'رابط ملف الصوت (MP3 URL)',
+              hintText: 'https://archive.org/.../01.mp3',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _singleVideoUrlController,
+            textDirection: TextDirection.ltr,
+            decoration: const InputDecoration(
+              labelText: 'رابط فيديو يوتيوب (اختياري)',
+              hintText: 'https://youtube.com/watch?v=...',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _singleTranscriptController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'التفريغ النصي (اختياري - يمكن إضافته لاحقاً)',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _handleSingleAdd,
+            icon: const Icon(Icons.add_rounded),
+            label: Text('إضافة الدرس لهذا الشرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── نموذج الإضافة الجماعية السريعة (Bulk Add) ────────────────────────────
+  Widget _buildBulkAddForm() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.goldMuted.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, color: AppColors.iconGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'الإضافة الجماعية السريعة (Bulk Import)',
+                style: GoogleFonts.readexPro(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'الصق هنا عشرات الروابط الصوتية دفعة واحدة. كل رابط في سطر.\nيمكنك كتابة "عنوان الدرس | الرابط" أو الرابط فقط لترتيبها آلياً.',
+            style: GoogleFonts.readexPro(fontSize: 12, height: 1.5, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _bulkPrefixController,
+            decoration: const InputDecoration(
+              labelText: 'بادئة العنوان التلقائي (عند عدم تحديد عنوان لكل رابط)',
+              hintText: 'الدرس',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _bulkTextAreaController,
+            maxLines: 8,
+            textDirection: TextDirection.ltr,
+            style: GoogleFonts.readexPro(fontSize: 12),
+            decoration: const InputDecoration(
+              labelText: 'مساحة لصق الروابط',
+              hintText: 'https://archive.org/.../01.mp3\nhttps://archive.org/.../02.mp3\nأو:\nمقدمة الشرح | https://archive.org/.../01.mp3',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: _handleBulkAdd,
+            icon: const Icon(Icons.flash_on_rounded),
+            label: Text(
+              'استيراد وإضافة جميع الروابط دفعة واحدة',
+              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 6. تبويب إدارة التفريغات السريعة (Quick Transcripts Editor)
+// ═══════════════════════════════════════════════════════════════════════════
+class _TranscriptsTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _TranscriptsTab({required this.appProvider});
+
+  @override
+  State<_TranscriptsTab> createState() => _TranscriptsTabState();
+}
+
+class _TranscriptsTabState extends State<_TranscriptsTab> {
+  bool _onlyWithoutTranscript = false;
+  String _searchQuery = '';
+
+  void _openTranscriptEditor(LessonModel lesson) {
+    final controller = TextEditingController(text: lesson.transcript);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'تفريغ: ${lesson.title}',
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDarkBrown,
+            fontSize: 15,
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'اكتب أو الصق التفريغ النصي الكامل للدرس. سيحفظ فوراً ويظهر لجميع الطلاب:',
+                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: controller,
+                maxLines: 12,
+                style: GoogleFonts.amiri(fontSize: 15, height: 1.8),
+                decoration: const InputDecoration(
+                  hintText: 'بسم الله الرحمن الرحيم، الحمد لله رب العالمين...',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.appProvider.updateLessonTranscript(lesson.id, controller.text);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم حفظ التفريغ النصي بنجاح!', style: GoogleFonts.readexPro()),
+                    backgroundColor: AppColors.primaryDarkBrown,
+                  ),
+                );
+              }
+            },
+            child: Text('حفظ التفريغ', style: GoogleFonts.readexPro()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var lessons = widget.appProvider.lessons;
+
+    if (_onlyWithoutTranscript) {
+      lessons = lessons.where((l) => !l.hasTranscript).toList();
+    }
+
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.trim().toLowerCase();
+      lessons = lessons.where((l) => l.title.toLowerCase().contains(q)).toList();
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldCream,
+      body: Column(
+        children: [
+          // شريط التصفية والبحث
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: AppColors.cardWhite,
+            child: Column(
+              children: [
+                TextField(
+                  style: GoogleFonts.readexPro(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'ابحث عن درس لتحرير تفريغه...',
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.iconGold),
+                    filled: true,
+                    fillColor: AppColors.scaffoldCream,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _onlyWithoutTranscript,
+                      activeColor: AppColors.primaryDarkBrown,
+                      onChanged: (val) => setState(() => _onlyWithoutTranscript = val ?? false),
+                    ),
+                    Text(
+                      'عرض الدروس غير المفرغة فقط (${widget.appProvider.lessons.where((l) => !l.hasTranscript).length} درس)',
+                      style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // قائمة الدروس والتفريغ
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+              itemCount: lessons.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final lesson = lessons[index];
+                final series = widget.appProvider.getSeriesById(lesson.seriesId);
+                final hasTranscript = lesson.hasTranscript;
+
+                return Card(
+                  color: AppColors.cardWhite,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: const BorderSide(color: AppColors.dividerLight),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: hasTranscript
+                            ? Colors.green.shade50
+                            : AppColors.goldMuted.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        hasTranscript ? Icons.check_circle_rounded : Icons.edit_note_rounded,
+                        color: hasTranscript ? Colors.green.shade800 : AppColors.iconGold,
+                        size: 22,
+                      ),
+                    ),
+                    title: Text(
+                      lesson.title,
+                      style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      '${series?.title ?? "-"}\n${hasTranscript ? "مفرغ (${lesson.transcript.length} حرف)" : "لم يتم تفريغه بعد"}',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: hasTranscript ? Colors.green.shade800 : AppColors.textSecondary,
+                      ),
+                    ),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: hasTranscript
+                            ? AppColors.primaryLightBrown.withValues(alpha: 0.2)
+                            : AppColors.primaryDarkBrown,
+                        foregroundColor: hasTranscript
+                            ? AppColors.primaryDarkBrown
+                            : AppColors.textGoldLight,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: hasTranscript ? AppColors.goldMuted : Colors.transparent,
+                          ),
+                        ),
+                      ),
+                      onPressed: () => _openTranscriptEditor(lesson),
+                      child: Text(
+                        hasTranscript ? 'تعديل التفريغ' : 'إضافة تفريغ',
+                        style: GoogleFonts.readexPro(fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

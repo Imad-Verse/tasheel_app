@@ -1,0 +1,51 @@
+name: tasheel_app
+description: "تطبيق تسهيل - طريقك لتيسير العلوم الشرعية"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.14.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # أيقونات iOS
+  cupertino_icons: ^1.0.8
+
+  # إدارة الحالة
+  provider: ^6.1.5
+
+  # الخطوط العربية (Readex Pro, Amiri, Tajawal)
+  google_fonts: ^6.2.1
+
+  # حفظ التفضيلات محلياً
+  shared_preferences: ^2.5.3
+
+  # مشغل الصوتيات المتقدم
+  just_audio: ^0.9.46
+
+  # فتح الروابط الخارجية (واتساب، يوتيوب)
+  url_launcher: ^6.3.1
+
+  # مشاركة التطبيق
+  share_plus: ^10.1.4
+
+  # تحميل الملفات وإدارة المسارات
+  dio: ^5.8.0+1
+  path_provider: ^2.1.5
+
+  # خدمات Firebase السحابية
+  firebase_core: ^3.12.1
+  cloud_firestore: ^5.6.5
+  firebase_auth: ^5.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
