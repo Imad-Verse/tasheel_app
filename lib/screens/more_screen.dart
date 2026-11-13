@@ -24,9 +24,14 @@ class MoreScreen extends StatelessWidget {
 
   /// فتح واتساب للدعم الفني
   Future<void> _openWhatsAppSupport(BuildContext context) async {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final rawPhone = appProvider.aboutApp.supportWhatsapp;
+    final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
     const message = 'السلام عليكم اراسلك من تطبيق تسهيل للعلوم الشرعية احتاج للتحدث معكم';
     final encoded = Uri.encodeComponent(message);
-    final waUri = Uri.parse('https://wa.me/?text=$encoded');
+    final waUri = cleanPhone.isNotEmpty
+        ? Uri.parse('https://wa.me/$cleanPhone?text=$encoded')
+        : Uri.parse('https://wa.me/?text=$encoded');
 
     try {
       if (await canLaunchUrl(waUri)) {
@@ -61,9 +66,10 @@ class MoreScreen extends StatelessWidget {
   }
 
   /// مشاركة التطبيق عبر وسائل التواصل الاجتماعي
-  void _shareApp() {
-    const shareText =
-        'تطبيق (تسهيل) طريقك لتيسير العلوم الشرعية.. استمع لشروحات المتون العلمية لكبار العلماء مع التفريغات النصية وميزة الاستماع بدون إنترنت. حمله الآن: https://madoverse.site/tasheel';
+  void _shareApp(BuildContext context) {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final aboutApp = appProvider.aboutApp;
+    final shareText = '${aboutApp.shareDescription}\n${aboutApp.shareUrl}'.trim();
     Share.share(shareText);
   }
 
@@ -259,7 +265,7 @@ class MoreScreen extends StatelessWidget {
       _MenuItemData(
         title: 'شارك التطبيق',
         icon: Icons.share_rounded,
-        onTap: _shareApp,
+        onTap: () => _shareApp(context),
       ),
       _MenuItemData(
         title: 'الدعم الفني',

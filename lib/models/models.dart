@@ -4,4 +4,5 @@ export 'sheikh_model.dart';
 export 'book_model.dart';
 export 'series_model.dart';
 export 'lesson_model.dart';
+export 'about_app_model.dart';
 

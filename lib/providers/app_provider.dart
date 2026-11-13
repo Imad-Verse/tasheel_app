@@ -35,6 +35,7 @@ class AppProvider extends ChangeNotifier {
   static const String _keyAdminBooks = 'tasheel_admin_books';
   static const String _keyAdminSeries = 'tasheel_admin_series';
   static const String _keyAdminLessons = 'tasheel_admin_lessons';
+  static const String _keyAboutApp = 'tasheel_about_app_settings';
 
   // ─── 0. الملف الشخصي وإعدادات التطبيق ──────────────────────────────────────
   String _userName = 'أبو الحارث عماد بعلول';
@@ -69,6 +70,108 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> clearCache() async {
     notifyListeners();
+  }
+
+  // ─── 0.1 إعدادات صفحة عن التطبيق والتواصل والمشاريع ─────────────────────────
+  AboutAppModel _aboutApp = AboutAppModel.defaultData();
+  AboutAppModel get aboutApp => _aboutApp;
+
+  Future<void> updateAboutAppInfo({
+    required String appDescription,
+    required String telegramUrl,
+    required String facebookUrl,
+    required String youtubeUrl,
+    required String websiteUrl,
+    required String supportWhatsapp,
+    required String shareDescription,
+    required String shareUrl,
+  }) async {
+    _aboutApp = _aboutApp.copyWith(
+      appDescription: appDescription.trim(),
+      telegramUrl: telegramUrl.trim(),
+      facebookUrl: facebookUrl.trim(),
+      youtubeUrl: youtubeUrl.trim(),
+      websiteUrl: websiteUrl.trim(),
+      supportWhatsapp: supportWhatsapp.trim(),
+      shareDescription: shareDescription.trim(),
+      shareUrl: shareUrl.trim(),
+    );
+    notifyListeners();
+    await _saveAboutAppLocally();
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('settings')
+            .doc('about_app')
+            .set(_aboutApp.toMap());
+      } catch (e) {
+        debugPrint('Firestore update about_app error: $e');
+      }
+    }
+  }
+
+  Future<void> addOurProject(OurProjectModel project) async {
+    final currentList = List<OurProjectModel>.from(_aboutApp.projects);
+    currentList.add(project);
+    _aboutApp = _aboutApp.copyWith(projects: currentList);
+    notifyListeners();
+    await _saveAboutAppLocally();
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('settings')
+            .doc('about_app')
+            .set(_aboutApp.toMap());
+      } catch (e) {
+        debugPrint('Firestore add project error: $e');
+      }
+    }
+  }
+
+  Future<void> updateOurProject(OurProjectModel project) async {
+    final currentList = List<OurProjectModel>.from(_aboutApp.projects);
+    final idx = currentList.indexWhere((p) => p.id == project.id);
+    if (idx != -1) {
+      currentList[idx] = project;
+      _aboutApp = _aboutApp.copyWith(projects: currentList);
+      notifyListeners();
+      await _saveAboutAppLocally();
+      if (isFirebaseConnected) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('settings')
+              .doc('about_app')
+              .set(_aboutApp.toMap());
+        } catch (e) {
+          debugPrint('Firestore update project error: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> deleteOurProject(String projectId) async {
+    final currentList = List<OurProjectModel>.from(_aboutApp.projects);
+    currentList.removeWhere((p) => p.id == projectId);
+    _aboutApp = _aboutApp.copyWith(projects: currentList);
+    notifyListeners();
+    await _saveAboutAppLocally();
+    if (isFirebaseConnected) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('settings')
+            .doc('about_app')
+            .set(_aboutApp.toMap());
+      } catch (e) {
+        debugPrint('Firestore delete project error: $e');
+      }
+    }
+  }
+
+  Future<void> _saveAboutAppLocally() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyAboutApp, jsonEncode(_aboutApp.toMap()));
+    } catch (_) {}
   }
 
   // ─── 1. التنقل بين التبويبات ─────────────────────────────────────────────
@@ -942,6 +1045,12 @@ class AppProvider extends ChangeNotifier {
         batch.set(firestore.collection('lessons').doc(l.id), l.toMap());
       }
 
+      // تضمين بيانات عن التطبيق والتواصل والمشاريع في السحابة
+      batch.set(
+        firestore.collection('settings').doc('about_app'),
+        _aboutApp.toMap(),
+      );
+
       await batch.commit();
       return true;
     } catch (e) {
@@ -956,6 +1065,25 @@ class AppProvider extends ChangeNotifier {
   Future<void> _initData() async {
     _initDefaultState();
     await _loadFromPreferences();
+    if (isFirebaseConnected) {
+      await _loadFromFirestore();
+    }
+  }
+
+  Future<void> _loadFromFirestore() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('settings')
+          .doc('about_app')
+          .get();
+      if (doc.exists && doc.data() != null) {
+        _aboutApp = AboutAppModel.fromMap(doc.data()!);
+        notifyListeners();
+        await _saveAboutAppLocally();
+      }
+    } catch (e) {
+      debugPrint('Firestore load about_app error: $e');
+    }
   }
 
   void _initDefaultState() {
@@ -1025,6 +1153,12 @@ class AppProvider extends ChangeNotifier {
         final List list = jsonDecode(rawL);
         _lessons.clear();
         _lessons.addAll(list.map((m) => LessonModel.fromMap(m as Map<String, dynamic>)));
+      }
+
+      final rawAbout = prefs.getString(_keyAboutApp);
+      if (rawAbout != null) {
+        final map = jsonDecode(rawAbout);
+        _aboutApp = AboutAppModel.fromMap(Map<String, dynamic>.from(map as Map));
       }
 
       recalculateAllCounts();

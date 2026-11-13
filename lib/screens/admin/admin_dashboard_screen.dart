@@ -33,7 +33,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
   }
 
   @override
@@ -119,6 +119,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 _SeriesTab(appProvider: appProvider),
                 _LessonsTab(appProvider: appProvider),
                 _TranscriptsTab(appProvider: appProvider),
+                _AboutAppTab(appProvider: appProvider),
               ],
             ),
           ),
@@ -278,6 +279,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           Tab(icon: Icon(Icons.library_books_rounded, size: 20), text: 'الشروحات'),
           Tab(icon: Icon(Icons.audiotrack_rounded, size: 20), text: 'الدروس'),
           Tab(icon: Icon(Icons.subtitles_rounded, size: 20), text: 'التفريغات'),
+          Tab(icon: Icon(Icons.info_outline_rounded, size: 20), text: 'عن التطبيق والتواصل'),
         ],
       ),
     );
@@ -2331,6 +2333,575 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 7. تبويب إدارة عن التطبيق والتواصل والمشاريع (_AboutAppTab)
+// ═══════════════════════════════════════════════════════════════════════════
+class _AboutAppTab extends StatefulWidget {
+  final AppProvider appProvider;
+  const _AboutAppTab({required this.appProvider});
+
+  @override
+  State<_AboutAppTab> createState() => _AboutAppTabState();
+}
+
+class _AboutAppTabState extends State<_AboutAppTab> {
+  late TextEditingController _descriptionController;
+  late TextEditingController _whatsappController;
+  late TextEditingController _telegramController;
+  late TextEditingController _facebookController;
+  late TextEditingController _youtubeController;
+  late TextEditingController _websiteController;
+  late TextEditingController _shareDescriptionController;
+  late TextEditingController _shareUrlController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final about = widget.appProvider.aboutApp;
+    _descriptionController = TextEditingController(text: about.appDescription);
+    _whatsappController = TextEditingController(text: about.supportWhatsapp);
+    _telegramController = TextEditingController(text: about.telegramUrl);
+    _facebookController = TextEditingController(text: about.facebookUrl);
+    _youtubeController = TextEditingController(text: about.youtubeUrl);
+    _websiteController = TextEditingController(text: about.websiteUrl);
+    _shareDescriptionController = TextEditingController(text: about.shareDescription);
+    _shareUrlController = TextEditingController(text: about.shareUrl);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AboutAppTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.appProvider.aboutApp != widget.appProvider.aboutApp && !_isSaving) {
+      final about = widget.appProvider.aboutApp;
+      _descriptionController.text = about.appDescription;
+      _whatsappController.text = about.supportWhatsapp;
+      _telegramController.text = about.telegramUrl;
+      _facebookController.text = about.facebookUrl;
+      _youtubeController.text = about.youtubeUrl;
+      _websiteController.text = about.websiteUrl;
+      _shareDescriptionController.text = about.shareDescription;
+      _shareUrlController.text = about.shareUrl;
+    }
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _whatsappController.dispose();
+    _telegramController.dispose();
+    _facebookController.dispose();
+    _youtubeController.dispose();
+    _websiteController.dispose();
+    _shareDescriptionController.dispose();
+    _shareUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveSettings() async {
+    setState(() => _isSaving = true);
+    try {
+      await widget.appProvider.updateAboutAppInfo(
+        appDescription: _descriptionController.text,
+        telegramUrl: _telegramController.text,
+        facebookUrl: _facebookController.text,
+        youtubeUrl: _youtubeController.text,
+        websiteUrl: _websiteController.text,
+        supportWhatsapp: _whatsappController.text,
+        shareDescription: _shareDescriptionController.text,
+        shareUrl: _shareUrlController.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'تم حفظ إعدادات التطبيق وروابط التواصل بنجاح!',
+              style: GoogleFonts.readexPro(),
+            ),
+            backgroundColor: AppColors.primaryDarkBrown,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ أثناء الحفظ: $e', style: GoogleFonts.readexPro()),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _openAddEditProjectDialog({OurProjectModel? project}) {
+    final titleController = TextEditingController(text: project?.title ?? '');
+    final descController = TextEditingController(text: project?.description ?? '');
+    final urlController = TextEditingController(text: project?.url ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          project == null ? 'إضافة مشروع جديد' : 'تعديل المشروع',
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDarkBrown,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  style: GoogleFonts.readexPro(fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'عنوان المشروع *',
+                    hintText: 'مثال: منصة متون العلمية',
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'يرجى إدخال عنوان المشروع' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: descController,
+                  maxLines: 3,
+                  style: GoogleFonts.readexPro(fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'وصف المشروع *',
+                    hintText: 'وصف مختصر لأهداف ومزايا المشروع...',
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'يرجى إدخال وصف المشروع' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: urlController,
+                  style: GoogleFonts.readexPro(fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'رابط المشروع (URL)',
+                    hintText: 'https://...',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDarkBrown,
+              foregroundColor: AppColors.textGoldLight,
+            ),
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                final newProject = OurProjectModel(
+                  id: project?.id ?? 'proj_${DateTime.now().millisecondsSinceEpoch}',
+                  title: titleController.text.trim(),
+                  description: descController.text.trim(),
+                  url: urlController.text.trim(),
+                );
+                Navigator.pop(ctx);
+                if (project == null) {
+                  await widget.appProvider.addOurProject(newProject);
+                } else {
+                  await widget.appProvider.updateOurProject(newProject);
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        project == null ? 'تمت إضافة المشروع بنجاح!' : 'تم تحديث المشروع بنجاح!',
+                        style: GoogleFonts.readexPro(),
+                      ),
+                      backgroundColor: AppColors.primaryDarkBrown,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(project == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteProject(OurProjectModel project) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.scaffoldCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'تأكيد حذف المشروع',
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade800,
+          ),
+        ),
+        content: Text(
+          'هل أنت متأكد من حذف مشروع "${project.title}"؟ لن يظهر في قسم "من مشاريعنا" في التطبيق.',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.appProvider.deleteOurProject(project.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم حذف المشروع بنجاح', style: GoogleFonts.readexPro()),
+                    backgroundColor: AppColors.primaryDarkBrown,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text('تأكيد الحذف', style: GoogleFonts.readexPro()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Widget? action,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              ?action,
+              const Spacer(),
+              Text(
+                title,
+                style: GoogleFonts.readexPro(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(icon, color: AppColors.iconGold, size: 20),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: AppColors.dividerLight),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // ── 1. البطاقة الأولى: نبذة عن التطبيق ──────────────────────────────────────
+  Widget _buildCard1AboutDescription() {
+    return _buildSectionCard(
+      title: 'نبذة عن التطبيق (القسم الأول)',
+      icon: Icons.article_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'هذا النص يظهر في أول بطاقة داخل صفحة "عن التطبيق" لشرح رسالة ورؤية التطبيق:',
+            style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: _descriptionController,
+            maxLines: 4,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'النص التعريفي لرسالة التطبيق',
+              hintText: 'اكتب رسالة ورؤية التطبيق...',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 2. البطاقة الثانية: روابط التواصل والدعم الفني ─────────────────────────
+  Widget _buildCard2ContactAndSupport() {
+    return _buildSectionCard(
+      title: 'روابط التواصل والدعم الفني',
+      icon: Icons.contact_support_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _whatsappController,
+            keyboardType: TextInputType.phone,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رقم واتساب الدعم الفني',
+              hintText: '213xxxxxxxxx (بالصيغة الدولية دون مسافات أو علامة +)',
+              prefixIcon: Icon(Icons.phone_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _telegramController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط قناة تيليجرام',
+              hintText: 'https://t.me/...',
+              prefixIcon: Icon(Icons.send_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _facebookController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط صفحة فيسبوك',
+              hintText: 'https://facebook.com/...',
+              prefixIcon: Icon(Icons.public_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _youtubeController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط قناة يوتيوب',
+              hintText: 'https://youtube.com/@...',
+              prefixIcon: Icon(Icons.play_circle_fill_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _websiteController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط الموقع الرسمي',
+              hintText: 'https://...',
+              prefixIcon: Icon(Icons.language_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 3. البطاقة الثالثة: إعدادات مشاركة التطبيق ──────────────────────────────
+  Widget _buildCard3ShareSettings() {
+    return _buildSectionCard(
+      title: 'إعدادات مشاركة التطبيق',
+      icon: Icons.share_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _shareDescriptionController,
+            maxLines: 3,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'وصف مشاركة التطبيق',
+              hintText: 'اكتب الرسالة التي تظهر عند مشاركة التطبيق...',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _shareUrlController,
+            style: GoogleFonts.readexPro(fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'رابط مشاركة وتحميل التطبيق',
+              hintText: 'https://...',
+              prefixIcon: Icon(Icons.link_rounded, color: AppColors.iconGold, size: 20),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : _saveSettings,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save_rounded, size: 20),
+              label: Text(
+                _isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات والروابط',
+                style: GoogleFonts.readexPro(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 4. البطاقة الرابعة: إدارة قسم من مشاريعنا ──────────────────────────────
+  Widget _buildCard4OurProjects() {
+    final projects = widget.appProvider.aboutApp.projects;
+    return _buildSectionCard(
+      title: 'إدارة قسم "من مشاريعنا التقنية"',
+      icon: Icons.work_rounded,
+      action: ElevatedButton.icon(
+        onPressed: () => _openAddEditProjectDialog(),
+        icon: const Icon(Icons.add_rounded, size: 16),
+        label: Text('إضافة مشروع', style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryDarkBrown,
+          foregroundColor: AppColors.textGoldLight,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (projects.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'لا توجد مشاريع مضافة حالياً. اضغط "إضافة مشروع" لإدراج مشروع جديد.',
+                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...projects.map((proj) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.scaffoldCream,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.dividerLight),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'تعديل',
+                      icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                      onPressed: () => _openAddEditProjectDialog(project: proj),
+                    ),
+                    IconButton(
+                      tooltip: 'حذف',
+                      icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                      onPressed: () => _confirmDeleteProject(proj),
+                    ),
+                    const Spacer(),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            proj.title,
+                            style: GoogleFonts.readexPro(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryDarkBrown,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            proj.description,
+                            style: GoogleFonts.readexPro(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                          ),
+                          if (proj.url.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              proj.url,
+                              style: GoogleFonts.readexPro(
+                                fontSize: 10,
+                                color: AppColors.iconGold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textDirection: TextDirection.ltr,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildCard1AboutDescription(),
+          _buildCard2ContactAndSupport(),
+          _buildCard3ShareSettings(),
+          _buildCard4OurProjects(),
         ],
       ),
     );

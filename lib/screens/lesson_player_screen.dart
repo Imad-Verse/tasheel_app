@@ -1303,8 +1303,13 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
           // زر المساهمة عبر واتساب
           ElevatedButton.icon(
             onPressed: () async {
+              final appProvider = Provider.of<AppProvider>(context, listen: false);
+              final rawPhone = appProvider.aboutApp.supportWhatsapp;
+              final cleanPhone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
               final encoded = Uri.encodeComponent(whatsappMessage);
-              final waUri = Uri.parse('https://wa.me/?text=$encoded');
+              final waUri = cleanPhone.isNotEmpty
+                  ? Uri.parse('https://wa.me/$cleanPhone?text=$encoded')
+                  : Uri.parse('https://wa.me/?text=$encoded');
               try {
                 if (await canLaunchUrl(waUri)) {
                   await launchUrl(waUri, mode: LaunchMode.externalApplication);

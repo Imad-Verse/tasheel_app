@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_colors.dart';
+import '../models/models.dart';
+import '../providers/app_provider.dart';
 import 'admin/admin_login_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة عن التطبيق ومن مشاريعنا (AboutAppScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
 /// تضم:
-/// 1. شعار التطبيق التفاعلي (مجهز بعداد ضغطات للوحة التحكم السرية في المرحلة 6).
-/// 2. رسالة ورؤية تطبيق تسهيل.
-/// 3. وسائل التواصل والمتابعة الرسمية.
-/// 4. قسم "من مشاريعنا التقنية والعلمية" مع روابط الانتقال.
+/// 1. شعار التطبيق التفاعلي (مجهز بعداد 5 ضغطات لفتح لوحة التحكم السرية).
+/// 2. رسالة ورؤية تطبيق تسهيل المستمدة ديناميكياً من AppProvider.
+/// 3. وسائل التواصل والمتابعة الرسمية المستمدة ديناميكياً من AppProvider.
+/// 4. قسم "من مشاريعنا التقنية والعلمية" مع روابط الانتقال المستمدة ديناميكياً.
 /// ═══════════════════════════════════════════════════════════════════════════
 class AboutAppScreen extends StatefulWidget {
   const AboutAppScreen({super.key});
@@ -21,7 +24,7 @@ class AboutAppScreen extends StatefulWidget {
 }
 
 class _AboutAppScreenState extends State<AboutAppScreen> {
-  // عداد الضغطات المتتالية على الشعار لفتح لوحة التحكم المخفية لاحقاً
+  // عداد الضغطات المتتالية على الشعار لفتح لوحة التحكم المخفية
   int _secretTapCount = 0;
   DateTime? _lastTapTime;
 
@@ -76,6 +79,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appProvider = Provider.of<AppProvider>(context);
+    final aboutApp = appProvider.aboutApp;
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldCream,
       body: Column(
@@ -97,17 +103,17 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   const SizedBox(height: 18),
 
                   // ── بطاقة وصف التطبيق ورسالته ───────────────────────────
-                  _buildDescriptionCard(),
+                  _buildDescriptionCard(aboutApp),
 
                   const SizedBox(height: 18),
 
                   // ── وسائل التواصل والمتابعة ─────────────────────────────
-                  _buildSocialChannelsSection(),
+                  _buildSocialChannelsSection(aboutApp),
 
                   const SizedBox(height: 24),
 
                   // ── قسم من مشاريعنا ─────────────────────────────────────
-                  _buildOurProjectsSection(),
+                  _buildOurProjectsSection(aboutApp),
                 ],
               ),
             ),
@@ -238,8 +244,8 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     );
   }
 
-  /// ── بطاقة وصف التطبيق ──────────────────────────────────────────────────
-  Widget _buildDescriptionCard() {
+  /// ── بطاقة وصف التطبيق ورسالته ──────────────────────────────────────────
+  Widget _buildDescriptionCard(AboutAppModel aboutApp) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -268,10 +274,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'تطبيق "تسهيل" هو بوابتك الموثوقة لتيسير طلب العلوم الشرعية والتأصيل العلمي الرصين. '
-            'يهدف التطبيق إلى تقريب شروحات المتون التأصيلية لكبار أئمة السنة وعلمائها المعاصرين، '
-            'مع إتاحة التفريغات النصية المدققة والاستماع المباشر وبدون اتصال بالإنترنت، '
-            'خدمةً لطلاب العلم والباحثين في شتى بقاع الأرض.',
+            aboutApp.appDescription,
             style: GoogleFonts.readexPro(
               fontSize: 13,
               color: AppColors.textPrimary,
@@ -301,29 +304,38 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   }
 
   /// ── وسائل التواصل والمتابعة ─────────────────────────────────────────────
-  Widget _buildSocialChannelsSection() {
-    final channels = [
-      {
+  Widget _buildSocialChannelsSection(AboutAppModel aboutApp) {
+    final channels = <Map<String, dynamic>>[];
+    if (aboutApp.telegramUrl.trim().isNotEmpty) {
+      channels.add({
         'title': 'تيليجرام',
         'icon': Icons.send_rounded,
-        'url': 'https://t.me/tasheel_app',
-      },
-      {
+        'url': aboutApp.telegramUrl.trim(),
+      });
+    }
+    if (aboutApp.youtubeUrl.trim().isNotEmpty) {
+      channels.add({
         'title': 'يوتيوب',
         'icon': Icons.play_circle_fill_rounded,
-        'url': 'https://youtube.com/@tasheel_app',
-      },
-      {
+        'url': aboutApp.youtubeUrl.trim(),
+      });
+    }
+    if (aboutApp.facebookUrl.trim().isNotEmpty) {
+      channels.add({
         'title': 'فيسبوك',
         'icon': Icons.public_rounded,
-        'url': 'https://facebook.com/tasheel.app',
-      },
-      {
+        'url': aboutApp.facebookUrl.trim(),
+      });
+    }
+    if (aboutApp.websiteUrl.trim().isNotEmpty) {
+      channels.add({
         'title': 'الموقع الرسمي',
         'icon': Icons.language_rounded,
-        'url': 'https://madoverse.site/tasheel',
-      },
-    ];
+        'url': aboutApp.websiteUrl.trim(),
+      });
+    }
+
+    if (channels.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -384,27 +396,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   }
 
   /// ── قسم من مشاريعنا ────────────────────────────────────────────────────
-  Widget _buildOurProjectsSection() {
-    final projects = [
-      {
-        'name': 'منصة متون العلمية',
-        'icon': Icons.menu_book_rounded,
-        'desc': 'بوابة إلكترونية متخصصة في حفظ ومراجعة متون طالب العلم وفق مستويات منهجية متدرجة.',
-        'url': 'https://madoverse.site/mutoon',
-      },
-      {
-        'name': 'جامع الفتاوى والتأصيل',
-        'icon': Icons.account_balance_rounded,
-        'desc': 'محرك بحث متقدم لفتاوى كبار العلماء وأئمة السلف مع تصنيف فقهي ميسر وموثوق.',
-        'url': 'https://madoverse.site/fatawa',
-      },
-      {
-        'name': 'المقرأة التيسيرية القرآنية',
-        'icon': Icons.record_voice_over_rounded,
-        'desc': 'حلقات إلكترونية لتصحيح التلاوة وإتقان التجويد والإجازة بالسند المتصل عن بعد.',
-        'url': 'https://madoverse.site/quran',
-      },
-    ];
+  Widget _buildOurProjectsSection(AboutAppModel aboutApp) {
+    final projects = aboutApp.projects;
+    if (projects.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -442,35 +436,36 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // زر الانتقال على اليسار في RTL
-                      ElevatedButton.icon(
-                        onPressed: () => _launchExternalUrl(proj['url'] as String),
-                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                        label: Text(
-                          'انتقال',
-                          style: GoogleFonts.readexPro(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      if (proj.url.trim().isNotEmpty)
+                        ElevatedButton.icon(
+                          onPressed: () => _launchExternalUrl(proj.url),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                          label: Text(
+                            'انتقال',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.scaffoldCream,
+                            foregroundColor: AppColors.primaryDarkBrown,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(color: AppColors.accentGoldBeige),
+                            ),
+                            elevation: 0,
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.scaffoldCream,
-                          foregroundColor: AppColors.primaryDarkBrown,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: AppColors.accentGoldBeige),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
 
                       const Spacer(),
 
                       // اسم المشروع
                       Text(
-                        proj['name'] as String,
+                        proj.title,
                         style: GoogleFonts.readexPro(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -487,8 +482,8 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                           color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
-                          proj['icon'] as IconData,
+                        child: const Icon(
+                          Icons.menu_book_rounded,
                           color: AppColors.iconGold,
                           size: 20,
                         ),
@@ -497,7 +492,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    proj['desc'] as String,
+                    proj.description,
                     style: GoogleFonts.readexPro(
                       fontSize: 12,
                       color: AppColors.textSecondary,
