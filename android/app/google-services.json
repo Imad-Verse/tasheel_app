@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "220978016273",
+    "project_id": "tasheel-app-2026",
+    "storage_bucket": "tasheel-app-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:220978016273:android:a77b17b6b81c1d7be3c1b0",
+        "android_client_info": {
+          "package_name": "com.tasheel.tasheel_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzBldIg09vqVmoNWG3Kgj8Et2_woFmbC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

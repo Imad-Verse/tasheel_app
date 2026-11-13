@@ -12,6 +12,7 @@ class SeriesModel {
   final String categoryId;
   final String title;
   final int lessonsCount;
+  final String? pdfUrl;
 
   const SeriesModel({
     required this.id,
@@ -20,7 +21,11 @@ class SeriesModel {
     required this.categoryId,
     required this.title,
     this.lessonsCount = 0,
+    this.pdfUrl,
   });
+
+  /// هل يوجد ملف PDF مرفق بالشرح (متن أو كتاب)؟
+  bool get hasPdf => pdfUrl != null && pdfUrl!.trim().isNotEmpty;
 
   /// إنشاء كائن من خريطة Firestore
   factory SeriesModel.fromMap(Map<String, dynamic> map, {String? docId}) {
@@ -31,6 +36,7 @@ class SeriesModel {
       categoryId: map['categoryId'] as String? ?? '',
       title: map['title'] as String? ?? '',
       lessonsCount: map['lessonsCount'] as int? ?? 0,
+      pdfUrl: map['pdfUrl'] as String?,
     );
   }
 
@@ -43,6 +49,7 @@ class SeriesModel {
       'categoryId': categoryId,
       'title': title,
       'lessonsCount': lessonsCount,
+      if (pdfUrl != null && pdfUrl!.trim().isNotEmpty) 'pdfUrl': pdfUrl!.trim(),
     };
   }
 
@@ -54,6 +61,7 @@ class SeriesModel {
     String? categoryId,
     String? title,
     int? lessonsCount,
+    String? pdfUrl,
   }) {
     return SeriesModel(
       id: id ?? this.id,
@@ -62,6 +70,7 @@ class SeriesModel {
       categoryId: categoryId ?? this.categoryId,
       title: title ?? this.title,
       lessonsCount: lessonsCount ?? this.lessonsCount,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
     );
   }
 

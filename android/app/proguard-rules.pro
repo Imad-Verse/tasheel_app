@@ -19,3 +19,6 @@
 # Package Info Plus
 -keep class dev.fluttercommunity.plus.packageinfo.** { *; }
 
+# Syncfusion PDF Viewer
+-keep class com.syncfusion.** { *; }
+

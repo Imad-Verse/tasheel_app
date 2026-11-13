@@ -108,6 +108,73 @@ class AudioProvider extends ChangeNotifier {
       (_remainingSleepTime != null && _remainingSleepTime! > Duration.zero) ||
       _sleepAtEndOfLesson;
 
+  // ─── ميزة التكرار الذكي للمقاطع (A-B Repeat Loop) ──────────────────────
+  Duration? _loopPointA;
+  Duration? _loopPointB;
+  int _loopTargetCount = 0; // 0 = تكرار لا نهائي (∞)، 3، 5، 10
+  int _loopCurrentCount = 0;
+  bool _isLoopActive = false;
+
+  Duration? get loopPointA => _loopPointA;
+  Duration? get loopPointB => _loopPointB;
+  int get loopTargetCount => _loopTargetCount;
+  int get loopCurrentCount => _loopCurrentCount;
+  bool get isLoopActive => _isLoopActive;
+  bool get hasLoopPoints => _loopPointA != null && _loopPointB != null;
+
+  /// تحديد نقطة البداية (A)
+  void setLoopPointA([Duration? pos]) {
+    final target = pos ?? _currentPosition;
+    _loopPointA = target;
+    // إذا كانت النقطة B محددة مسبقاً وتسبق A، نقوم بإلغاء B
+    if (_loopPointB != null && _loopPointB! <= target) {
+      _loopPointB = null;
+      _isLoopActive = false;
+    }
+    _loopCurrentCount = 0;
+    _checkActivateLoop();
+    notifyListeners();
+  }
+
+  /// تحديد نقطة النهاية (B)
+  bool setLoopPointB([Duration? pos]) {
+    final target = pos ?? _currentPosition;
+    if (_loopPointA == null) return false;
+    if (target <= _loopPointA!) return false; // يجب أن تكون B أكبر من A
+    _loopPointB = target;
+    _loopCurrentCount = 0;
+    _checkActivateLoop();
+    notifyListeners();
+    return true;
+  }
+
+  /// تحديد عدد مرات التكرار المطلوبة
+  void setLoopTargetCount(int count) {
+    _loopTargetCount = count;
+    _loopCurrentCount = 0;
+    _checkActivateLoop();
+    notifyListeners();
+  }
+
+  /// تنشيط التكرار إذا كانت النقطتان صالحتين
+  void _checkActivateLoop() {
+    if (_loopPointA != null && _loopPointB != null && _loopPointB! > _loopPointA!) {
+      _isLoopActive = true;
+    } else {
+      _isLoopActive = false;
+    }
+  }
+
+  /// تصفير وإلغاء التكرار والعودة للتشغيل العادي
+  void resetLoop() {
+    _loopPointA = null;
+    _loopPointB = null;
+    _loopTargetCount = 0;
+    _loopCurrentCount = 0;
+    _isLoopActive = false;
+    notifyListeners();
+  }
+
   // ─── إدارة التنزيلات للاستماع بدون إنترنت ──────────────────────────────
   /// خريطة معرف الدرس إلى مسار الملف المحلي على الجهاز
   final Map<String, String> _downloadedFilePaths = {
@@ -190,6 +257,8 @@ class AudioProvider extends ChangeNotifier {
         if (_sleepAtEndOfLesson) {
           pause();
           cancelSleepTimer();
+        } else if (isPlaylistMode && hasNextPlaylistLesson) {
+          playNextPlaylistLesson();
         } else if (hasNextLesson) {
           playNextLesson();
         }
@@ -200,6 +269,21 @@ class AudioProvider extends ChangeNotifier {
     // الاستماع لتغير موضع الصوت
     _positionSub = _player.positionStream.listen((pos) {
       _currentPosition = pos;
+
+      // آلية التكرار الذكي للمقاطع (A-B Loop)
+      if (_isLoopActive && _loopPointA != null && _loopPointB != null) {
+        if (pos >= _loopPointB!) {
+          _loopCurrentCount++;
+          if (_loopTargetCount > 0 && _loopCurrentCount >= _loopTargetCount) {
+            // اكتمل عدد التكرارات المطلوبة
+            _isLoopActive = false;
+          } else {
+            // إعادة التشغيل فوراً للنقطة A
+            seek(_loopPointA!);
+          }
+        }
+      }
+
       notifyListeners();
     });
 
@@ -219,13 +303,20 @@ class AudioProvider extends ChangeNotifier {
     BookModel? book,
     SheikhModel? sheikh,
     bool autoPlay = true,
+    bool keepPlaylistContext = false,
   }) async {
+    if (!keepPlaylistContext) {
+      _activePlaylist = null;
+      _activePlaylistIndex = -1;
+      _activePlaylistLessons = [];
+    }
     _currentLesson = lesson;
     _currentSeries = series;
     _currentBook = book ?? MockDataService.getBookById(series.bookId);
     _currentSheikh = sheikh ?? MockDataService.getSheikhById(series.sheikhId);
     _showMiniPlayer = true;
     _currentPosition = Duration.zero;
+    resetLoop();
     notifyListeners();
 
     try {
@@ -348,6 +439,9 @@ class AudioProvider extends ChangeNotifier {
 
   // ─── التنقل بين الدروس (التالي / السابق) ──────────────────────────────────
   bool get hasNextLesson {
+    if (isPlaylistMode) {
+      return hasNextPlaylistLesson;
+    }
     if (_currentLesson == null || _currentSeries == null) return false;
     final seriesLessons = MockDataService.getLessonsBySeries(
       _currentSeries!.id,
@@ -359,6 +453,9 @@ class AudioProvider extends ChangeNotifier {
   }
 
   bool get hasPreviousLesson {
+    if (isPlaylistMode) {
+      return hasPreviousPlaylistLesson;
+    }
     if (_currentLesson == null || _currentSeries == null) return false;
     final seriesLessons = MockDataService.getLessonsBySeries(
       _currentSeries!.id,
@@ -370,6 +467,10 @@ class AudioProvider extends ChangeNotifier {
   }
 
   Future<void> playNextLesson() async {
+    if (isPlaylistMode && hasNextPlaylistLesson) {
+      await playNextPlaylistLesson();
+      return;
+    }
     if (!hasNextLesson) return;
     final seriesLessons = MockDataService.getLessonsBySeries(
       _currentSeries!.id,
@@ -388,6 +489,10 @@ class AudioProvider extends ChangeNotifier {
   }
 
   Future<void> playPreviousLesson() async {
+    if (isPlaylistMode && hasPreviousPlaylistLesson) {
+      await playPreviousPlaylistLesson();
+      return;
+    }
     if (!hasPreviousLesson) return;
     final seriesLessons = MockDataService.getLessonsBySeries(
       _currentSeries!.id,
@@ -633,6 +738,222 @@ class AudioProvider extends ChangeNotifier {
     _downloadingLessonIds.clear();
     await _saveDownloadsToPrefs();
     notifyListeners();
+  }
+
+  // ─── دوال حساب الأحجام الفعلية للملفات المحملة (Smart Storage Manager) ───
+
+  /// الحصول على الحجم التخزيني الفعلي للدرس المحمل بالبايت
+  int getLessonStorageBytes(String lessonId) {
+    if (!_downloadedFilePaths.containsKey(lessonId)) return 0;
+    final path = _downloadedFilePaths[lessonId];
+    if (path != null &&
+        !kIsWeb &&
+        !path.startsWith('cached_') &&
+        !path.startsWith('web_cached')) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) {
+          return file.lengthSync();
+        }
+      } catch (_) {}
+    }
+    // في حال ملف وهمي أو كاش تجريبي، نرجع حجماً تقديرياً واقعياً (24 ميجابايت)
+    return 24 * 1024 * 1024;
+  }
+
+  /// إجمالي مساحة التخزين المستخدمة للتطبيق لكافة التنزيلات بالبايت
+  int getTotalStorageBytes() {
+    int total = 0;
+    for (final lessonId in _downloadedFilePaths.keys) {
+      total += getLessonStorageBytes(lessonId);
+    }
+    return total;
+  }
+
+  /// حجم الدروس المحملة لشرح معين بالبايت
+  int getSeriesStorageBytes(String seriesId, List<LessonModel> seriesLessons) {
+    int total = 0;
+    for (final lesson in seriesLessons) {
+      if (lesson.seriesId == seriesId && isDownloaded(lesson.id)) {
+        total += getLessonStorageBytes(lesson.id);
+      }
+    }
+    return total;
+  }
+
+  /// حجم الدروس المحملة لشيخ معين بالبايت
+  int getSheikhStorageBytes(
+    String sheikhId,
+    List<SeriesModel> sheikhSeries,
+    List<LessonModel> allLessons,
+  ) {
+    int total = 0;
+    final seriesIds = sheikhSeries
+        .where((s) => s.sheikhId == sheikhId)
+        .map((s) => s.id)
+        .toSet();
+    for (final lesson in allLessons) {
+      if (seriesIds.contains(lesson.seriesId) && isDownloaded(lesson.id)) {
+        total += getLessonStorageBytes(lesson.id);
+      }
+    }
+    return total;
+  }
+
+  /// تنسيق حجم التخزين بشكل مقروء وأنيق (ميجابايت / جيجابايت / كيلوبايت)
+  static String formatBytes(int bytes) {
+    if (bytes <= 0) return '0 ميجابايت';
+    const int kb = 1024;
+    const int mb = kb * 1024;
+    const int gb = mb * 1024;
+
+    if (bytes >= gb) {
+      return '${(bytes / gb).toStringAsFixed(2)} جيجابايت';
+    } else if (bytes >= mb) {
+      return '${(bytes / mb).toStringAsFixed(1)} ميجابايت';
+    } else {
+      return '${(bytes / kb).toStringAsFixed(0)} كيلوبايت';
+    }
+  }
+
+  /// حذف جميع الملفات الصوتية المحملة لشرح كامل دفعة واحدة
+  Future<void> deleteSeriesDownloads(
+    String seriesId,
+    List<LessonModel> seriesLessons,
+  ) async {
+    final targets = seriesLessons
+        .where((l) => l.seriesId == seriesId && isDownloaded(l.id))
+        .map((l) => l.id)
+        .toList();
+
+    for (final lessonId in targets) {
+      final path = _downloadedFilePaths[lessonId];
+      if (path != null &&
+          !kIsWeb &&
+          !path.startsWith('cached_') &&
+          !path.startsWith('web_cached')) {
+        try {
+          final file = File(path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (_) {}
+      }
+      _downloadedFilePaths.remove(lessonId);
+      _downloadProgress.remove(lessonId);
+      _downloadingLessonIds.remove(lessonId);
+    }
+
+    await _saveDownloadsToPrefs();
+    notifyListeners();
+  }
+
+  // ─── وضع قوائم التشغيل المخصصة (Custom Playlists Playback) ────────────
+  CustomPlaylistModel? _activePlaylist;
+  int _activePlaylistIndex = -1;
+  List<LessonModel> _activePlaylistLessons = [];
+
+  bool get isPlaylistMode => _activePlaylist != null;
+  CustomPlaylistModel? get activePlaylist => _activePlaylist;
+  int get activePlaylistIndex => _activePlaylistIndex;
+  List<LessonModel> get activePlaylistLessons => _activePlaylistLessons;
+
+  bool get hasNextPlaylistLesson =>
+      _activePlaylist != null &&
+      _activePlaylistIndex >= 0 &&
+      _activePlaylistIndex < _activePlaylistLessons.length - 1;
+
+  bool get hasPreviousPlaylistLesson =>
+      _activePlaylist != null && _activePlaylistIndex > 0;
+
+  void clearActivePlaylist() {
+    _activePlaylist = null;
+    _activePlaylistIndex = -1;
+    _activePlaylistLessons = [];
+    notifyListeners();
+  }
+
+  Future<void> startPlaylistPlayback({
+    required CustomPlaylistModel playlist,
+    required List<LessonModel> playlistLessons,
+    int startIndex = 0,
+    SeriesModel? series,
+    BookModel? book,
+    SheikhModel? sheikh,
+    bool autoPlay = true,
+  }) async {
+    if (playlistLessons.isEmpty) return;
+    final index = startIndex.clamp(0, playlistLessons.length - 1);
+    _activePlaylist = playlist;
+    _activePlaylistLessons = List.from(playlistLessons);
+    _activePlaylistIndex = index;
+
+    final targetLesson = playlistLessons[index];
+    final lessonSeries =
+        series ??
+        MockDataService.getSeriesById(targetLesson.seriesId) ??
+        SeriesModel(
+          id: targetLesson.seriesId,
+          bookId: '',
+          sheikhId: '',
+          categoryId: '',
+          title: playlist.title,
+        );
+
+    await loadAndPlayLesson(
+      lesson: targetLesson,
+      series: lessonSeries,
+      book: book,
+      sheikh: sheikh,
+      autoPlay: autoPlay,
+      keepPlaylistContext: true,
+    );
+  }
+
+  Future<void> playNextPlaylistLesson() async {
+    if (!hasNextPlaylistLesson) return;
+    _activePlaylistIndex++;
+    final nextLesson = _activePlaylistLessons[_activePlaylistIndex];
+    final nextSeries =
+        MockDataService.getSeriesById(nextLesson.seriesId) ??
+        _currentSeries ??
+        SeriesModel(
+          id: nextLesson.seriesId,
+          bookId: '',
+          sheikhId: '',
+          categoryId: '',
+          title: _activePlaylist?.title ?? '',
+        );
+
+    await loadAndPlayLesson(
+      lesson: nextLesson,
+      series: nextSeries,
+      autoPlay: true,
+      keepPlaylistContext: true,
+    );
+  }
+
+  Future<void> playPreviousPlaylistLesson() async {
+    if (!hasPreviousPlaylistLesson) return;
+    _activePlaylistIndex--;
+    final prevLesson = _activePlaylistLessons[_activePlaylistIndex];
+    final prevSeries =
+        MockDataService.getSeriesById(prevLesson.seriesId) ??
+        _currentSeries ??
+        SeriesModel(
+          id: prevLesson.seriesId,
+          bookId: '',
+          sheikhId: '',
+          categoryId: '',
+          title: _activePlaylist?.title ?? '',
+        );
+
+    await loadAndPlayLesson(
+      lesson: prevLesson,
+      series: prevSeries,
+      autoPlay: true,
+      keepPlaylistContext: true,
+    );
   }
 
   // ─── الحفظ المحلي لبيانات التنزيل ────────────────────────────────────────

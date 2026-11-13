@@ -7,6 +7,7 @@ import '../providers/app_provider.dart';
 import '../services/mock_data_service.dart';
 import '../widgets/decorated_header.dart';
 import '../widgets/global_search_delegate.dart';
+import 'playlists_screen.dart';
 import 'series_lessons_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -38,25 +39,80 @@ class BookmarksScreen extends StatelessWidget {
                 onSearchPressed: () => GlobalSearchDelegate.show(context),
               ),
 
-              // ── 2. شريط عدد المتون (عنوان يمين، عدد يسار) ───────────────
+              // ── 2. شريط عدد المتون وقوائم التشغيل ─────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // عنوان القسم على اليمين في RTL
-                    Text(
-                      'المتون قيد الدراسة',
-                      style: GoogleFonts.readexPro(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    // عنوان القسم مع زر الانتقال السريع لقوائم التشغيل
+                    Row(
+                      children: [
+                        Text(
+                          'المتون قيد الدراسة',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PlaylistsScreen(),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryDarkBrown.withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.accentGoldBeige.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.featured_play_list_rounded,
+                                  size: 14,
+                                  color: AppColors.primaryDarkBrown,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'قوائم التشغيل',
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryDarkBrown,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     // كبسولة عدد المتون على اليسار في RTL
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(12),

@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   cloud_firestore
   firebase_auth
+  syncfusion_pdfviewer_windows
   url_launcher_windows
   share_plus
 )

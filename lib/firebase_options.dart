@@ -39,8 +39,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBmoZUizV7NSTt5BUAmC7cHdQGdit4S-f0',
-    appId: '1:220978016273:web:835f158cc8ff6f92e3c1b0',
+    apiKey: 'AIzaSyAzBldIg09vqVmoNWG3Kgj8Et2_woFmbC4',
+    appId: '1:220978016273:android:a77b17b6b81c1d7be3c1b0',
     messagingSenderId: '220978016273',
     projectId: 'tasheel-app-2026',
     authDomain: 'tasheel-app-2026.firebaseapp.com',

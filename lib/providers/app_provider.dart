@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -72,6 +74,9 @@ class AppProvider extends ChangeNotifier {
   static const String _keyReadNotificationIds = 'tasheel_read_notification_ids';
   static const String _keyAppUpdate = 'tasheel_app_update_info';
   static const String _keyLessonNotes = 'tasheel_lesson_notes_list';
+  static const String _keyTranscriptHighlights = 'tasheel_transcript_highlights_list';
+  static const String _keyPlaylists = 'tasheel_custom_playlists_list';
+  static const String _keyAudioBookmarks = 'tasheel_audio_bookmarks_list';
 
   // ─── 0. الملف الشخصي وإعدادات التطبيق ──────────────────────────────────────
   String _userName = 'أبو الحارث عماد بعلول';
@@ -622,6 +627,522 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error saving lesson notes: $e');
     }
+  }
+
+  // ─── إدارة تظليلات التفريغ النصي (Transcript Highlights) ─────────────────────
+  final List<TranscriptHighlightModel> _transcriptHighlights = [];
+  List<TranscriptHighlightModel> get transcriptHighlights =>
+      List.unmodifiable(_transcriptHighlights);
+
+  List<TranscriptHighlightModel> getHighlightsForLesson(String lessonId) {
+    final list =
+        _transcriptHighlights.where((h) => h.lessonId == lessonId).toList();
+    list.sort((a, b) => a.startIndex.compareTo(b.startIndex));
+    return list;
+  }
+
+  Future<void> addTranscriptHighlight(TranscriptHighlightModel highlight) async {
+    _transcriptHighlights.add(highlight);
+    notifyListeners();
+    await _saveTranscriptHighlights();
+  }
+
+  Future<void> removeTranscriptHighlight(
+    String lessonId,
+    String highlightId,
+  ) async {
+    _transcriptHighlights.removeWhere((h) => h.id == highlightId);
+    notifyListeners();
+    await _saveTranscriptHighlights();
+  }
+
+  Future<void> _loadTranscriptHighlights(SharedPreferences prefs) async {
+    try {
+      final raw = prefs.getString(_keyTranscriptHighlights);
+      if (raw != null) {
+        final List list = jsonDecode(raw);
+        _transcriptHighlights.clear();
+        _transcriptHighlights.addAll(
+          list.map(
+            (m) =>
+                TranscriptHighlightModel.fromMap(m as Map<String, dynamic>),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error loading transcript highlights: $e');
+    }
+  }
+
+  Future<void> _saveTranscriptHighlights() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = jsonEncode(
+        _transcriptHighlights.map((h) => h.toMap()).toList(),
+      );
+      await prefs.setString(_keyTranscriptHighlights, raw);
+    } catch (e) {
+      debugPrint('Error saving transcript highlights: $e');
+    }
+  }
+
+  // ─── 0.5 قوائم التشغيل المخصصة / المجموعات العلمية (Custom Playlists) ─────
+  final List<CustomPlaylistModel> _playlists = [];
+  List<CustomPlaylistModel> get playlists => List.unmodifiable(_playlists);
+
+  /// جلب قائمة تشغيل معينة بالمعرف
+  CustomPlaylistModel? getPlaylistById(String id) {
+    try {
+      return _playlists.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// جلب كافة كائنات الدروس التابعة لقائمة تشغيل معينة بالترتيب المحفوظ
+  List<LessonModel> getLessonsForPlaylist(CustomPlaylistModel playlist) {
+    final List<LessonModel> result = [];
+    for (final lessonId in playlist.lessonIds) {
+      final lesson =
+          getLessonById(lessonId) ?? MockDataService.getLessonById(lessonId);
+      if (lesson != null) {
+        result.add(lesson);
+      }
+    }
+    return result;
+  }
+
+  /// التحقق إن كان الدرس مضافاً لقائمة معينة
+  bool isLessonInPlaylist(String playlistId, String lessonId) {
+    final p = getPlaylistById(playlistId);
+    if (p == null) return false;
+    return p.lessonIds.contains(lessonId);
+  }
+
+  /// إنشاء قائمة تشغيل جديدة
+  Future<CustomPlaylistModel> createPlaylist({
+    required String title,
+    String description = '',
+  }) async {
+    final newPlaylist = CustomPlaylistModel(
+      id: 'playlist_${DateTime.now().millisecondsSinceEpoch}',
+      title: title.trim(),
+      description: description.trim(),
+      lessonIds: const [],
+      createdAt: DateTime.now(),
+    );
+    _playlists.add(newPlaylist);
+    notifyListeners();
+    await _savePlaylists();
+    return newPlaylist;
+  }
+
+  /// تعديل قائمة تشغيل
+  Future<void> updatePlaylist(CustomPlaylistModel playlist) async {
+    final index = _playlists.indexWhere((p) => p.id == playlist.id);
+    if (index != -1) {
+      _playlists[index] = playlist;
+      notifyListeners();
+      await _savePlaylists();
+    }
+  }
+
+  /// إعادة تسمية قائمة التشغيل وتعديل وصفها
+  Future<void> renamePlaylist(
+    String playlistId,
+    String newTitle, [
+    String? newDescription,
+  ]) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      _playlists[index] = _playlists[index].copyWith(
+        title: newTitle.trim(),
+        description: newDescription?.trim() ?? _playlists[index].description,
+      );
+      notifyListeners();
+      await _savePlaylists();
+    }
+  }
+
+  /// حذف قائمة تشغيل
+  Future<void> deletePlaylist(String playlistId) async {
+    _playlists.removeWhere((p) => p.id == playlistId);
+    notifyListeners();
+    await _savePlaylists();
+  }
+
+  /// إضافة درس لقائمة تشغيل
+  Future<void> addLessonToPlaylist(String playlistId, String lessonId) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      final current = _playlists[index];
+      if (!current.lessonIds.contains(lessonId)) {
+        final updatedIds = List<String>.from(current.lessonIds)..add(lessonId);
+        _playlists[index] = current.copyWith(lessonIds: updatedIds);
+        notifyListeners();
+        await _savePlaylists();
+      }
+    }
+  }
+
+  /// إزالة درس من قائمة تشغيل
+  Future<void> removeLessonFromPlaylist(
+    String playlistId,
+    String lessonId,
+  ) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      final current = _playlists[index];
+      if (current.lessonIds.contains(lessonId)) {
+        final updatedIds = List<String>.from(current.lessonIds)..remove(lessonId);
+        _playlists[index] = current.copyWith(lessonIds: updatedIds);
+        notifyListeners();
+        await _savePlaylists();
+      }
+    }
+  }
+
+  /// إعادة ترتيب الدروس داخل قائمة تشغيل عبر السحب والإفلات (Reorder)
+  Future<void> reorderPlaylistLessons(
+    String playlistId,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      final current = _playlists[index];
+      final ids = List<String>.from(current.lessonIds);
+      if (oldIndex < newIndex) {
+        newIndex -= 1;
+      }
+      final item = ids.removeAt(oldIndex);
+      ids.insert(newIndex, item);
+      _playlists[index] = current.copyWith(lessonIds: ids);
+      notifyListeners();
+      await _savePlaylists();
+    }
+  }
+
+  Future<void> _loadPlaylists(SharedPreferences prefs) async {
+    try {
+      final raw = prefs.getString(_keyPlaylists);
+      if (raw != null && raw.isNotEmpty) {
+        final List list = jsonDecode(raw);
+        _playlists.clear();
+        _playlists.addAll(
+          list.map(
+            (m) => CustomPlaylistModel.fromMap(m as Map<String, dynamic>),
+          ),
+        );
+      } else {
+        // قائمة نموذجية أولية للترحيب بالطالب لتجربة الميزة فوراً
+        _playlists.clear();
+        _playlists.add(
+          CustomPlaylistModel(
+            id: 'sample_playlist_tawheed',
+            title: 'مختارات أصول الاعتقاد والتوحيد',
+            description:
+                'دروس تمهيدية هامة في العقيدة وأصول الإيمان للتكرار والمدارسة اليومية.',
+            lessonIds: const [
+              'lesson_tawheed_uth_01',
+              'lesson_tawheed_uth_02',
+              'lesson_tawheed_uth_03',
+            ],
+            createdAt: DateTime.now().subtract(const Duration(days: 2)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error loading playlists: $e');
+    }
+  }
+
+  Future<void> _savePlaylists() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = jsonEncode(_playlists.map((p) => p.toMap()).toList());
+      await prefs.setString(_keyPlaylists, raw);
+    } catch (e) {
+      debugPrint('Error saving playlists: $e');
+    }
+  }
+
+  // ─── 0.6 فواصل الاستماع والعلامات المرجعية الصوتية (Audio Bookmarks) ──────
+  final List<AudioBookmarkModel> _audioBookmarks = [];
+  List<AudioBookmarkModel> get audioBookmarks =>
+      List.unmodifiable(_audioBookmarks);
+
+  /// جلب فواصل درس معين مرتبة زمنياً تصاعدياً
+  List<AudioBookmarkModel> getAudioBookmarksForLesson(String lessonId) {
+    final list = _audioBookmarks.where((b) => b.lessonId == lessonId).toList();
+    list.sort((a, b) => a.positionSeconds.compareTo(b.positionSeconds));
+    return list;
+  }
+
+  /// إضافة فاصل استماع جديد للدرس
+  Future<void> addAudioBookmark(AudioBookmarkModel bookmark) async {
+    _audioBookmarks.add(bookmark);
+    notifyListeners();
+    await _saveAudioBookmarks();
+  }
+
+  /// حذف فاصل استماع
+  Future<void> deleteAudioBookmark(String bookmarkId) async {
+    _audioBookmarks.removeWhere((b) => b.id == bookmarkId);
+    notifyListeners();
+    await _saveAudioBookmarks();
+  }
+
+  /// تعديل فاصل استماع
+  Future<void> updateAudioBookmark(AudioBookmarkModel bookmark) async {
+    final index = _audioBookmarks.indexWhere((b) => b.id == bookmark.id);
+    if (index != -1) {
+      _audioBookmarks[index] = bookmark;
+      notifyListeners();
+      await _saveAudioBookmarks();
+    }
+  }
+
+  Future<void> _loadAudioBookmarks(SharedPreferences prefs) async {
+    try {
+      final raw = prefs.getString(_keyAudioBookmarks);
+      if (raw != null && raw.isNotEmpty) {
+        final List list = jsonDecode(raw);
+        _audioBookmarks.clear();
+        _audioBookmarks.addAll(
+          list.map(
+            (m) => AudioBookmarkModel.fromMap(m as Map<String, dynamic>),
+          ),
+        );
+      } else {
+        // فاصلين تجريبيين لدرس التوحيد الأول لتسهيل المعاينة الفورية
+        _audioBookmarks.clear();
+        _audioBookmarks.addAll([
+          AudioBookmarkModel(
+            id: 'bookmark_sample_1',
+            lessonId: 'lesson_tawheed_uth_01',
+            positionSeconds: 154, // 02:34
+            label: 'مسألة في أنواع التوحيد الثلاثة',
+            colorHex: '#D4AF37', // ذهبي
+            createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+          ),
+          AudioBookmarkModel(
+            id: 'bookmark_sample_2',
+            lessonId: 'lesson_tawheed_uth_01',
+            positionSeconds: 360, // 06:00
+            label: 'تنبيه حول توحيد الربوبية والألوهية',
+            colorHex: '#2E7D32', // أخضر
+            createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+          ),
+        ]);
+      }
+    } catch (e) {
+      debugPrint('Error loading audio bookmarks: $e');
+    }
+  }
+
+  Future<void> _saveAudioBookmarks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = jsonEncode(_audioBookmarks.map((b) => b.toMap()).toList());
+      await prefs.setString(_keyAudioBookmarks, raw);
+    } catch (e) {
+      debugPrint('Error saving audio bookmarks: $e');
+    }
+  }
+
+  // ─── 0.7 مدير التخزين الذكي وحساب الأحجام الفعلية (Storage Management) ───
+  static const String _keyDownloadedMap = 'downloaded_lessons_map';
+
+  /// الحصول على الحجم الفعلي للدرس بالبايت
+  int getLessonStorageBytes(String lessonId, [Map<String, String>? downloadedMap]) {
+    if (downloadedMap != null && !downloadedMap.containsKey(lessonId)) return 0;
+    final path = downloadedMap?[lessonId];
+    if (path != null &&
+        !kIsWeb &&
+        !path.startsWith('cached_') &&
+        !path.startsWith('web_cached')) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) {
+          return file.lengthSync();
+        }
+      } catch (_) {}
+    }
+    return 24 * 1024 * 1024;
+  }
+
+  /// حساب إجمالي مساحة التخزين المستخدمة للتطبيق بالبايت
+  Future<int> getTotalStorageBytes([AudioProvider? audioProvider]) async {
+    if (audioProvider != null) {
+      return audioProvider.getTotalStorageBytes();
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyDownloadedMap);
+      if (raw == null || raw.isEmpty) return 0;
+      final Map<String, dynamic> map = jsonDecode(raw);
+      int total = 0;
+      for (final entry in map.entries) {
+        final path = entry.value?.toString();
+        if (path != null &&
+            !kIsWeb &&
+            !path.startsWith('cached_') &&
+            !path.startsWith('web_cached')) {
+          try {
+            final file = File(path);
+            if (file.existsSync()) {
+              total += file.lengthSync();
+              continue;
+            }
+          } catch (_) {}
+        }
+        total += 24 * 1024 * 1024;
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// حساب حجم الدروس المحملة لشرح/كتاب معين بالبايت
+  Future<int> getSeriesStorageBytes(String seriesId, [AudioProvider? audioProvider]) async {
+    final seriesLessons = getLessonsBySeries(seriesId);
+    if (audioProvider != null) {
+      return audioProvider.getSeriesStorageBytes(seriesId, seriesLessons);
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyDownloadedMap);
+      if (raw == null || raw.isEmpty) return 0;
+      final Map<String, dynamic> map = jsonDecode(raw);
+      int total = 0;
+      for (final lesson in seriesLessons) {
+        if (map.containsKey(lesson.id)) {
+          final path = map[lesson.id]?.toString();
+          if (path != null &&
+              !kIsWeb &&
+              !path.startsWith('cached_') &&
+              !path.startsWith('web_cached')) {
+            try {
+              final file = File(path);
+              if (file.existsSync()) {
+                total += file.lengthSync();
+                continue;
+              }
+            } catch (_) {}
+          }
+          total += 24 * 1024 * 1024;
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// حساب حجم الدروس المحملة لشيخ معين بالبايت
+  Future<int> getSheikhStorageBytes(String sheikhId, [AudioProvider? audioProvider]) async {
+    if (audioProvider != null) {
+      return audioProvider.getSheikhStorageBytes(sheikhId, _series, _lessons);
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyDownloadedMap);
+      if (raw == null || raw.isEmpty) return 0;
+      final Map<String, dynamic> map = jsonDecode(raw);
+      final seriesIds = _series.where((s) => s.sheikhId == sheikhId).map((s) => s.id).toSet();
+      int total = 0;
+      for (final lesson in _lessons) {
+        if (seriesIds.contains(lesson.seriesId) && map.containsKey(lesson.id)) {
+          final path = map[lesson.id]?.toString();
+          if (path != null &&
+              !kIsWeb &&
+              !path.startsWith('cached_') &&
+              !path.startsWith('web_cached')) {
+            try {
+              final file = File(path);
+              if (file.existsSync()) {
+                total += file.lengthSync();
+                continue;
+              }
+            } catch (_) {}
+          }
+          total += 24 * 1024 * 1024;
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// تنسيق حجم التخزين بشكل مقروء وأنيق (ميجابايت / جيجابايت / كيلوبايت)
+  static String formatBytes(int bytes) => AudioProvider.formatBytes(bytes);
+
+  /// حذف جميع الملفات الصوتية المحملة لشرح كامل دفعة واحدة
+  Future<void> deleteSeriesDownloads(String seriesId, [AudioProvider? audioProvider]) async {
+    final seriesLessons = getLessonsBySeries(seriesId);
+    if (audioProvider != null) {
+      await audioProvider.deleteSeriesDownloads(seriesId, seriesLessons);
+    } else {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_keyDownloadedMap);
+        if (raw != null && raw.isNotEmpty) {
+          final Map<String, dynamic> map = jsonDecode(raw);
+          final targets = seriesLessons.where((l) => map.containsKey(l.id)).map((l) => l.id).toList();
+          for (final lessonId in targets) {
+            final path = map[lessonId]?.toString();
+            if (path != null &&
+                !kIsWeb &&
+                !path.startsWith('cached_') &&
+                !path.startsWith('web_cached')) {
+              try {
+                final file = File(path);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+              } catch (_) {}
+            }
+            map.remove(lessonId);
+          }
+          await prefs.setString(_keyDownloadedMap, jsonEncode(map));
+        }
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
+  /// حذف جميع التحميلات لتفريغ المساحة بالكامل
+  Future<void> clearAllDownloads([AudioProvider? audioProvider]) async {
+    if (audioProvider != null) {
+      await audioProvider.clearAllDownloads();
+    } else {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_keyDownloadedMap);
+        if (raw != null && raw.isNotEmpty) {
+          final Map<String, dynamic> map = jsonDecode(raw);
+          for (final path in map.values) {
+            final p = path?.toString();
+            if (p != null &&
+                !kIsWeb &&
+                !p.startsWith('cached_') &&
+                !p.startsWith('web_cached')) {
+              try {
+                final file = File(p);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+              } catch (_) {}
+            }
+          }
+          await prefs.remove(_keyDownloadedMap);
+        }
+      } catch (_) {}
+    }
+    notifyListeners();
   }
 
   // ── مستمعات البث اللحظي السحابي (Real-time Firestore Streams) ──────────────
@@ -2142,6 +2663,15 @@ class AppProvider extends ChangeNotifier {
 
       // تحميل فوائد الدروس المسجلة
       await _loadLessonNotes(prefs);
+
+      // تحميل تظليلات التفريغ النصي
+      await _loadTranscriptHighlights(prefs);
+
+      // تحميل قوائم التشغيل المخصصة
+      await _loadPlaylists(prefs);
+
+      // تحميل فواصل الاستماع والعلامات المرجعية الصوتية
+      await _loadAudioBookmarks(prefs);
 
       // تحميل إعدادات الورد العلمي وسلسلة الاستمرارية والتذكير اليومي
       await _loadStudyHabitPreferences(prefs);

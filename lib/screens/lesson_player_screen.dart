@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -11,6 +13,7 @@ import '../providers/app_provider.dart';
 import '../providers/audio_provider.dart';
 import '../services/mock_data_service.dart';
 import '../widgets/decorated_header.dart';
+import 'playlists_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// دالة مساعدة ذكية لاستخراج معرف الفيديو (YouTube Video ID)
@@ -160,7 +163,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     }
   }
 
-  /// تبديل وضع الوسائط بين الاستماع الصوتي ومشاهدة الفيديو
+  /// تبديل وضع الوسائط بين الاستماع الصوتي ومشاهدة الفيديو وقراءة الـ PDF
   void _onMediaModeChanged(int newMode, LessonModel currentLesson) {
     if (_selectedMediaMode == newMode) return;
 
@@ -175,7 +178,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
         _initYoutubeController(videoId);
       }
     } else {
-      // 3. تفريغ وإغلاق مشغل الفيديو عند العودة إلى وضع "الاستماع الصوتي"
+      // 3. تفريغ وإغلاق مشغل الفيديو عند العودة إلى وضع "الاستماع الصوتي" أو "عارض PDF"
       _disposeYoutubeController();
     }
 
@@ -215,10 +218,22 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
         MockDataService.getSheikhById(currentSeries.sheikhId);
     final hasVideo = currentLesson.hasVideo;
 
+    // استخراج رابط الـ PDF المتاح سواء للدرس أو للشرح ككل
+    final lessonPdf = currentLesson.pdfUrl?.trim();
+    final seriesPdf = currentSeries.pdfUrl?.trim();
+    final effectivePdfUrl = (lessonPdf != null && lessonPdf.isNotEmpty)
+        ? lessonPdf
+        : ((seriesPdf != null && seriesPdf.isNotEmpty) ? seriesPdf : null);
+    final bool hasPdf = effectivePdfUrl != null && effectivePdfUrl.isNotEmpty;
+
     // إذا تم الانتقال لدرس لا يحتوي على فيديو، العودة التلقائية لوضع الصوت
     if (!hasVideo && _selectedMediaMode == 1) {
       _selectedMediaMode = 0;
       _disposeYoutubeController();
+    }
+    // إذا كان وضع الـ PDF مختاراً ولا يوجد ملف، العودة للصوت
+    if (!hasPdf && _selectedMediaMode == 2) {
+      _selectedMediaMode = 0;
     }
 
     return Scaffold(
@@ -236,15 +251,26 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── كبسولة التبديل (صوت / فيديو يوتيوب) إن توفر الفيديو ───
-                  if (hasVideo) ...[
-                    _buildMediaToggleCapsule(currentLesson),
+                  // ── كبسولة التبديل (صوت / فيديو يوتيوب / PDF) إن توفر ───
+                  if (hasVideo || hasPdf) ...[
+                    _buildMediaToggleCapsule(currentLesson, hasVideo, hasPdf),
                     const SizedBox(height: 14),
                   ],
 
-                  // ── عرض بطاقة الفيديو أو بطاقة المشغل الصوتي ─────────────
+                  // ── عرض بطاقة الفيديو أو بطاقة عارض الـ PDF أو بطاقة المشغل الصوتي ──
                   if (_selectedMediaMode == 1 && hasVideo)
                     _buildYouTubeCard(currentLesson, book, sheikh)
+                  else if (_selectedMediaMode == 2 && hasPdf)
+                    _buildIntegratedPdfView(
+                      context,
+                      effectivePdfUrl,
+                      currentLesson,
+                      currentSeries,
+                      book,
+                      sheikh,
+                      audioProvider,
+                      appProvider,
+                    )
                   else
                     _buildAudioPlayerCard(
                       context,
@@ -271,7 +297,13 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   const SizedBox(height: 20),
 
                   // ── قسم التفريغ النصي أسفل المشغل ───────────────────────
-                  _buildTranscriptCard(context, currentLesson, book, sheikh),
+                  _buildTranscriptCard(
+                    context,
+                    currentLesson,
+                    book,
+                    sheikh,
+                    appProvider,
+                  ),
                 ],
               ),
             ),
@@ -324,8 +356,12 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     );
   }
 
-  /// كبسولة التبديل بين الاستماع الصوتي وفيديو يوتيوب
-  Widget _buildMediaToggleCapsule(LessonModel currentLesson) {
+  /// كبسولة التبديل بين الاستماع الصوتي وفيديو يوتيوب وقراءة الـ PDF
+  Widget _buildMediaToggleCapsule(
+    LessonModel currentLesson,
+    bool hasVideo,
+    bool hasPdf,
+  ) {
     return Center(
       child: Container(
         padding: const EdgeInsets.all(4),
@@ -334,22 +370,33 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.dividerLight),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildToggleItem(
-              title: 'استماع صوتي',
-              icon: Icons.headphones_rounded,
-              isSelected: _selectedMediaMode == 0,
-              onTap: () => _onMediaModeChanged(0, currentLesson),
-            ),
-            _buildToggleItem(
-              title: 'مشاهدة فيديو',
-              icon: Icons.ondemand_video_rounded,
-              isSelected: _selectedMediaMode == 1,
-              onTap: () => _onMediaModeChanged(1, currentLesson),
-            ),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildToggleItem(
+                title: 'استماع صوتي',
+                icon: Icons.headphones_rounded,
+                isSelected: _selectedMediaMode == 0,
+                onTap: () => _onMediaModeChanged(0, currentLesson),
+              ),
+              if (hasVideo)
+                _buildToggleItem(
+                  title: 'مشاهدة فيديو',
+                  icon: Icons.ondemand_video_rounded,
+                  isSelected: _selectedMediaMode == 1,
+                  onTap: () => _onMediaModeChanged(1, currentLesson),
+                ),
+              if (hasPdf)
+                _buildToggleItem(
+                  title: 'الكتاب / المتن (PDF)',
+                  icon: Icons.picture_as_pdf_rounded,
+                  isSelected: _selectedMediaMode == 2,
+                  onTap: () => _onMediaModeChanged(2, currentLesson),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -541,6 +588,593 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     );
   }
 
+  /// ── شريط التكرار الذكي للمقاطع (A-B Repeat Loop) ───────────────────────────
+  Widget _buildABRepeatBar(BuildContext context, AudioProvider audioProvider) {
+    final hasA = audioProvider.loopPointA != null;
+    final hasB = audioProvider.loopPointB != null;
+    final isLooping = audioProvider.isLoopActive;
+    final curPos = audioProvider.currentPosition;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isLooping
+            ? AppColors.primaryDarkBrown.withValues(alpha: 0.05)
+            : AppColors.scaffoldCream,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isLooping
+              ? AppColors.primaryDarkBrown
+              : AppColors.accentGoldBeige.withValues(alpha: 0.5),
+          width: isLooping ? 1.5 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── السطر العلوي: العنوان وحالة التكرار وزر التصفير ───────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.repeat_one_rounded,
+                    size: 18,
+                    color: isLooping
+                        ? AppColors.primaryDarkBrown
+                        : AppColors.iconGold,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'التكرار الذكي (A-B Loop)',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ],
+              ),
+              if (hasA || hasB)
+                InkWell(
+                  onTap: () {
+                    audioProvider.resetLoop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('تم إلغاء التكرار والعودة للتشغيل العادي', style: GoogleFonts.readexPro()),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.refresh_rounded, size: 14, color: Colors.red),
+                        const SizedBox(width: 4),
+                        Text(
+                          'إلغاء التكرار',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── سطر أزرار A و B ───────────────────────────────────────────
+          Row(
+            children: [
+              // زر نقطة البداية A
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    audioProvider.setLoopPointA();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'تم ضبط نقطة البداية (A) عند ${_formatDuration(audioProvider.loopPointA!)}',
+                          style: GoogleFonts.readexPro(),
+                        ),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: hasA
+                          ? AppColors.primaryDarkBrown
+                          : AppColors.cardWhite,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: hasA
+                            ? AppColors.primaryDarkBrown
+                            : AppColors.dividerLight,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          hasA
+                              ? 'A: ${_formatDuration(audioProvider.loopPointA!)}'
+                              : 'تحديد نقطة (A)',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: hasA
+                                ? AppColors.textGoldLight
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              // زر نقطة النهاية B
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    if (!hasA) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'يرجى تحديد نقطة البداية (A) أولاً',
+                            style: GoogleFonts.readexPro(),
+                          ),
+                          backgroundColor: Colors.red.shade800,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+                    if (curPos <= audioProvider.loopPointA!) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'يجب أن تكون نقطة النهاية (B) بعد نقطة البداية (A)',
+                            style: GoogleFonts.readexPro(),
+                          ),
+                          backgroundColor: Colors.red.shade800,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
+                    audioProvider.setLoopPointB();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'تم ضبط نقطة النهاية (B) عند ${_formatDuration(audioProvider.loopPointB!)} وبدء التكرار',
+                          style: GoogleFonts.readexPro(),
+                        ),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: hasB
+                          ? AppColors.primaryDarkBrown
+                          : AppColors.cardWhite,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: hasB
+                            ? AppColors.primaryDarkBrown
+                            : AppColors.dividerLight,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          hasB
+                              ? 'B: ${_formatDuration(audioProvider.loopPointB!)}'
+                              : 'تحديد نقطة (B)',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: hasB
+                                ? AppColors.textGoldLight
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── سطر خيارات عدد مرات التكرار والعداد الحالي ─────────────────
+          Row(
+            children: [
+              Text(
+                'المرات:',
+                style: GoogleFonts.readexPro(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _buildRepeatCountChip(3, '3 مرات', audioProvider),
+                    _buildRepeatCountChip(5, '5 مرات', audioProvider),
+                    _buildRepeatCountChip(10, '10 مرات', audioProvider),
+                    _buildRepeatCountChip(0, '∞ دائم', audioProvider),
+                  ],
+                ),
+              ),
+              if (isLooping) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.iconGold),
+                  ),
+                  child: Text(
+                    audioProvider.loopTargetCount > 0
+                        ? '${audioProvider.loopCurrentCount + 1} / ${audioProvider.loopTargetCount}'
+                        : '${audioProvider.loopCurrentCount + 1} (∞)',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRepeatCountChip(int count, String label, AudioProvider audioProvider) {
+    final isSelected = audioProvider.loopTargetCount == count;
+    return InkWell(
+      onTap: () => audioProvider.setLoopTargetCount(count),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryDarkBrown : AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.readexPro(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? AppColors.textGoldLight : AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// ── عارض كتب ومتون PDF المدمج بجانب المشغل الصوتي ────────────────────
+  Widget _buildIntegratedPdfView(
+    BuildContext context,
+    String pdfUrl,
+    LessonModel lesson,
+    SeriesModel currentSeries,
+    BookModel? book,
+    SheikhModel? sheikh,
+    AudioProvider audioProvider,
+    AppProvider appProvider,
+  ) {
+    final title = book?.title ?? currentSeries.title;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── شريط رأس عارض الـ PDF ──────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.picture_as_pdf_rounded,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'متن / كتاب الدرس (PDF)',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryDarkBrown,
+                          ),
+                        ),
+                        Text(
+                          title,
+                          style: GoogleFonts.readexPro(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                // زر توسيع القراءة لملء الشاشة
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _openFullScreenPdf(context, pdfUrl, title, audioProvider);
+                  },
+                  icon: const Icon(Icons.fullscreen_rounded, size: 16),
+                  label: Text('ملء الشاشة', style: GoogleFonts.readexPro(fontSize: 11)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDarkBrown,
+                    foregroundColor: AppColors.textGoldLight,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: AppColors.dividerLight),
+
+          // ── عارض الـ PDF الداخلي ──────────────────────────────────
+          SizedBox(
+            height: 480,
+            child: ClipRRect(
+              child: SfPdfViewer.network(
+                pdfUrl,
+                canShowScrollHead: true,
+                canShowScrollStatus: true,
+                enableDoubleTapZooming: true,
+                onDocumentLoadFailed: (details) {
+                  debugPrint('PDF load error: ${details.description}');
+                },
+              ),
+            ),
+          ),
+
+          const Divider(height: 1, color: AppColors.dividerLight),
+
+          // ── شريط التحكم بالصوت والتكرار A-B المدمج أسفل الـ PDF ──────
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ميزة التكرار الذكي A-B أثناء القراءة
+                _buildABRepeatBar(context, audioProvider),
+
+                const SizedBox(height: 12),
+
+                // شريط الوقت والتقدم وأزرار التحكم بالصوت
+                _buildMiniAudioControls(context, lesson, audioProvider),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// شريط تحكم مصغر بالصوت لعارض الـ PDF
+  Widget _buildMiniAudioControls(
+    BuildContext context,
+    LessonModel lesson,
+    AudioProvider audioProvider,
+  ) {
+    final currentPos = audioProvider.currentPosition;
+    final totalDur = audioProvider.totalDuration;
+    final maxMs = totalDur.inMilliseconds.toDouble();
+    final curMs = currentPos.inMilliseconds.toDouble().clamp(
+          0.0,
+          maxMs > 0 ? maxMs : 1.0,
+        );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.scaffoldCream,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.dividerLight),
+      ),
+      child: Column(
+        children: [
+          // شريط السلايدر
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppColors.primaryDarkBrown,
+              inactiveTrackColor: AppColors.dividerLight,
+              thumbColor: AppColors.primaryDarkBrown,
+              overlayColor: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+              trackHeight: 3.5,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            ),
+            child: Slider(
+              min: 0.0,
+              max: maxMs > 0 ? maxMs : 1.0,
+              value: curMs,
+              onChanged: (val) {
+                audioProvider.seek(Duration(milliseconds: val.toInt()));
+              },
+            ),
+          ),
+          // الأوقات
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatDuration(currentPos),
+                  style: GoogleFonts.readexPro(fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  _formatDuration(totalDur.inSeconds > 0 ? totalDur : _parseDurationString(lesson.duration)),
+                  style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          // أزرار التحكم
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.skip_previous_rounded),
+                iconSize: 24,
+                color: audioProvider.hasPreviousLesson ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+                onPressed: audioProvider.hasPreviousLesson ? () => audioProvider.playPreviousLesson() : null,
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.replay_5_rounded),
+                iconSize: 26,
+                color: AppColors.primaryDarkBrown,
+                onPressed: () => audioProvider.seekBackward5s(),
+              ),
+              const SizedBox(width: 12),
+              InkWell(
+                onTap: () => audioProvider.togglePlayPause(),
+                borderRadius: BorderRadius.circular(25),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDarkBrown,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryDarkBrown.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: audioProvider.isBuffering
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.0,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textGoldLight),
+                            ),
+                          )
+                        : Icon(
+                            audioProvider.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            color: AppColors.textGoldLight,
+                            size: 30,
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.forward_5_rounded),
+                iconSize: 26,
+                color: AppColors.primaryDarkBrown,
+                onPressed: () => audioProvider.seekForward5s(),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.skip_next_rounded),
+                iconSize: 24,
+                color: audioProvider.hasNextLesson ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+                onPressed: audioProvider.hasNextLesson ? () => audioProvider.playNextLesson() : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openFullScreenPdf(
+    BuildContext context,
+    String pdfUrl,
+    String title,
+    AudioProvider audioProvider,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FullScreenPdfScreen(
+          pdfUrl: pdfUrl,
+          title: title,
+        ),
+      ),
+    );
+  }
+
   /// ── 2. بطاقة المشغل الصوتي وأزرار التحكم ────────────────────────────────
   Widget _buildAudioPlayerCard(
     BuildContext context,
@@ -625,7 +1259,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
+          // ── شريط فواصل الاستماع (العلامات المرجعية الصوتية) ─────────
+          _buildAudioBookmarksRow(context, audioProvider, appProvider, lesson),
+
+          const SizedBox(height: 14),
 
           // ── صف أزرار التشغيل الأساسية ───────────────────────────
           Row(
@@ -764,11 +1401,18 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.dividerLight, height: 1),
+          const SizedBox(height: 12),
+
+          // ── شريط التكرار الذكي للمقاطع (A-B Repeat Loop) ──────────────
+          _buildABRepeatBar(context, audioProvider),
+
+          const SizedBox(height: 14),
           const Divider(color: AppColors.dividerLight, height: 1),
           const SizedBox(height: 14),
 
-          // ── شريط الأدوات الإضافية (4 كبسولات) ────────────────────
+          // ── سطر ضوابط المشغل الأساسية (السرعة، تخطي الصمت، مؤقت النوم، التحميل) ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -849,8 +1493,18 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   );
                 },
               ),
+            ],
+          ),
 
-              // 5. زر تدوين فائدة (كناشة الفوائد)
+          const SizedBox(height: 10),
+          const Divider(color: AppColors.dividerLight, height: 1),
+          const SizedBox(height: 10),
+
+          // ── سطر أدوات طالب العلم (تدوين فائدة، فاصل سماع، إضافة لقائمة) ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // 1. زر تدوين فائدة (كناشة الفوائد)
               _buildToolCapsule(
                 icon: Icons.edit_note_rounded,
                 label: 'تدوين فائدة',
@@ -862,6 +1516,30 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   lesson,
                   book,
                   sheikh,
+                ),
+              ),
+
+              // 2. زر إضافة فاصل سماع (علامة مرجعية صوتية)
+              _buildToolCapsule(
+                icon: Icons.bookmark_add_rounded,
+                label: 'فاصل سماع',
+                isActive: false,
+                onTap: () => _openAddBookmarkDialog(
+                  context,
+                  audioProvider,
+                  appProvider,
+                  lesson,
+                ),
+              ),
+
+              // 3. زر إضافة لقائمة تشغيل
+              _buildToolCapsule(
+                icon: Icons.playlist_add_rounded,
+                label: 'إضافة لقائمة',
+                isActive: false,
+                onTap: () => PlaylistsScreen.showAddToPlaylistBottomSheet(
+                  context,
+                  lesson,
                 ),
               ),
             ],
@@ -1932,6 +2610,391 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
           ],
         );
       },
+    ).whenComplete(() {
+      textController.dispose();
+    });
+  }
+
+  // ─── دوال العلامات المرجعية الصوتية وفواصل الاستماع (Audio Bookmarks) ──────
+
+  Color _parseColorHex(String hex) {
+    try {
+      final clean = hex.replaceAll('#', '');
+      return Color(int.parse('FF$clean', radix: 16));
+    } catch (_) {
+      return const Color(0xFFD4AF37);
+    }
+  }
+
+  /// شريط فواصل الاستماع أسفل شريط التقدم مباشرة
+  Widget _buildAudioBookmarksRow(
+    BuildContext context,
+    AudioProvider audioProvider,
+    AppProvider appProvider,
+    LessonModel lesson,
+  ) {
+    final bookmarks = appProvider.getAudioBookmarksForLesson(lesson.id);
+    if (bookmarks.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4, right: 6, left: 6),
+      child: SizedBox(
+        height: 32,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: bookmarks.length,
+          separatorBuilder: (context, index) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final bm = bookmarks[index];
+            final color = _parseColorHex(bm.colorHex);
+
+            return InkWell(
+              onTap: () {
+                audioProvider.seek(Duration(seconds: bm.positionSeconds));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'انتقل المشغل إلى فاصل ${bm.formattedTimestamp}${bm.label != null && bm.label!.isNotEmpty ? ' (${bm.label})' : ''}',
+                      style: GoogleFonts.readexPro(),
+                    ),
+                    backgroundColor: AppColors.primaryDarkBrown,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              onLongPress: () =>
+                  _confirmDeleteBookmark(context, appProvider, bm),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withValues(alpha: 0.6)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      bm.formattedTimestamp,
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    if (bm.label != null && bm.label!.trim().isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: Text(
+                          bm.label!,
+                          style: GoogleFonts.readexPro(
+                            fontSize: 11,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: () =>
+                          _confirmDeleteBookmark(context, appProvider, bm),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// نافذة إضافة فاصل استماع جديد
+  void _openAddBookmarkDialog(
+    BuildContext context,
+    AudioProvider audioProvider,
+    AppProvider appProvider,
+    LessonModel lesson,
+  ) {
+    final curPos = audioProvider.currentPosition;
+    final posSec = curPos.inSeconds;
+    final formattedTime = _formatDuration(curPos);
+    final labelController = TextEditingController();
+
+    const scholarColors = [
+      {'name': 'ذهبي', 'hex': '#D4AF37', 'color': Color(0xFFD4AF37)},
+      {'name': 'أخضر زمردي', 'hex': '#2E7D32', 'color': Color(0xFF2E7D32)},
+      {'name': 'أزرق سماوي', 'hex': '#0288D1', 'color': Color(0xFF0288D1)},
+      {'name': 'أحمر ياقوتي', 'hex': '#C62828', 'color': Color(0xFFC62828)},
+    ];
+
+    String selectedColorHex = '#D4AF37';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.cardWhite,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.bookmark_add_rounded,
+                color: AppColors.primaryDarkBrown,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'إضافة فاصل سماع',
+                style: GoogleFonts.readexPro(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // شارة الوقت الحالي
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGoldBeige.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.accentGoldBeige.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.access_time_rounded,
+                        size: 18,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'عند الدقيقة: $formattedTime',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDarkBrown,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // حقل التسمية الاختياري
+                TextField(
+                  controller: labelController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'عنوان أو وصف للفاصل (اختياري)',
+                    hintText: 'مثال: مسألة مهمة، تفريع أصولي...',
+                    labelStyle: GoogleFonts.readexPro(fontSize: 12),
+                    hintStyle: GoogleFonts.readexPro(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // اختيار اللون العلمي المميز
+                Text(
+                  'لون شارة الفاصل:',
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: scholarColors.map((c) {
+                    final isSelected = selectedColorHex == c['hex'];
+                    final color = c['color'] as Color;
+                    return InkWell(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedColorHex = c['hex'] as String;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primaryDarkBrown
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.5),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                size: 18,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final bookmark = AudioBookmarkModel(
+                  id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
+                  lessonId: lesson.id,
+                  positionSeconds: posSec,
+                  label: labelController.text.trim().isNotEmpty
+                      ? labelController.text.trim()
+                      : null,
+                  colorHex: selectedColorHex,
+                  createdAt: DateTime.now(),
+                );
+                await appProvider.addAudioBookmark(bookmark);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'تم حفظ فاصل السماع عند $formattedTime بنجاح',
+                        style: GoogleFonts.readexPro(),
+                      ),
+                      backgroundColor: AppColors.primaryDarkBrown,
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                'حفظ الفاصل',
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      labelController.dispose();
+    });
+  }
+
+  /// نافذة تأكيد حذف فاصل سماع
+  void _confirmDeleteBookmark(
+    BuildContext context,
+    AppProvider appProvider,
+    AudioBookmarkModel bookmark,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardWhite,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'حذف فاصل السماع؟',
+          style: GoogleFonts.readexPro(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDarkBrown,
+          ),
+        ),
+        content: Text(
+          'هل تريد حذف فاصل السماع عند ${bookmark.formattedTimestamp}${bookmark.label != null && bookmark.label!.isNotEmpty ? ' (${bookmark.label})' : ''}؟',
+          style: GoogleFonts.readexPro(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: GoogleFonts.readexPro()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await appProvider.deleteAudioBookmark(bookmark.id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'حذف',
+              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1941,6 +3004,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     LessonModel lesson,
     BookModel? book,
     SheikhModel? sheikh,
+    AppProvider appProvider,
   ) {
     final hasTranscript = lesson.hasTranscript;
 
@@ -1966,7 +3030,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // أدوات التكبير والتصغير والبحث (تظهر فقط عند توفر التفريغ)
+                // أدوات التكبير والتصغير والبحث وشارة التظليلات
                 if (hasTranscript)
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -2006,6 +3070,27 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                               _searchController.clear();
                             }
                           });
+                        },
+                      ),
+                      Builder(
+                        builder: (_) {
+                          final highlights =
+                              appProvider.getHighlightsForLesson(lesson.id);
+                          if (highlights.isEmpty) return const SizedBox.shrink();
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 4),
+                              _buildMiniHighlightsBadge(
+                                highlights.length,
+                                () => _showHighlightsSheet(
+                                  context,
+                                  appProvider,
+                                  lesson,
+                                ),
+                              ),
+                            ],
+                          );
                         },
                       ),
                     ],
@@ -2074,7 +3159,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: hasTranscript
-                ? _buildTranscriptContent(lesson.transcript)
+                ? _buildTranscriptContent(context, lesson, appProvider)
                 : _buildMissingTranscriptState(context, lesson, book, sheikh),
           ),
         ],
@@ -2105,42 +3190,306 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     );
   }
 
-  /// الحالة الأولى: عرض نص التفريغ مع تظليل البحث
-  Widget _buildTranscriptContent(String fullText) {
-    if (_searchQuery.isEmpty) {
-      return Text(
-        fullText,
+  /// شارة إحصائية لعدد التظليلات في التفريغ
+  Widget _buildMiniHighlightsBadge(int count, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF59D).withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.iconGold),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.format_color_fill_rounded,
+              size: 14,
+              color: AppColors.primaryDarkBrown,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$count تظليل',
+              style: GoogleFonts.readexPro(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryDarkBrown,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// الحالة الأولى: عرض نص التفريغ مع دعم التحديد المتقدم والتظليلات العلمية الثلاثية
+  Widget _buildTranscriptContent(
+    BuildContext context,
+    LessonModel lesson,
+    AppProvider appProvider,
+  ) {
+    final fullText = lesson.transcript;
+    final highlights = appProvider.getHighlightsForLesson(lesson.id);
+
+    return SelectableText.rich(
+      TextSpan(
         style: GoogleFonts.amiri(
           fontSize: _transcriptFontSize,
           height: 2.1,
           color: AppColors.textPrimary,
         ),
-        textAlign: TextAlign.justify,
-      );
+        children: _buildHighlightedSpans(
+          context: context,
+          fullText: fullText,
+          highlights: highlights,
+          searchQuery: _searchQuery,
+          lessonId: lesson.id,
+          appProvider: appProvider,
+        ),
+      ),
+      textAlign: TextAlign.justify,
+      contextMenuBuilder: (BuildContext ctx, EditableTextState editableTextState) {
+        final selection = editableTextState.textEditingValue.selection;
+        final hasValidSelection = !selection.isCollapsed &&
+            selection.start >= 0 &&
+            selection.end <= fullText.length &&
+            selection.start < selection.end;
+
+        final List<ContextMenuButtonItem> items =
+            List.from(editableTextState.contextMenuButtonItems);
+
+        if (hasValidSelection) {
+          // إضافة خيارات الألوان العلمية الثلاثة في بداية القائمة المنبثقة
+          items.insert(
+            0,
+            ContextMenuButtonItem(
+              label: '🟡 أصفر',
+              onPressed: () {
+                editableTextState.hideToolbar();
+                _saveHighlight(
+                  lessonId: lesson.id,
+                  fullText: fullText,
+                  start: selection.start,
+                  end: selection.end,
+                  colorHex: '#FFF59D',
+                  appProvider: appProvider,
+                );
+              },
+            ),
+          );
+          items.insert(
+            1,
+            ContextMenuButtonItem(
+              label: '🟢 أخضر',
+              onPressed: () {
+                editableTextState.hideToolbar();
+                _saveHighlight(
+                  lessonId: lesson.id,
+                  fullText: fullText,
+                  start: selection.start,
+                  end: selection.end,
+                  colorHex: '#C8E6C9',
+                  appProvider: appProvider,
+                );
+              },
+            ),
+          );
+          items.insert(
+            2,
+            ContextMenuButtonItem(
+              label: '🟠 ذهبي',
+              onPressed: () {
+                editableTextState.hideToolbar();
+                _saveHighlight(
+                  lessonId: lesson.id,
+                  fullText: fullText,
+                  start: selection.start,
+                  end: selection.end,
+                  colorHex: '#FFE082',
+                  appProvider: appProvider,
+                );
+              },
+            ),
+          );
+        }
+
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: editableTextState.contextMenuAnchors,
+          buttonItems: items,
+        );
+      },
+    );
+  }
+
+  /// حفظ تظليل جديد في مزود الحالة
+  void _saveHighlight({
+    required String lessonId,
+    required String fullText,
+    required int start,
+    required int end,
+    required String colorHex,
+    required AppProvider appProvider,
+  }) {
+    final text = fullText.substring(start, end).trim();
+    if (text.isEmpty) return;
+
+    final highlight = TranscriptHighlightModel(
+      id: 'hl_${DateTime.now().millisecondsSinceEpoch}',
+      lessonId: lessonId,
+      selectedText: text,
+      startIndex: start,
+      endIndex: end,
+      colorHex: colorHex,
+      createdAt: DateTime.now(),
+    );
+
+    appProvider.addTranscriptHighlight(highlight);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تم تظليل العبارة بنجاح وحفظها', style: GoogleFonts.readexPro()),
+        backgroundColor: AppColors.primaryDarkBrown,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// تحويل كود اللون الست عشري إلى كائن Color
+  Color _parseHighlightColor(String hex) {
+    try {
+      final clean = hex.replaceAll('#', '').replaceAll('0x', '');
+      if (clean.length == 6) {
+        return Color(int.parse('FF$clean', radix: 16));
+      } else if (clean.length == 8) {
+        return Color(int.parse(clean, radix: 16));
+      }
+    } catch (_) {}
+    return const Color(0xFFFFF59D);
+  }
+
+  /// تقسيم النص إلى فترات تجمع بين التظليلات المحفوظة ونتائج البحث
+  List<InlineSpan> _buildHighlightedSpans({
+    required BuildContext context,
+    required String fullText,
+    required List<TranscriptHighlightModel> highlights,
+    required String searchQuery,
+    required String lessonId,
+    required AppProvider appProvider,
+  }) {
+    if (fullText.isEmpty) return const [];
+
+    // ترتيب التظليلات وضمان سلامة النطاقات
+    final validHighlights = highlights
+        .where((h) =>
+            h.startIndex >= 0 &&
+            h.endIndex <= fullText.length &&
+            h.startIndex < h.endIndex)
+        .toList()
+      ..sort((a, b) => a.startIndex.compareTo(b.startIndex));
+
+    // دمج أو تجنب تداخل النطاقات
+    final nonOverlapping = <TranscriptHighlightModel>[];
+    int lastCovered = 0;
+    for (final h in validHighlights) {
+      if (h.startIndex >= lastCovered) {
+        nonOverlapping.add(h);
+        lastCovered = h.endIndex;
+      } else if (h.endIndex > lastCovered) {
+        nonOverlapping.add(h.copyWith(startIndex: lastCovered));
+        lastCovered = h.endIndex;
+      }
     }
 
-    // تظليل نتائج البحث
-    final spans = <TextSpan>[];
-    final query = _searchQuery.toLowerCase();
+    final spans = <InlineSpan>[];
+    int currentIndex = 0;
+
+    for (final h in nonOverlapping) {
+      // 1. النص غير المظلل قبل هذا التظليل
+      if (h.startIndex > currentIndex) {
+        final unhighlighted = fullText.substring(currentIndex, h.startIndex);
+        spans.addAll(_buildSearchSubSpans(unhighlighted, searchQuery, null));
+      }
+
+      // 2. النص المظلل
+      final highlightedText = fullText.substring(h.startIndex, h.endIndex);
+      final color = _parseHighlightColor(h.colorHex);
+
+      spans.add(
+        TextSpan(
+          text: highlightedText,
+          style: TextStyle(
+            backgroundColor: color,
+            fontWeight: FontWeight.w600,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              _showHighlightOptionsDialog(context, appProvider, lessonId, h);
+            },
+        ),
+      );
+
+      currentIndex = h.endIndex;
+    }
+
+    // 3. ما تبقى من النص بعد آخر تظليل
+    if (currentIndex < fullText.length) {
+      final remaining = fullText.substring(currentIndex);
+      spans.addAll(_buildSearchSubSpans(remaining, searchQuery, null));
+    }
+
+    return spans;
+  }
+
+  /// تقسيم المقطع الجزئي وفق كلمة البحث إن وجدت
+  List<InlineSpan> _buildSearchSubSpans(
+    String text,
+    String searchQuery,
+    Color? baseBgColor,
+  ) {
+    if (searchQuery.isEmpty) {
+      return [
+        TextSpan(
+          text: text,
+          style: baseBgColor != null ? TextStyle(backgroundColor: baseBgColor) : null,
+        ),
+      ];
+    }
+
+    final spans = <InlineSpan>[];
+    final query = searchQuery.toLowerCase();
+    final lowerText = text.toLowerCase();
     int start = 0;
 
-    final lowerText = fullText.toLowerCase();
     while (true) {
       final index = lowerText.indexOf(query, start);
       if (index == -1) {
-        spans.add(TextSpan(text: fullText.substring(start)));
+        spans.add(
+          TextSpan(
+            text: text.substring(start),
+            style: baseBgColor != null ? TextStyle(backgroundColor: baseBgColor) : null,
+          ),
+        );
         break;
       }
 
       if (index > start) {
-        spans.add(TextSpan(text: fullText.substring(start, index)));
+        spans.add(
+          TextSpan(
+            text: text.substring(start, index),
+            style: baseBgColor != null ? TextStyle(backgroundColor: baseBgColor) : null,
+          ),
+        );
       }
 
       spans.add(
         TextSpan(
-          text: fullText.substring(index, index + query.length),
+          text: text.substring(index, index + query.length),
           style: const TextStyle(
-            backgroundColor: Color(0xFFFFE082),
+            backgroundColor: Color(0xFFFFD54F),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -2149,16 +3498,274 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
       start = index + query.length;
     }
 
-    return RichText(
-      textAlign: TextAlign.justify,
-      text: TextSpan(
-        style: GoogleFonts.amiri(
-          fontSize: _transcriptFontSize,
-          height: 2.1,
-          color: AppColors.textPrimary,
-        ),
-        children: spans,
+    return spans;
+  }
+
+  /// نافذة منبثقة عند الضغط على عبارة مظللة (نسخ أو إزالة التظليل)
+  void _showHighlightOptionsDialog(
+    BuildContext context,
+    AppProvider appProvider,
+    String lessonId,
+    TranscriptHighlightModel highlight,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.scaffoldCream,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: _parseHighlightColor(highlight.colorHex),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primaryDarkBrown, width: 1.5),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'خيارات العبارة المظللة',
+                      style: GoogleFonts.readexPro(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppColors.primaryDarkBrown,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.dividerLight),
+                  ),
+                  child: Text(
+                    highlight.selectedText,
+                    style: GoogleFonts.amiri(
+                      fontSize: 16,
+                      height: 1.8,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        label: Text('نسخ العبارة', style: GoogleFonts.readexPro(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryDarkBrown,
+                          side: const BorderSide(color: AppColors.primaryDarkBrown),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: highlight.selectedText));
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تم نسخ العبارة للحافظة', style: GoogleFonts.readexPro()),
+                              backgroundColor: AppColors.primaryDarkBrown,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.format_color_reset_rounded, size: 18),
+                        label: Text(
+                          'إزالة التظليل',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade800,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await appProvider.removeTranscriptHighlight(lessonId, highlight.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('تمت إزالة التظليل بنجاح', style: GoogleFonts.readexPro()),
+                                backgroundColor: AppColors.primaryDarkBrown,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// نافذة عرض وإدارة كافة تظليلات الدرس الحالي
+  void _showHighlightsSheet(
+    BuildContext context,
+    AppProvider appProvider,
+    LessonModel lesson,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.scaffoldCream,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Consumer<AppProvider>(
+          builder: (context, ap, _) {
+            final list = ap.getHighlightsForLesson(lesson.id);
+
+            return SafeArea(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.7,
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.format_color_fill_rounded,
+                              color: AppColors.iconGold,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'تظليلات هذا الدرس (${list.length})',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryDarkBrown,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.dividerLight),
+                    const SizedBox(height: 8),
+                    if (list.isEmpty)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'لم تقم بتظليل أي عبارة في هذا الدرس بعد.',
+                            style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: list.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          itemBuilder: (context, idx) {
+                            final h = list[idx];
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardWhite,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.dividerLight),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    margin: const EdgeInsets.only(top: 6),
+                                    decoration: BoxDecoration(
+                                      color: _parseHighlightColor(h.colorHex),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      h.selectedText,
+                                      style: GoogleFonts.amiri(
+                                        fontSize: 15,
+                                        height: 1.8,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.copy_rounded, size: 18),
+                                    tooltip: 'نسخ',
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: h.selectedText));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('تم نسخ العبارة', style: GoogleFonts.readexPro()),
+                                          backgroundColor: AppColors.primaryDarkBrown,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                                    tooltip: 'حذف التظليل',
+                                    onPressed: () async {
+                                      await ap.removeTranscriptHighlight(lesson.id, h.id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -2300,3 +3907,138 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     return Duration.zero;
   }
 }
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// شاشة قراءة الـ PDF بملء الشاشة مع شريط التحكم الصوتي العائم
+/// ═══════════════════════════════════════════════════════════════════════════
+class FullScreenPdfScreen extends StatelessWidget {
+  final String pdfUrl;
+  final String title;
+
+  const FullScreenPdfScreen({
+    super.key,
+    required this.pdfUrl,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final audioProvider = Provider.of<AudioProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryDarkBrown,
+        foregroundColor: AppColors.textGoldLight,
+        title: Text(
+          title,
+          style: GoogleFonts.readexPro(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_fullscreen_rounded),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'إغلاق ملء الشاشة',
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          SfPdfViewer.network(
+            pdfUrl,
+            canShowScrollHead: true,
+            canShowScrollStatus: true,
+            enableDoubleTapZooming: true,
+          ),
+          // كبسولة عائمة في الأسفل للتحكم بالصوت
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(30),
+              color: AppColors.primaryDarkBrown.withValues(alpha: 0.95),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.replay_5_rounded,
+                        color: AppColors.textGoldLight,
+                      ),
+                      onPressed: () => audioProvider.seekBackward5s(),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        audioProvider.isPlaying
+                            ? Icons.pause_circle_filled_rounded
+                            : Icons.play_circle_filled_rounded,
+                        color: AppColors.textGoldLight,
+                        size: 34,
+                      ),
+                      onPressed: () => audioProvider.togglePlayPause(),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.forward_5_rounded,
+                        color: AppColors.textGoldLight,
+                      ),
+                      onPressed: () => audioProvider.seekForward5s(),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${_formatDuration(audioProvider.currentPosition)} / ${_formatDuration(audioProvider.totalDuration)}',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    if (audioProvider.isLoopActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentGoldBeige,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'A-B نشط',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryDarkBrown,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatDuration(Duration dur) {
+    final minutes = dur.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = dur.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final hours = dur.inHours;
+    if (hours > 0) {
+      return '$hours:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
+  }
+}
+

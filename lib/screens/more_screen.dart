@@ -8,9 +8,11 @@ import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
 import 'about_app_screen.dart';
 import 'downloads_screen.dart';
+import 'notes_notebook_screen.dart';
+import 'playlists_screen.dart';
 import 'settings_screen.dart';
 import 'statistics_screen.dart';
-import 'notes_notebook_screen.dart';
+import 'storage_manager_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة المزيد (MoreScreen) - مطابقة للصورة المرجعية
@@ -213,12 +215,32 @@ class MoreScreen extends StatelessWidget {
         },
       ),
       _MenuItemData(
+        title: 'قوائم التشغيل والمجموعات',
+        icon: Icons.featured_play_list_rounded,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PlaylistsScreen()),
+          );
+        },
+      ),
+      _MenuItemData(
         title: 'التنزيلات',
         icon: Icons.download_rounded,
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+          );
+        },
+      ),
+      _MenuItemData(
+        title: 'إدارة المساحة التخزينية',
+        icon: Icons.pie_chart_outline_rounded,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StorageManagerScreen()),
           );
         },
       ),

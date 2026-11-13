@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../models/models.dart';
 import '../../providers/app_provider.dart';
@@ -59,9 +60,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       final success = await appProvider.seedDataToFirestore();
       if (mounted) {
         if (success) {
-          _showSnackBar('تم رفع وتحديث جميع البيانات في Cloud Firestore بنجاح!');
+          _showSnackBar(
+            'تم رفع وتحديث جميع البيانات في Cloud Firestore بنجاح!',
+          );
         } else {
-          _showSnackBar('تعذر رفع البيانات، يرجى مراجعة إعدادات وصلاحيات Firebase.', isError: true);
+          _showSnackBar(
+            'تعذر رفع البيانات، يرجى مراجعة إعدادات وصلاحيات Firebase.',
+            isError: true,
+          );
         }
       }
     } catch (e) {
@@ -81,7 +87,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           message,
           style: GoogleFonts.readexPro(color: AppColors.textWhite),
         ),
-        backgroundColor: isError ? Colors.red.shade800 : AppColors.primaryDarkBrown,
+        backgroundColor: isError
+            ? Colors.red.shade800
+            : AppColors.primaryDarkBrown,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -140,11 +148,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       decoration: const BoxDecoration(
         color: AppColors.primaryDarkBrown,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -154,7 +158,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               // زر العودة للتطبيق في اليمين
               IconButton(
                 tooltip: 'العودة للتطبيق',
-                icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.textGoldLight),
+                icon: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.textGoldLight,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
 
@@ -199,12 +206,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     : const Icon(Icons.cloud_upload_rounded, size: 16),
                 label: Text(
                   'رفع للسحابة',
-                  style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryLightBrown,
                   foregroundColor: AppColors.textGoldLight,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: const BorderSide(color: AppColors.goldMuted),
@@ -217,7 +230,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               // زر تسجيل الخروج في أقصى اليسار
               IconButton(
                 tooltip: 'تسجيل الخروج',
-                icon: const Icon(Icons.logout_rounded, color: AppColors.textGoldLight),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.textGoldLight,
+                ),
                 onPressed: _handleLogout,
               ),
             ],
@@ -234,7 +250,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   : AppColors.primaryLightBrown.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isConnected ? Colors.green.shade400 : AppColors.goldMuted,
+                color: isConnected
+                    ? Colors.green.shade400
+                    : AppColors.goldMuted,
                 width: 1,
               ),
             ),
@@ -246,7 +264,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isConnected ? Colors.greenAccent : AppColors.textGoldLight,
+                    color: isConnected
+                        ? Colors.greenAccent
+                        : AppColors.textGoldLight,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -280,17 +300,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         indicatorWeight: 3,
         labelColor: AppColors.primaryDarkBrown,
         unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.bold),
+        labelStyle: GoogleFonts.readexPro(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
         unselectedLabelStyle: GoogleFonts.readexPro(fontSize: 13),
         tabs: const [
           Tab(icon: Icon(Icons.category_rounded, size: 20), text: 'الأقسام'),
           Tab(icon: Icon(Icons.people_alt_rounded, size: 20), text: 'الشيوخ'),
           Tab(icon: Icon(Icons.menu_book_rounded, size: 20), text: 'الكتب'),
-          Tab(icon: Icon(Icons.library_books_rounded, size: 20), text: 'الشروحات'),
+          Tab(
+            icon: Icon(Icons.library_books_rounded, size: 20),
+            text: 'الشروحات',
+          ),
           Tab(icon: Icon(Icons.audiotrack_rounded, size: 20), text: 'الدروس'),
           Tab(icon: Icon(Icons.subtitles_rounded, size: 20), text: 'التفريغات'),
-          Tab(icon: Icon(Icons.notifications_active_rounded, size: 20), text: 'الإشعارات والتحديثات'),
-          Tab(icon: Icon(Icons.info_outline_rounded, size: 20), text: 'عن التطبيق والتواصل'),
+          Tab(
+            icon: Icon(Icons.notifications_active_rounded, size: 20),
+            text: 'الإشعارات والتحديثات',
+          ),
+          Tab(
+            icon: Icon(Icons.info_outline_rounded, size: 20),
+            text: 'عن التطبيق والتواصل',
+          ),
         ],
       ),
     );
@@ -314,7 +346,9 @@ class _CategoriesTab extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.scaffoldCream,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             category == null ? 'إضافة قسم علمي جديد' : 'تعديل القسم العلمي',
             style: GoogleFonts.readexPro(
@@ -335,7 +369,9 @@ class _CategoriesTab extends StatelessWidget {
                     filled: true,
                     fillColor: AppColors.cardWhite,
                   ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم القسم' : null,
+                  validator: (val) => val == null || val.trim().isEmpty
+                      ? 'يرجى إدخال اسم القسم'
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
@@ -346,11 +382,26 @@ class _CategoriesTab extends StatelessWidget {
                     fillColor: AppColors.cardWhite,
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'category', child: Text('تصنيف عام')),
-                    DropdownMenuItem(value: 'menu_book', child: Text('كتاب شرعي')),
-                    DropdownMenuItem(value: 'balance', child: Text('ميزان الفقه')),
-                    DropdownMenuItem(value: 'mosque', child: Text('مسجد وعقيدة')),
-                    DropdownMenuItem(value: 'auto_stories', child: Text('متون وحفظ')),
+                    DropdownMenuItem(
+                      value: 'category',
+                      child: Text('تصنيف عام'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'menu_book',
+                      child: Text('كتاب شرعي'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'balance',
+                      child: Text('ميزان الفقه'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'mosque',
+                      child: Text('مسجد وعقيدة'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'auto_stories',
+                      child: Text('متون وحفظ'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => selectedIcon = val);
@@ -362,7 +413,10 @@ class _CategoriesTab extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -387,7 +441,10 @@ class _CategoriesTab extends StatelessWidget {
                   await appProvider.updateCategory(updated);
                 }
               },
-              child: Text(category == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+              child: Text(
+                category == null ? 'إضافة' : 'حفظ التعديل',
+                style: GoogleFonts.readexPro(),
+              ),
             ),
           ],
         ),
@@ -403,7 +460,10 @@ class _CategoriesTab extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف القسم تتابعياً',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           '⚠️ تحذير: حذف قسم "${cat.name}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
@@ -417,15 +477,26 @@ class _CategoriesTab extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await appProvider.deleteCategory(cat.id);
             },
-            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف التتابعي',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -442,7 +513,10 @@ class _CategoriesTab extends StatelessWidget {
         backgroundColor: AppColors.primaryDarkBrown,
         foregroundColor: AppColors.textGoldLight,
         icon: const Icon(Icons.add_rounded),
-        label: Text('إضافة قسم', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        label: Text(
+          'إضافة قسم',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
+        ),
         onPressed: () => _openAddEditDialog(context),
       ),
       body: ListView.separated(
@@ -466,25 +540,42 @@ class _CategoriesTab extends StatelessWidget {
                   color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.category_rounded, color: AppColors.iconGold),
+                child: const Icon(
+                  Icons.category_rounded,
+                  color: AppColors.iconGold,
+                ),
               ),
               title: Text(
                 cat.name,
-                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+                style: GoogleFonts.readexPro(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               subtitle: Text(
                 '${cat.booksCount} كتب • ${cat.sheikhsCount} شيوخ • ${cat.lessonsCount} درس',
-                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      color: AppColors.iconGold,
+                      size: 20,
+                    ),
                     onPressed: () => _openAddEditDialog(context, category: cat),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red.shade400,
+                      size: 20,
+                    ),
                     onPressed: () => _confirmDelete(context, cat),
                   ),
                 ],
@@ -506,8 +597,12 @@ class _SheikhsTab extends StatelessWidget {
 
   void _openAddEditDialog(BuildContext context, {SheikhModel? sheikh}) {
     final nameController = TextEditingController(text: sheikh?.name ?? '');
-    final shortBioController = TextEditingController(text: sheikh?.shortBio ?? '');
-    final fullBioController = TextEditingController(text: sheikh?.fullBio ?? '');
+    final shortBioController = TextEditingController(
+      text: sheikh?.shortBio ?? '',
+    );
+    final fullBioController = TextEditingController(
+      text: sheikh?.fullBio ?? '',
+    );
     final formKey = GlobalKey<FormState>();
     bool sendNotification = true;
 
@@ -516,7 +611,9 @@ class _SheikhsTab extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.scaffoldCream,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             sheikh == null ? 'إضافة شيخ جديد' : 'تعديل بيانات الشيخ',
             style: GoogleFonts.readexPro(
@@ -538,7 +635,9 @@ class _SheikhsTab extends StatelessWidget {
                       filled: true,
                       fillColor: AppColors.cardWhite,
                     ),
-                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم الشيخ' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'يرجى إدخال اسم الشيخ'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -567,7 +666,10 @@ class _SheikhsTab extends StatelessWidget {
                       value: sendNotification,
                       title: Text(
                         'إرسال إشعار للمستخدمين بهذه الإضافة',
-                        style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       activeColor: AppColors.primaryDarkBrown,
                       contentPadding: EdgeInsets.zero,
@@ -586,7 +688,10 @@ class _SheikhsTab extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -607,7 +712,8 @@ class _SheikhsTab extends StatelessWidget {
                   if (sendNotification) {
                     await appProvider.sendNotification(
                       title: 'إضافة شيخ جديد',
-                      body: 'تمت إضافة صفحة وشروحات ${newSheikh.name} إلى تطبيق تسهيل.',
+                      body:
+                          'تمت إضافة صفحة وشروحات ${newSheikh.name} إلى تطبيق تسهيل.',
                       type: 'sheikh',
                     );
                   }
@@ -620,7 +726,10 @@ class _SheikhsTab extends StatelessWidget {
                   await appProvider.updateSheikh(updated);
                 }
               },
-              child: Text(sheikh == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+              child: Text(
+                sheikh == null ? 'إضافة' : 'حفظ التعديل',
+                style: GoogleFonts.readexPro(),
+              ),
             ),
           ],
         ),
@@ -636,7 +745,10 @@ class _SheikhsTab extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف الشيخ تتابعياً',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           '⚠️ تحذير: حذف الشيخ "${sheikh.name}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
@@ -649,15 +761,26 @@ class _SheikhsTab extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await appProvider.deleteSheikh(sheikh.id);
             },
-            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف التتابعي',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -674,7 +797,10 @@ class _SheikhsTab extends StatelessWidget {
         backgroundColor: AppColors.primaryDarkBrown,
         foregroundColor: AppColors.textGoldLight,
         icon: const Icon(Icons.person_add_rounded),
-        label: Text('إضافة شيخ', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        label: Text(
+          'إضافة شيخ',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
+        ),
         onPressed: () => _openAddEditDialog(context),
       ),
       body: ListView.separated(
@@ -698,15 +824,24 @@ class _SheikhsTab extends StatelessWidget {
                   color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_rounded, color: AppColors.iconGold),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: AppColors.iconGold,
+                ),
               ),
               title: Text(
                 sh.name,
-                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+                style: GoogleFonts.readexPro(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               subtitle: Text(
                 '${sh.booksCount} شروحات • ${sh.lessonsCount} درس\n${sh.shortBio}',
-                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -714,11 +849,19 @@ class _SheikhsTab extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      color: AppColors.iconGold,
+                      size: 20,
+                    ),
                     onPressed: () => _openAddEditDialog(context, sheikh: sh),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red.shade400,
+                      size: 20,
+                    ),
                     onPressed: () => _confirmDelete(context, sh),
                   ),
                 ],
@@ -749,10 +892,12 @@ class _BooksTabState extends State<_BooksTab> {
     final titleController = TextEditingController(text: book?.title ?? '');
     final authorController = TextEditingController(text: book?.author ?? '');
     final descController = TextEditingController(text: book?.description ?? '');
-    String selectedCatId = book?.categoryId ??
-        (_selectedCategoryFilter ?? (widget.appProvider.categories.isNotEmpty
-            ? widget.appProvider.categories.first.id
-            : ''));
+    String selectedCatId =
+        book?.categoryId ??
+        (_selectedCategoryFilter ??
+            (widget.appProvider.categories.isNotEmpty
+                ? widget.appProvider.categories.first.id
+                : ''));
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -760,7 +905,9 @@ class _BooksTabState extends State<_BooksTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.scaffoldCream,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             book == null ? 'إضافة كتاب أو متن جديد' : 'تعديل بيانات الكتاب',
             style: GoogleFonts.readexPro(
@@ -776,7 +923,9 @@ class _BooksTabState extends State<_BooksTab> {
                 children: [
                   // اختيار القسم
                   DropdownButtonFormField<String>(
-                    initialValue: selectedCatId.isNotEmpty ? selectedCatId : null,
+                    initialValue: selectedCatId.isNotEmpty
+                        ? selectedCatId
+                        : null,
                     decoration: const InputDecoration(
                       labelText: 'القسم العلمي التابع له',
                       filled: true,
@@ -786,9 +935,12 @@ class _BooksTabState extends State<_BooksTab> {
                       return DropdownMenuItem(value: c.id, child: Text(c.name));
                     }).toList(),
                     onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedCatId = val);
+                      if (val != null) {
+                        setDialogState(() => selectedCatId = val);
+                      }
                     },
-                    validator: (val) => val == null ? 'يرجى اختيار القسم' : null,
+                    validator: (val) =>
+                        val == null ? 'يرجى اختيار القسم' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -799,7 +951,9 @@ class _BooksTabState extends State<_BooksTab> {
                       filled: true,
                       fillColor: AppColors.cardWhite,
                     ),
-                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال العنوان' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'يرجى إدخال العنوان'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -810,7 +964,9 @@ class _BooksTabState extends State<_BooksTab> {
                       filled: true,
                       fillColor: AppColors.cardWhite,
                     ),
-                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال المؤلف' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'يرجى إدخال المؤلف'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -830,7 +986,10 @@ class _BooksTabState extends State<_BooksTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -859,7 +1018,10 @@ class _BooksTabState extends State<_BooksTab> {
                   await widget.appProvider.updateBook(updated);
                 }
               },
-              child: Text(book == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+              child: Text(
+                book == null ? 'إضافة' : 'حفظ التعديل',
+                style: GoogleFonts.readexPro(),
+              ),
             ),
           ],
         ),
@@ -875,7 +1037,10 @@ class _BooksTabState extends State<_BooksTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف الكتاب تتابعياً',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           '⚠️ تحذير: حذف كتاب "${book.title}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
@@ -887,15 +1052,26 @@ class _BooksTabState extends State<_BooksTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await widget.appProvider.deleteBook(book.id);
             },
-            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف التتابعي',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -906,7 +1082,9 @@ class _BooksTabState extends State<_BooksTab> {
   Widget build(BuildContext context) {
     final books = _selectedCategoryFilter == null
         ? widget.appProvider.books
-        : widget.appProvider.books.where((b) => b.categoryId == _selectedCategoryFilter).toList();
+        : widget.appProvider.books
+              .where((b) => b.categoryId == _selectedCategoryFilter)
+              .toList();
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldCream,
@@ -914,7 +1092,10 @@ class _BooksTabState extends State<_BooksTab> {
         backgroundColor: AppColors.primaryDarkBrown,
         foregroundColor: AppColors.textGoldLight,
         icon: const Icon(Icons.add_rounded),
-        label: Text('إضافة كتاب', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        label: Text(
+          'إضافة كتاب',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
+        ),
         onPressed: () => _openAddEditDialog(context),
       ),
       body: Column(
@@ -925,11 +1106,18 @@ class _BooksTabState extends State<_BooksTab> {
             color: AppColors.cardWhite,
             child: Row(
               children: [
-                const Icon(Icons.filter_list_rounded, color: AppColors.iconGold, size: 20),
+                const Icon(
+                  Icons.filter_list_rounded,
+                  color: AppColors.iconGold,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'فلترة بالقسم:',
-                  style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -949,7 +1137,8 @@ class _BooksTabState extends State<_BooksTab> {
                         );
                       }),
                     ],
-                    onChanged: (val) => setState(() => _selectedCategoryFilter = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategoryFilter = val),
                   ),
                 ),
               ],
@@ -977,28 +1166,47 @@ class _BooksTabState extends State<_BooksTab> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
+                        color: AppColors.primaryLightBrown.withValues(
+                          alpha: 0.15,
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.menu_book_rounded, color: AppColors.iconGold),
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppColors.iconGold,
+                      ),
                     ),
                     title: Text(
                       b.title,
-                      style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.readexPro(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                     subtitle: Text(
                       'المؤلف: ${b.author} • القسم: ${cat?.name ?? "-"}\n${b.seriesCount} شروحات متوفرة',
-                      style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                      style: GoogleFonts.readexPro(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            color: AppColors.iconGold,
+                            size: 20,
+                          ),
                           onPressed: () => _openAddEditDialog(context, book: b),
                         ),
                         IconButton(
-                          icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red.shade400,
+                            size: 20,
+                          ),
                           onPressed: () => _confirmDelete(context, b),
                         ),
                       ],
@@ -1027,17 +1235,31 @@ class _SeriesTab extends StatefulWidget {
 
 class _SeriesTabState extends State<_SeriesTab> {
   void _openAddEditDialog(BuildContext context, {SeriesModel? seriesItem}) {
-    String selectedCatId = seriesItem?.categoryId ??
-        (widget.appProvider.categories.isNotEmpty ? widget.appProvider.categories.first.id : '');
+    String selectedCatId =
+        seriesItem?.categoryId ??
+        (widget.appProvider.categories.isNotEmpty
+            ? widget.appProvider.categories.first.id
+            : '');
 
-    List<BookModel> availableBooks = widget.appProvider.getBooksByCategory(selectedCatId);
-    String selectedBookId = seriesItem?.bookId ??
+    List<BookModel> availableBooks = widget.appProvider.getBooksByCategory(
+      selectedCatId,
+    );
+    String selectedBookId =
+        seriesItem?.bookId ??
         (availableBooks.isNotEmpty ? availableBooks.first.id : '');
 
-    String selectedSheikhId = seriesItem?.sheikhId ??
-        (widget.appProvider.sheikhs.isNotEmpty ? widget.appProvider.sheikhs.first.id : '');
+    String selectedSheikhId =
+        seriesItem?.sheikhId ??
+        (widget.appProvider.sheikhs.isNotEmpty
+            ? widget.appProvider.sheikhs.first.id
+            : '');
 
-    final titleController = TextEditingController(text: seriesItem?.title ?? '');
+    final titleController = TextEditingController(
+      text: seriesItem?.title ?? '',
+    );
+    final pdfUrlController = TextEditingController(
+      text: seriesItem?.pdfUrl ?? '',
+    );
     final formKey = GlobalKey<FormState>();
 
     // توليد العنوان تلقائياً إن كان جديداً
@@ -1058,7 +1280,9 @@ class _SeriesTabState extends State<_SeriesTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.scaffoldCream,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             seriesItem == null ? 'إضافة شرح علمي جديد' : 'تعديل الشرح العلمي',
             style: GoogleFonts.readexPro(
@@ -1074,7 +1298,9 @@ class _SeriesTabState extends State<_SeriesTab> {
                 children: [
                   // 1. اختيار القسم
                   DropdownButtonFormField<String>(
-                    initialValue: selectedCatId.isNotEmpty ? selectedCatId : null,
+                    initialValue: selectedCatId.isNotEmpty
+                        ? selectedCatId
+                        : null,
                     decoration: const InputDecoration(
                       labelText: '1. القسم العلمي',
                       filled: true,
@@ -1087,26 +1313,35 @@ class _SeriesTabState extends State<_SeriesTab> {
                       if (val != null) {
                         setDialogState(() {
                           selectedCatId = val;
-                          availableBooks = widget.appProvider.getBooksByCategory(val);
-                          selectedBookId = availableBooks.isNotEmpty ? availableBooks.first.id : '';
+                          availableBooks = widget.appProvider
+                              .getBooksByCategory(val);
+                          selectedBookId = availableBooks.isNotEmpty
+                              ? availableBooks.first.id
+                              : '';
                           generateTitle();
                         });
                       }
                     },
-                    validator: (val) => val == null ? 'يرجى اختيار القسم' : null,
+                    validator: (val) =>
+                        val == null ? 'يرجى اختيار القسم' : null,
                   ),
                   const SizedBox(height: 12),
 
                   // 2. اختيار الكتاب (مفلتر بالقسم)
                   DropdownButtonFormField<String>(
-                    initialValue: selectedBookId.isNotEmpty ? selectedBookId : null,
+                    initialValue: selectedBookId.isNotEmpty
+                        ? selectedBookId
+                        : null,
                     decoration: const InputDecoration(
                       labelText: '2. الكتاب أو المتن',
                       filled: true,
                       fillColor: AppColors.cardWhite,
                     ),
                     items: availableBooks.map((b) {
-                      return DropdownMenuItem(value: b.id, child: Text(b.title));
+                      return DropdownMenuItem(
+                        value: b.id,
+                        child: Text(b.title),
+                      );
                     }).toList(),
                     onChanged: (val) {
                       if (val != null) {
@@ -1116,13 +1351,16 @@ class _SeriesTabState extends State<_SeriesTab> {
                         });
                       }
                     },
-                    validator: (val) => val == null ? 'يرجى اختيار الكتاب' : null,
+                    validator: (val) =>
+                        val == null ? 'يرجى اختيار الكتاب' : null,
                   ),
                   const SizedBox(height: 12),
 
                   // 3. اختيار الشيخ
                   DropdownButtonFormField<String>(
-                    initialValue: selectedSheikhId.isNotEmpty ? selectedSheikhId : null,
+                    initialValue: selectedSheikhId.isNotEmpty
+                        ? selectedSheikhId
+                        : null,
                     decoration: const InputDecoration(
                       labelText: '3. الشيخ الشارح',
                       filled: true,
@@ -1139,7 +1377,8 @@ class _SeriesTabState extends State<_SeriesTab> {
                         });
                       }
                     },
-                    validator: (val) => val == null ? 'يرجى اختيار الشيخ' : null,
+                    validator: (val) =>
+                        val == null ? 'يرجى اختيار الشيخ' : null,
                   ),
                   const SizedBox(height: 12),
 
@@ -1152,7 +1391,23 @@ class _SeriesTabState extends State<_SeriesTab> {
                       filled: true,
                       fillColor: AppColors.cardWhite,
                     ),
-                    validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال عنوان الشرح' : null,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'يرجى إدخال عنوان الشرح'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 5. رابط ملف الـ PDF (متن/كتاب الشرح اختياري)
+                  TextFormField(
+                    controller: pdfUrlController,
+                    textDirection: TextDirection.ltr,
+                    style: GoogleFonts.readexPro(fontSize: 13),
+                    decoration: const InputDecoration(
+                      labelText: 'رابط ملف الـ PDF للمتن/الكتاب (اختياري)',
+                      hintText: 'https://example.com/book.pdf',
+                      filled: true,
+                      fillColor: AppColors.cardWhite,
+                    ),
                   ),
                 ],
               ),
@@ -1161,7 +1416,10 @@ class _SeriesTabState extends State<_SeriesTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -1171,6 +1429,7 @@ class _SeriesTabState extends State<_SeriesTab> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 Navigator.pop(ctx);
+                final pdfVal = pdfUrlController.text.trim();
                 if (seriesItem == null) {
                   final newSeries = SeriesModel(
                     id: 'series_${DateTime.now().millisecondsSinceEpoch}',
@@ -1178,6 +1437,7 @@ class _SeriesTabState extends State<_SeriesTab> {
                     sheikhId: selectedSheikhId,
                     categoryId: selectedCatId,
                     title: titleController.text.trim(),
+                    pdfUrl: pdfVal.isNotEmpty ? pdfVal : null,
                   );
                   await widget.appProvider.addSeries(newSeries);
                 } else {
@@ -1186,11 +1446,15 @@ class _SeriesTabState extends State<_SeriesTab> {
                     sheikhId: selectedSheikhId,
                     categoryId: selectedCatId,
                     title: titleController.text.trim(),
+                    pdfUrl: pdfVal.isNotEmpty ? pdfVal : null,
                   );
                   await widget.appProvider.updateSeries(updated);
                 }
               },
-              child: Text(seriesItem == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+              child: Text(
+                seriesItem == null ? 'إضافة' : 'حفظ التعديل',
+                style: GoogleFonts.readexPro(),
+              ),
             ),
           ],
         ),
@@ -1206,7 +1470,10 @@ class _SeriesTabState extends State<_SeriesTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف الشرح تتابعياً',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           '⚠️ تحذير: حذف الشرح "${series.title}" سيؤدي إلى حذف تتابعي تلقائي لجميع:\n'
@@ -1218,15 +1485,26 @@ class _SeriesTabState extends State<_SeriesTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await widget.appProvider.deleteSeries(series.id);
             },
-            child: Text('تأكيد الحذف التتابعي', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف التتابعي',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -1243,7 +1521,10 @@ class _SeriesTabState extends State<_SeriesTab> {
         backgroundColor: AppColors.primaryDarkBrown,
         foregroundColor: AppColors.textGoldLight,
         icon: const Icon(Icons.add_rounded),
-        label: Text('إضافة شرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+        label: Text(
+          'إضافة شرح',
+          style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
+        ),
         onPressed: () => _openAddEditDialog(context),
       ),
       body: ListView.separated(
@@ -1270,25 +1551,42 @@ class _SeriesTabState extends State<_SeriesTab> {
                   color: AppColors.primaryLightBrown.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.library_books_rounded, color: AppColors.iconGold),
+                child: const Icon(
+                  Icons.library_books_rounded,
+                  color: AppColors.iconGold,
+                ),
               ),
               title: Text(
                 s.title,
-                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 14),
+                style: GoogleFonts.readexPro(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               subtitle: Text(
                 'الشارح: ${sheikh?.name ?? "-"} • المتن: ${book?.title ?? "-"}\nعدد الدروس: ${s.lessonsCount}',
-                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      color: AppColors.iconGold,
+                      size: 20,
+                    ),
                     onPressed: () => _openAddEditDialog(context, seriesItem: s),
                   ),
                   IconButton(
-                    icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red.shade400,
+                      size: 20,
+                    ),
                     onPressed: () => _confirmDelete(context, s),
                   ),
                 ],
@@ -1325,6 +1623,7 @@ class _LessonsTabState extends State<_LessonsTab> {
   final _singleAudioUrlController = TextEditingController();
   final _singleVideoUrlController = TextEditingController();
   final _singleTranscriptController = TextEditingController();
+  final _singlePdfUrlController = TextEditingController();
 
   // حقول الإضافة الجماعية Bulk Add
   final _bulkPrefixController = TextEditingController(text: 'الدرس');
@@ -1358,6 +1657,7 @@ class _LessonsTabState extends State<_LessonsTab> {
     _singleAudioUrlController.dispose();
     _singleVideoUrlController.dispose();
     _singleTranscriptController.dispose();
+    _singlePdfUrlController.dispose();
     _bulkPrefixController.dispose();
     _bulkTextAreaController.dispose();
     super.dispose();
@@ -1373,13 +1673,17 @@ class _LessonsTabState extends State<_LessonsTab> {
     if (title.isEmpty || audioUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('يرجى كتابة عنوان الدرس ورابط MP3', style: GoogleFonts.readexPro()),
+          content: Text(
+            'يرجى كتابة عنوان الدرس ورابط MP3',
+            style: GoogleFonts.readexPro(),
+          ),
           backgroundColor: Colors.red.shade800,
         ),
       );
       return;
     }
 
+    final pdfUrl = _singlePdfUrlController.text.trim();
     final newLesson = LessonModel(
       id: 'lesson_${seriesId}_${DateTime.now().millisecondsSinceEpoch}',
       seriesId: seriesId,
@@ -1391,18 +1695,24 @@ class _LessonsTabState extends State<_LessonsTab> {
       audioUrl: audioUrl,
       videoUrl: _singleVideoUrlController.text.trim(),
       transcript: _singleTranscriptController.text.trim(),
+      pdfUrl: pdfUrl.isNotEmpty ? pdfUrl : null,
     );
 
     await widget.appProvider.addLesson(newLesson);
     _singleAudioUrlController.clear();
     _singleVideoUrlController.clear();
     _singleTranscriptController.clear();
+    _singlePdfUrlController.clear();
     _updateDefaultOrder();
 
     if (_singleSendNotification) {
       final series = widget.appProvider.getSeriesById(seriesId);
-      final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
-      final sheikh = series != null ? widget.appProvider.getSheikhById(series.sheikhId) : null;
+      final book = series != null
+          ? widget.appProvider.getBookById(series.bookId)
+          : null;
+      final sheikh = series != null
+          ? widget.appProvider.getSheikhById(series.sheikhId)
+          : null;
       final bookTitle = book?.title ?? series?.title ?? '';
       final sheikhName = sheikh?.name ?? '';
 
@@ -1416,7 +1726,10 @@ class _LessonsTabState extends State<_LessonsTab> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تمت إضافة الدرس بنجاح', style: GoogleFonts.readexPro()),
+          content: Text(
+            'تمت إضافة الدرس بنجاح',
+            style: GoogleFonts.readexPro(),
+          ),
           backgroundColor: AppColors.primaryDarkBrown,
         ),
       );
@@ -1430,7 +1743,10 @@ class _LessonsTabState extends State<_LessonsTab> {
     if (rawText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('يرجى لصق الروابط الصوتية أولاً', style: GoogleFonts.readexPro()),
+          content: Text(
+            'يرجى لصق الروابط الصوتية أولاً',
+            style: GoogleFonts.readexPro(),
+          ),
           backgroundColor: Colors.red.shade800,
         ),
       );
@@ -1449,8 +1765,12 @@ class _LessonsTabState extends State<_LessonsTab> {
 
     if (added > 0 && _bulkSendNotification) {
       final series = widget.appProvider.getSeriesById(seriesId);
-      final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
-      final sheikh = series != null ? widget.appProvider.getSheikhById(series.sheikhId) : null;
+      final book = series != null
+          ? widget.appProvider.getBookById(series.bookId)
+          : null;
+      final sheikh = series != null
+          ? widget.appProvider.getSheikhById(series.sheikhId)
+          : null;
       final bookTitle = book?.title ?? series?.title ?? '';
       final sheikhName = sheikh?.name ?? '';
 
@@ -1482,7 +1802,10 @@ class _LessonsTabState extends State<_LessonsTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف الدرس',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           '⚠️ هل أنت متأكد من حذف الدرس "${lesson.title}"؟\n'
@@ -1492,16 +1815,27 @@ class _LessonsTabState extends State<_LessonsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await widget.appProvider.deleteLesson(lesson.id);
               _updateDefaultOrder();
             },
-            child: Text('تأكيد الحذف', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -1510,10 +1844,13 @@ class _LessonsTabState extends State<_LessonsTab> {
 
   void _openEditLessonDialog(LessonModel lesson) {
     final titleController = TextEditingController(text: lesson.title);
-    final orderController = TextEditingController(text: lesson.order.toString());
+    final orderController = TextEditingController(
+      text: lesson.order.toString(),
+    );
     final durationController = TextEditingController(text: lesson.duration);
     final audioController = TextEditingController(text: lesson.audioUrl);
     final videoController = TextEditingController(text: lesson.videoUrl);
+    final pdfController = TextEditingController(text: lesson.pdfUrl ?? '');
 
     showDialog(
       context: context,
@@ -1522,7 +1859,10 @@ class _LessonsTabState extends State<_LessonsTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'تعديل الدرس',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: AppColors.primaryDarkBrown),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDarkBrown,
+          ),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -1530,51 +1870,100 @@ class _LessonsTabState extends State<_LessonsTab> {
             children: [
               TextFormField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: 'عنوان الدرس', filled: true, fillColor: AppColors.cardWhite),
+                decoration: const InputDecoration(
+                  labelText: 'عنوان الدرس',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: orderController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'الترتيب', filled: true, fillColor: AppColors.cardWhite),
+                decoration: const InputDecoration(
+                  labelText: 'الترتيب',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: durationController,
-                decoration: const InputDecoration(labelText: 'المدة (مثال: 45:00)', filled: true, fillColor: AppColors.cardWhite),
+                decoration: const InputDecoration(
+                  labelText: 'المدة (مثال: 45:00)',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: audioController,
-                decoration: const InputDecoration(labelText: 'رابط الصوت MP3', filled: true, fillColor: AppColors.cardWhite),
+                decoration: const InputDecoration(
+                  labelText: 'رابط الصوت MP3',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: videoController,
-                decoration: const InputDecoration(labelText: 'رابط يوتيوب (اختياري)', filled: true, fillColor: AppColors.cardWhite),
+                decoration: const InputDecoration(
+                  labelText: 'رابط يوتيوب (اختياري)',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: pdfController,
+                textDirection: TextDirection.ltr,
+                decoration: const InputDecoration(
+                  labelText: 'رابط ملف الـ PDF (متن/كتاب اختياري)',
+                  hintText: 'https://example.com/lesson.pdf',
+                  filled: true,
+                  fillColor: AppColors.cardWhite,
+                ),
               ),
               if (lesson.hasTranscript) ...[
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 18),
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.red,
+                    size: 18,
+                  ),
                   label: Text(
                     'حذف التفريغ النصي فقط',
-                    style: GoogleFonts.readexPro(color: Colors.red.shade800, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.readexPro(
+                      color: Colors.red.shade800,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.red.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   onPressed: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (c) => AlertDialog(
                         backgroundColor: AppColors.scaffoldCream,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         title: Text(
                           'حذف التفريغ فقط',
-                          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+                          style: GoogleFonts.readexPro(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade900,
+                          ),
                         ),
                         content: Text(
                           'هل أنت متأكد من حذف التفريغ النصي لدرس "${lesson.title}"؟ سيبقى الدرس الصوتي متاحاً دون حذف.',
@@ -1583,23 +1972,38 @@ class _LessonsTabState extends State<_LessonsTab> {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c, false),
-                            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+                            child: Text(
+                              'إلغاء',
+                              style: GoogleFonts.readexPro(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade800,
+                            ),
                             onPressed: () => Navigator.pop(c, true),
-                            child: Text('حذف التفريغ', style: GoogleFonts.readexPro(color: Colors.white)),
+                            child: Text(
+                              'حذف التفريغ',
+                              style: GoogleFonts.readexPro(color: Colors.white),
+                            ),
                           ),
                         ],
                       ),
                     );
                     if (confirm == true) {
-                      await widget.appProvider.deleteLessonTranscript(lesson.id);
+                      await widget.appProvider.deleteLessonTranscript(
+                        lesson.id,
+                      );
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('تم حذف تفريغ الدرس بنجاح!', style: GoogleFonts.readexPro()),
+                            content: Text(
+                              'تم حذف تفريغ الدرس بنجاح!',
+                              style: GoogleFonts.readexPro(),
+                            ),
                             backgroundColor: AppColors.primaryDarkBrown,
                           ),
                         );
@@ -1614,7 +2018,10 @@ class _LessonsTabState extends State<_LessonsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -1623,12 +2030,15 @@ class _LessonsTabState extends State<_LessonsTab> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
+              final pdfVal = pdfController.text.trim();
               final updated = lesson.copyWith(
                 title: titleController.text.trim(),
-                order: int.tryParse(orderController.text.trim()) ?? lesson.order,
+                order:
+                    int.tryParse(orderController.text.trim()) ?? lesson.order,
                 duration: durationController.text.trim(),
                 audioUrl: audioController.text.trim(),
                 videoUrl: videoController.text.trim(),
+                pdfUrl: pdfVal.isNotEmpty ? pdfVal : null,
               );
               await widget.appProvider.updateLesson(updated);
             },
@@ -1667,7 +2077,10 @@ class _LessonsTabState extends State<_LessonsTab> {
                 children: [
                   Text(
                     'اختر الشرح العلمي للتحكم بدروسه:',
-                    style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.readexPro(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
@@ -1676,12 +2089,19 @@ class _LessonsTabState extends State<_LessonsTab> {
                     decoration: const InputDecoration(
                       filled: true,
                       fillColor: AppColors.scaffoldCream,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                     items: seriesList.map((s) {
                       return DropdownMenuItem(
                         value: s.id,
-                        child: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          s.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -1714,7 +2134,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: !_isBulkMode ? AppColors.primaryDarkBrown : Colors.transparent,
+                          color: !_isBulkMode
+                              ? AppColors.primaryDarkBrown
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -1723,7 +2145,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                             Icon(
                               Icons.add_rounded,
                               size: 18,
-                              color: !_isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                              color: !_isBulkMode
+                                  ? AppColors.textGoldLight
+                                  : AppColors.textPrimary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -1731,7 +2155,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                               style: GoogleFonts.readexPro(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: !_isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                                color: !_isBulkMode
+                                    ? AppColors.textGoldLight
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -1746,7 +2172,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: _isBulkMode ? AppColors.primaryDarkBrown : Colors.transparent,
+                          color: _isBulkMode
+                              ? AppColors.primaryDarkBrown
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -1755,7 +2183,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                             Icon(
                               Icons.dynamic_feed_rounded,
                               size: 18,
-                              color: _isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                              color: _isBulkMode
+                                  ? AppColors.textGoldLight
+                                  : AppColors.textPrimary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -1763,7 +2193,9 @@ class _LessonsTabState extends State<_LessonsTab> {
                               style: GoogleFonts.readexPro(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: _isBulkMode ? AppColors.textGoldLight : AppColors.textPrimary,
+                                color: _isBulkMode
+                                    ? AppColors.textGoldLight
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -1788,11 +2220,17 @@ class _LessonsTabState extends State<_LessonsTab> {
               children: [
                 Text(
                   'دروس هذا الشرح (${currentSeriesLessons.length})',
-                  style: GoogleFonts.readexPro(fontSize: 15, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   'ترتيب تصاعدي',
-                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -1810,7 +2248,10 @@ class _LessonsTabState extends State<_LessonsTab> {
                 ),
                 child: Text(
                   'لا توجد دروس مضافة لهذا الشرح حتى الآن.',
-                  style: GoogleFonts.readexPro(color: AppColors.textSecondary, fontSize: 13),
+                  style: GoogleFonts.readexPro(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               )
             else
@@ -1824,7 +2265,10 @@ class _LessonsTabState extends State<_LessonsTab> {
                   final hasTranscript = lesson.hasTranscript;
 
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.cardWhite,
                       borderRadius: BorderRadius.circular(12),
@@ -1876,7 +2320,10 @@ class _LessonsTabState extends State<_LessonsTab> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: hasTranscript
                                           ? Colors.green.shade50
@@ -1908,17 +2355,29 @@ class _LessonsTabState extends State<_LessonsTab> {
                         // زر تشغيل تجريبي في المشغل
                         IconButton(
                           tooltip: 'تشغيل المعاينة',
-                          icon: const Icon(Icons.play_circle_fill_rounded,
-                              color: AppColors.iconGold, size: 26),
+                          icon: const Icon(
+                            Icons.play_circle_fill_rounded,
+                            color: AppColors.iconGold,
+                            size: 26,
+                          ),
                           onPressed: () {
-                            final series = widget.appProvider.getSeriesById(lesson.seriesId);
+                            final series = widget.appProvider.getSeriesById(
+                              lesson.seriesId,
+                            );
                             if (series != null) {
-                              Provider.of<AudioProvider>(context, listen: false)
-                                  .loadAndPlayLesson(lesson: lesson, series: series);
+                              Provider.of<AudioProvider>(
+                                context,
+                                listen: false,
+                              ).loadAndPlayLesson(
+                                lesson: lesson,
+                                series: series,
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('بدأ تشغيل المعاينة: ${lesson.title}',
-                                      style: GoogleFonts.readexPro()),
+                                  content: Text(
+                                    'بدأ تشغيل المعاينة: ${lesson.title}',
+                                    style: GoogleFonts.readexPro(),
+                                  ),
                                   backgroundColor: AppColors.primaryDarkBrown,
                                   duration: const Duration(seconds: 2),
                                 ),
@@ -1929,15 +2388,23 @@ class _LessonsTabState extends State<_LessonsTab> {
 
                         // زر تعديل
                         IconButton(
-                          icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 18),
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            color: AppColors.iconGold,
+                            size: 18,
+                          ),
                           onPressed: () => _openEditLessonDialog(lesson),
                         ),
 
                         // زر حذف الدرس
                         IconButton(
-                          icon: Icon(Icons.delete_outline_rounded,
-                              color: Colors.red.shade400, size: 18),
-                          onPressed: () => _confirmDeleteLesson(context, lesson),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red.shade400,
+                            size: 18,
+                          ),
+                          onPressed: () =>
+                              _confirmDeleteLesson(context, lesson),
                         ),
                       ],
                     ),
@@ -2026,6 +2493,17 @@ class _LessonsTabState extends State<_LessonsTab> {
           ),
           const SizedBox(height: 12),
           TextFormField(
+            controller: _singlePdfUrlController,
+            textDirection: TextDirection.ltr,
+            decoration: const InputDecoration(
+              labelText: 'رابط ملف الـ PDF (متن/كتاب للدرس اختياري)',
+              hintText: 'https://example.com/lesson_booklet.pdf',
+              filled: true,
+              fillColor: AppColors.scaffoldCream,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
             controller: _singleTranscriptController,
             maxLines: 3,
             decoration: const InputDecoration(
@@ -2041,7 +2519,10 @@ class _LessonsTabState extends State<_LessonsTab> {
               value: _singleSendNotification,
               title: Text(
                 'إرسال إشعار للمستخدمين بهذه الإضافة',
-                style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               activeThumbColor: AppColors.iconGold,
               contentPadding: EdgeInsets.zero,
@@ -2052,7 +2533,10 @@ class _LessonsTabState extends State<_LessonsTab> {
           ElevatedButton.icon(
             onPressed: _handleSingleAdd,
             icon: const Icon(Icons.add_rounded),
-            label: Text('إضافة الدرس لهذا الشرح', style: GoogleFonts.readexPro(fontWeight: FontWeight.bold)),
+            label: Text(
+              'إضافة الدرس لهذا الشرح',
+              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDarkBrown,
               foregroundColor: AppColors.textGoldLight,
@@ -2078,7 +2562,11 @@ class _LessonsTabState extends State<_LessonsTab> {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded, color: AppColors.iconGold, size: 20),
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'الإضافة الجماعية السريعة (Bulk Import)',
@@ -2093,13 +2581,18 @@ class _LessonsTabState extends State<_LessonsTab> {
           const SizedBox(height: 6),
           Text(
             'الصق هنا عشرات الروابط الصوتية دفعة واحدة. كل رابط في سطر.\nيمكنك كتابة "عنوان الدرس | الرابط" أو الرابط فقط لترتيبها آلياً.',
-            style: GoogleFonts.readexPro(fontSize: 12, height: 1.5, color: AppColors.textSecondary),
+            style: GoogleFonts.readexPro(
+              fontSize: 12,
+              height: 1.5,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _bulkPrefixController,
             decoration: const InputDecoration(
-              labelText: 'بادئة العنوان التلقائي (عند عدم تحديد عنوان لكل رابط)',
+              labelText:
+                  'بادئة العنوان التلقائي (عند عدم تحديد عنوان لكل رابط)',
               hintText: 'الدرس',
               filled: true,
               fillColor: AppColors.scaffoldCream,
@@ -2125,7 +2618,10 @@ class _LessonsTabState extends State<_LessonsTab> {
               value: _bulkSendNotification,
               title: Text(
                 'إرسال إشعار للمستخدمين بهذه الإضافة',
-                style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               activeThumbColor: AppColors.iconGold,
               contentPadding: EdgeInsets.zero,
@@ -2175,7 +2671,10 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف تفريغ الدرس',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           'هل أنت متأكد من حذف التفريغ النصي لدرس "${lesson.title}"؟\n'
@@ -2185,12 +2684,23 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('تأكيد حذف التفريغ', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد حذف التفريغ',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -2201,7 +2711,10 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم حذف تفريغ الدرس بنجاح مع بقاء الملف الصوتي!', style: GoogleFonts.readexPro()),
+            content: Text(
+              'تم حذف تفريغ الدرس بنجاح مع بقاء الملف الصوتي!',
+              style: GoogleFonts.readexPro(),
+            ),
             backgroundColor: AppColors.primaryDarkBrown,
           ),
         );
@@ -2220,7 +2733,9 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: AppColors.scaffoldCream,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             'تفريغ: ${lesson.title}',
             style: GoogleFonts.readexPro(
@@ -2237,7 +2752,10 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
               children: [
                 Text(
                   'اكتب أو الصق التفريغ النصي الكامل للدرس. سيحفظ فوراً ويظهر لجميع الطلاب:',
-                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -2245,7 +2763,8 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                   maxLines: 12,
                   style: GoogleFonts.amiri(fontSize: 15, height: 1.8),
                   decoration: const InputDecoration(
-                    hintText: 'بسم الله الرحمن الرحيم، الحمد لله رب العالمين...',
+                    hintText:
+                        'بسم الله الرحمن الرحيم، الحمد لله رب العالمين...',
                     filled: true,
                     fillColor: AppColors.cardWhite,
                   ),
@@ -2255,7 +2774,10 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                   value: sendNotification,
                   title: Text(
                     'إرسال إشعار للمستخدمين بهذه الإضافة',
-                    style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.readexPro(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   activeColor: AppColors.primaryDarkBrown,
                   contentPadding: EdgeInsets.zero,
@@ -2272,18 +2794,26 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
           actions: [
             if (lesson.hasTranscript)
               TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.red.shade800),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade800,
+                ),
                 onPressed: () async {
                   final deleted = await _confirmDeleteTranscript(lesson);
                   if (deleted && ctx.mounted) {
                     Navigator.pop(ctx);
                   }
                 },
-                child: Text('حذف التفريغ فقط', style: GoogleFonts.readexPro(fontWeight: FontWeight.w600)),
+                child: Text(
+                  'حذف التفريغ فقط',
+                  style: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
+                ),
               ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -2292,22 +2822,33 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
-                await widget.appProvider.updateLessonTranscript(lesson.id, controller.text);
+                await widget.appProvider.updateLessonTranscript(
+                  lesson.id,
+                  controller.text,
+                );
                 if (sendNotification && controller.text.trim().isNotEmpty) {
-                  final series = widget.appProvider.getSeriesById(lesson.seriesId);
-                  final book = series != null ? widget.appProvider.getBookById(series.bookId) : null;
+                  final series = widget.appProvider.getSeriesById(
+                    lesson.seriesId,
+                  );
+                  final book = series != null
+                      ? widget.appProvider.getBookById(series.bookId)
+                      : null;
                   final bookTitle = book?.title ?? series?.title ?? '';
 
                   await widget.appProvider.sendNotification(
                     title: 'تفريغ نصي جديد',
-                    body: 'تم توفير التفريغ النصي لـ (${lesson.title}) من شرح $bookTitle.',
+                    body:
+                        'تم توفير التفريغ النصي لـ (${lesson.title}) من شرح $bookTitle.',
                     type: 'transcript',
                   );
                 }
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('تم حفظ التفريغ النصي بنجاح!', style: GoogleFonts.readexPro()),
+                      content: Text(
+                        'تم حفظ التفريغ النصي بنجاح!',
+                        style: GoogleFonts.readexPro(),
+                      ),
                       backgroundColor: AppColors.primaryDarkBrown,
                     ),
                   );
@@ -2331,7 +2872,9 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
 
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.trim().toLowerCase();
-      lessons = lessons.where((l) => l.title.toLowerCase().contains(q)).toList();
+      lessons = lessons
+          .where((l) => l.title.toLowerCase().contains(q))
+          .toList();
     }
 
     return Scaffold(
@@ -2348,10 +2891,16 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                   style: GoogleFonts.readexPro(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'ابحث عن درس لتحرير تفريغه...',
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.iconGold),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.iconGold,
+                    ),
                     filled: true,
                     fillColor: AppColors.scaffoldCream,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
@@ -2365,11 +2914,15 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                     Checkbox(
                       value: _onlyWithoutTranscript,
                       activeColor: AppColors.primaryDarkBrown,
-                      onChanged: (val) => setState(() => _onlyWithoutTranscript = val ?? false),
+                      onChanged: (val) =>
+                          setState(() => _onlyWithoutTranscript = val ?? false),
                     ),
                     Text(
                       'عرض الدروس غير المفرغة فقط (${widget.appProvider.lessons.where((l) => !l.hasTranscript).length} درس)',
-                      style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.readexPro(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -2385,7 +2938,9 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final lesson = lessons[index];
-                final series = widget.appProvider.getSeriesById(lesson.seriesId);
+                final series = widget.appProvider.getSeriesById(
+                  lesson.seriesId,
+                );
                 final hasTranscript = lesson.hasTranscript;
 
                 return Card(
@@ -2406,20 +2961,29 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        hasTranscript ? Icons.check_circle_rounded : Icons.edit_note_rounded,
-                        color: hasTranscript ? Colors.green.shade800 : AppColors.iconGold,
+                        hasTranscript
+                            ? Icons.check_circle_rounded
+                            : Icons.edit_note_rounded,
+                        color: hasTranscript
+                            ? Colors.green.shade800
+                            : AppColors.iconGold,
                         size: 22,
                       ),
                     ),
                     title: Text(
                       lesson.title,
-                      style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: GoogleFonts.readexPro(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     subtitle: Text(
                       '${series?.title ?? "-"}\n${hasTranscript ? "مفرغ (${lesson.transcript.length} حرف)" : "لم يتم تفريغه بعد"}',
                       style: GoogleFonts.readexPro(
                         fontSize: 11,
-                        color: hasTranscript ? Colors.green.shade800 : AppColors.textSecondary,
+                        color: hasTranscript
+                            ? Colors.green.shade800
+                            : AppColors.textSecondary,
                       ),
                     ),
                     trailing: Row(
@@ -2428,29 +2992,43 @@ class _TranscriptsTabState extends State<_TranscriptsTab> {
                         if (hasTranscript)
                           IconButton(
                             tooltip: 'حذف التفريغ فقط',
-                            icon: Icon(Icons.delete_sweep_rounded, color: Colors.red.shade400, size: 20),
+                            icon: Icon(
+                              Icons.delete_sweep_rounded,
+                              color: Colors.red.shade400,
+                              size: 20,
+                            ),
                             onPressed: () => _confirmDeleteTranscript(lesson),
                           ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: hasTranscript
-                                ? AppColors.primaryLightBrown.withValues(alpha: 0.2)
+                                ? AppColors.primaryLightBrown.withValues(
+                                    alpha: 0.2,
+                                  )
                                 : AppColors.primaryDarkBrown,
                             foregroundColor: hasTranscript
                                 ? AppColors.primaryDarkBrown
                                 : AppColors.textGoldLight,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                               side: BorderSide(
-                                color: hasTranscript ? AppColors.goldMuted : Colors.transparent,
+                                color: hasTranscript
+                                    ? AppColors.goldMuted
+                                    : Colors.transparent,
                               ),
                             ),
                           ),
                           onPressed: () => _openTranscriptEditor(lesson),
                           child: Text(
                             hasTranscript ? 'تعديل التفريغ' : 'إضافة تفريغ',
-                            style: GoogleFonts.readexPro(fontSize: 11, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.readexPro(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -2474,10 +3052,12 @@ class _NotificationsAndUpdatesTab extends StatefulWidget {
   const _NotificationsAndUpdatesTab({required this.appProvider});
 
   @override
-  State<_NotificationsAndUpdatesTab> createState() => _NotificationsAndUpdatesTabState();
+  State<_NotificationsAndUpdatesTab> createState() =>
+      _NotificationsAndUpdatesTabState();
 }
 
-class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab> {
+class _NotificationsAndUpdatesTabState
+    extends State<_NotificationsAndUpdatesTab> {
   // ── البطاقة الأولى: إرسال إشعار مخصص ───────────────────────────────────────
   final _notifTitleController = TextEditingController();
   final _notifBodyController = TextEditingController();
@@ -2496,8 +3076,12 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
     super.initState();
     final updateInfo = widget.appProvider.appUpdateInfo;
     _versionController = TextEditingController(text: updateInfo.latestVersion);
-    _downloadUrlController = TextEditingController(text: updateInfo.downloadUrl);
-    _releaseNotesController = TextEditingController(text: updateInfo.releaseNotes);
+    _downloadUrlController = TextEditingController(
+      text: updateInfo.downloadUrl,
+    );
+    _releaseNotesController = TextEditingController(
+      text: updateInfo.releaseNotes,
+    );
     _isForceUpdate = updateInfo.isForceUpdate;
   }
 
@@ -2516,7 +3100,9 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: GoogleFonts.readexPro()),
-        backgroundColor: isError ? Colors.red.shade800 : AppColors.primaryDarkBrown,
+        backgroundColor: isError
+            ? Colors.red.shade800
+            : AppColors.primaryDarkBrown,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -2592,7 +3178,10 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'حذف الإشعار',
-          style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, color: Colors.red.shade900),
+          style: GoogleFonts.readexPro(
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
         ),
         content: Text(
           'هل أنت متأكد من حذف الإشعار "${notif.title}"؟\nسيتم مسحه من سجل الإشعارات وسحابة Firestore.',
@@ -2601,12 +3190,23 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('تأكيد الحذف', style: GoogleFonts.readexPro(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'تأكيد الحذف',
+              style: GoogleFonts.readexPro(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -2693,7 +3293,11 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                   color: AppColors.primaryLightBrown.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.campaign_rounded, color: AppColors.iconGold, size: 22),
+                child: const Icon(
+                  Icons.campaign_rounded,
+                  color: AppColors.iconGold,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2710,7 +3314,10 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                     ),
                     Text(
                       'نشر تنبيه أو خبر فوري لجميع مستخدمي تطبيق تسهيل',
-                      style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -2747,12 +3354,18 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textGoldLight),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.textGoldLight,
+                    ),
                   )
                 : const Icon(Icons.send_rounded, size: 18),
             label: Text(
               _isSending ? 'جاري الإرسال...' : 'إرسال الإشعار للجميع الآن',
-              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+              style: GoogleFonts.readexPro(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDarkBrown,
@@ -2796,7 +3409,11 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                   color: AppColors.primaryDarkBrown,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.system_update_rounded, color: AppColors.iconGold, size: 22),
+                child: const Icon(
+                  Icons.system_update_rounded,
+                  color: AppColors.iconGold,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2813,7 +3430,10 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                     ),
                     Text(
                       'التحكم في التحديثات السحابية والإلزامية ورابط التحميل',
-                      style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -2835,10 +3455,16 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
               children: [
                 Text(
                   'إصدار التطبيق الحالي في هذا البناء:',
-                  style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryDarkBrown,
                     borderRadius: BorderRadius.circular(8),
@@ -2879,7 +3505,8 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
             style: GoogleFonts.readexPro(fontSize: 13),
             decoration: const InputDecoration(
               labelText: 'رابط التحميل المباشر للتحديث (downloadUrl)',
-              hintText: 'https://example.com/tasheel-latest.apk أو صفحة التحميل',
+              hintText:
+                  'https://example.com/tasheel-latest.apk أو صفحة التحميل',
               filled: true,
               fillColor: AppColors.scaffoldCream,
             ),
@@ -2907,11 +3534,17 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
               value: _isForceUpdate,
               title: Text(
                 'تحديث إجباري (إلزام المستخدم بالتحديث)',
-                style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+                style: GoogleFonts.readexPro(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               subtitle: Text(
                 'في حال تفعيله، لن يتمكن المستخدم من استخدام التطبيق حتى يحدّث للإصدار الجديد',
-                style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               activeThumbColor: Colors.red.shade700,
               contentPadding: EdgeInsets.zero,
@@ -2926,11 +3559,17 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
               value: _notifyUsersOnUpdate,
               title: Text(
                 'إرسال إشعار تنبيهي للمستخدمين بتوفر التحديث',
-                style: GoogleFonts.readexPro(fontSize: 13, fontWeight: FontWeight.w600),
+                style: GoogleFonts.readexPro(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               subtitle: Text(
                 'يبعث تلقائياً إشعاراً لجميع الطلاب برابط التحديث والمميزات الجديدة',
-                style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               activeThumbColor: AppColors.iconGold,
               contentPadding: EdgeInsets.zero,
@@ -2946,12 +3585,18 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textGoldLight),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.textGoldLight,
+                    ),
                   )
                 : const Icon(Icons.cloud_done_rounded, size: 18),
             label: Text(
               _isSavingUpdate ? 'جاري الحفظ...' : 'حفظ ونشر التحديث',
-              style: GoogleFonts.readexPro(fontWeight: FontWeight.bold, fontSize: 13),
+              style: GoogleFonts.readexPro(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDarkBrown,
@@ -2969,7 +3614,9 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
   }
 
   // ── البطاقة الثالثة: سجل الإشعارات المرسلة ────────────────────────────────
-  Widget _buildNotificationsHistoryCard(List<AppNotificationModel> notifications) {
+  Widget _buildNotificationsHistoryCard(
+    List<AppNotificationModel> notifications,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -2998,7 +3645,11 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                       color: AppColors.primaryLightBrown.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.history_rounded, color: AppColors.iconGold, size: 22),
+                    child: const Icon(
+                      Icons.history_rounded,
+                      color: AppColors.iconGold,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -3026,7 +3677,10 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
               ),
               child: Text(
                 'لا توجد إشعارات مرسلة حتى الآن.',
-                style: GoogleFonts.readexPro(color: AppColors.textSecondary, fontSize: 13),
+                style: GoogleFonts.readexPro(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
               ),
             )
           else
@@ -3081,7 +3735,10 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.primaryDarkBrown,
                                     borderRadius: BorderRadius.circular(6),
@@ -3100,14 +3757,20 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                             const SizedBox(height: 4),
                             Text(
                               notif.body,
-                              style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textPrimary),
+                              style: GoogleFonts.readexPro(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _formatDate(notif.createdAt),
-                              style: GoogleFonts.readexPro(fontSize: 10, color: AppColors.textSecondary),
+                              style: GoogleFonts.readexPro(
+                                fontSize: 10,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -3116,7 +3779,11 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                       // زر حذف الإشعار
                       IconButton(
                         tooltip: 'حذف الإشعار',
-                        icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.red.shade400,
+                          size: 20,
+                        ),
                         onPressed: () => _confirmDeleteNotification(notif),
                       ),
                     ],
@@ -3162,14 +3829,17 @@ class _AboutAppTabState extends State<_AboutAppTab> {
     _facebookController = TextEditingController(text: about.facebookUrl);
     _youtubeController = TextEditingController(text: about.youtubeUrl);
     _websiteController = TextEditingController(text: about.websiteUrl);
-    _shareDescriptionController = TextEditingController(text: about.shareDescription);
+    _shareDescriptionController = TextEditingController(
+      text: about.shareDescription,
+    );
     _shareUrlController = TextEditingController(text: about.shareUrl);
   }
 
   @override
   void didUpdateWidget(covariant _AboutAppTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.appProvider.aboutApp != widget.appProvider.aboutApp && !_isSaving) {
+    if (oldWidget.appProvider.aboutApp != widget.appProvider.aboutApp &&
+        !_isSaving) {
       final about = widget.appProvider.aboutApp;
       _descriptionController.text = about.appDescription;
       _whatsappController.text = about.supportWhatsapp;
@@ -3224,7 +3894,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('حدث خطأ أثناء الحفظ: $e', style: GoogleFonts.readexPro()),
+            content: Text(
+              'حدث خطأ أثناء الحفظ: $e',
+              style: GoogleFonts.readexPro(),
+            ),
             backgroundColor: Colors.red.shade800,
             behavior: SnackBarBehavior.floating,
           ),
@@ -3237,7 +3910,9 @@ class _AboutAppTabState extends State<_AboutAppTab> {
 
   void _openAddEditProjectDialog({OurProjectModel? project}) {
     final titleController = TextEditingController(text: project?.title ?? '');
-    final descController = TextEditingController(text: project?.description ?? '');
+    final descController = TextEditingController(
+      text: project?.description ?? '',
+    );
     final urlController = TextEditingController(text: project?.url ?? '');
     final formKey = GlobalKey<FormState>();
 
@@ -3266,7 +3941,9 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                     labelText: 'عنوان المشروع *',
                     hintText: 'مثال: منصة متون العلمية',
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'يرجى إدخال عنوان المشروع' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'يرجى إدخال عنوان المشروع'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -3277,7 +3954,9 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                     labelText: 'وصف المشروع *',
                     hintText: 'وصف مختصر لأهداف ومزايا المشروع...',
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'يرجى إدخال وصف المشروع' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'يرجى إدخال وصف المشروع'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -3295,7 +3974,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -3305,7 +3987,9 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             onPressed: () async {
               if (formKey.currentState?.validate() ?? false) {
                 final newProject = OurProjectModel(
-                  id: project?.id ?? 'proj_${DateTime.now().millisecondsSinceEpoch}',
+                  id:
+                      project?.id ??
+                      'proj_${DateTime.now().millisecondsSinceEpoch}',
                   title: titleController.text.trim(),
                   description: descController.text.trim(),
                   url: urlController.text.trim(),
@@ -3320,7 +4004,9 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        project == null ? 'تمت إضافة المشروع بنجاح!' : 'تم تحديث المشروع بنجاح!',
+                        project == null
+                            ? 'تمت إضافة المشروع بنجاح!'
+                            : 'تم تحديث المشروع بنجاح!',
                         style: GoogleFonts.readexPro(),
                       ),
                       backgroundColor: AppColors.primaryDarkBrown,
@@ -3330,7 +4016,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                 }
               }
             },
-            child: Text(project == null ? 'إضافة' : 'حفظ التعديل', style: GoogleFonts.readexPro()),
+            child: Text(
+              project == null ? 'إضافة' : 'حفظ التعديل',
+              style: GoogleFonts.readexPro(),
+            ),
           ),
         ],
       ),
@@ -3357,7 +4046,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('إلغاء', style: GoogleFonts.readexPro(color: AppColors.textSecondary)),
+            child: Text(
+              'إلغاء',
+              style: GoogleFonts.readexPro(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -3370,7 +4062,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('تم حذف المشروع بنجاح', style: GoogleFonts.readexPro()),
+                    content: Text(
+                      'تم حذف المشروع بنجاح',
+                      style: GoogleFonts.readexPro(),
+                    ),
                     backgroundColor: AppColors.primaryDarkBrown,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -3443,7 +4138,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
         children: [
           Text(
             'هذا النص يظهر في أول بطاقة داخل صفحة "عن التطبيق" لشرح رسالة ورؤية التطبيق:',
-            style: GoogleFonts.readexPro(fontSize: 11, color: AppColors.textSecondary),
+            style: GoogleFonts.readexPro(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 10),
           TextFormField(
@@ -3475,7 +4173,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رقم واتساب الدعم الفني',
               hintText: '213xxxxxxxxx (بالصيغة الدولية دون مسافات أو علامة +)',
-              prefixIcon: Icon(Icons.phone_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.phone_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -3485,7 +4187,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رابط قناة تيليجرام',
               hintText: 'https://t.me/...',
-              prefixIcon: Icon(Icons.send_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.send_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -3495,7 +4201,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رابط صفحة فيسبوك',
               hintText: 'https://facebook.com/...',
-              prefixIcon: Icon(Icons.public_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.public_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -3505,7 +4215,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رابط قناة يوتيوب',
               hintText: 'https://youtube.com/@...',
-              prefixIcon: Icon(Icons.play_circle_fill_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.play_circle_fill_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -3515,7 +4229,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رابط الموقع الرسمي',
               hintText: 'https://...',
-              prefixIcon: Icon(Icons.language_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.language_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -3547,7 +4265,11 @@ class _AboutAppTabState extends State<_AboutAppTab> {
             decoration: const InputDecoration(
               labelText: 'رابط مشاركة وتحميل التطبيق',
               hintText: 'https://...',
-              prefixIcon: Icon(Icons.link_rounded, color: AppColors.iconGold, size: 20),
+              prefixIcon: Icon(
+                Icons.link_rounded,
+                color: AppColors.iconGold,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -3559,18 +4281,26 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.save_rounded, size: 20),
               label: Text(
                 _isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات والروابط',
-                style: GoogleFonts.readexPro(fontSize: 14, fontWeight: FontWeight.bold),
+                style: GoogleFonts.readexPro(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryDarkBrown,
                 foregroundColor: AppColors.textGoldLight,
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -3588,12 +4318,20 @@ class _AboutAppTabState extends State<_AboutAppTab> {
       action: ElevatedButton.icon(
         onPressed: () => _openAddEditProjectDialog(),
         icon: const Icon(Icons.add_rounded, size: 16),
-        label: Text('إضافة مشروع', style: GoogleFonts.readexPro(fontSize: 12, fontWeight: FontWeight.bold)),
+        label: Text(
+          'إضافة مشروع',
+          style: GoogleFonts.readexPro(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryDarkBrown,
           foregroundColor: AppColors.textGoldLight,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
       child: Column(
@@ -3604,7 +4342,10 @@ class _AboutAppTabState extends State<_AboutAppTab> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 'لا توجد مشاريع مضافة حالياً. اضغط "إضافة مشروع" لإدراج مشروع جديد.',
-                style: GoogleFonts.readexPro(fontSize: 12, color: AppColors.textSecondary),
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
             )
@@ -3625,10 +4366,16 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryDarkBrown.withValues(alpha: 0.1),
+                        color: AppColors.primaryDarkBrown.withValues(
+                          alpha: 0.1,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.menu_book_rounded, color: AppColors.iconGold, size: 20),
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppColors.iconGold,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -3673,12 +4420,20 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                     // أزرار التعديل والحذف على اليسار
                     IconButton(
                       tooltip: 'تعديل',
-                      icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                      icon: const Icon(
+                        Icons.edit_rounded,
+                        color: AppColors.iconGold,
+                        size: 20,
+                      ),
                       onPressed: () => _openAddEditProjectDialog(project: proj),
                     ),
                     IconButton(
                       tooltip: 'حذف',
-                      icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red.shade400,
+                        size: 20,
+                      ),
                       onPressed: () => _confirmDeleteProject(proj),
                     ),
                   ],

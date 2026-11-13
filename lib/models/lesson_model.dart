@@ -14,6 +14,7 @@ class LessonModel {
   final String audioUrl;
   final String videoUrl;
   final String transcript;
+  final String? pdfUrl;
 
   const LessonModel({
     required this.id,
@@ -24,6 +25,7 @@ class LessonModel {
     this.audioUrl = '',
     this.videoUrl = '',
     this.transcript = '',
+    this.pdfUrl,
   });
 
   /// هل يوجد تفريغ نصي لهذا الدرس؟
@@ -34,6 +36,9 @@ class LessonModel {
 
   /// هل يوجد رابط فيديو؟
   bool get hasVideo => videoUrl.isNotEmpty;
+
+  /// هل يوجد ملف PDF مرفق بهذا الدرس؟
+  bool get hasPdf => pdfUrl != null && pdfUrl!.trim().isNotEmpty;
 
   /// إنشاء كائن من خريطة Firestore
   factory LessonModel.fromMap(Map<String, dynamic> map, {String? docId}) {
@@ -46,6 +51,7 @@ class LessonModel {
       audioUrl: map['audioUrl'] as String? ?? '',
       videoUrl: map['videoUrl'] as String? ?? '',
       transcript: map['transcript'] as String? ?? '',
+      pdfUrl: map['pdfUrl'] as String?,
     );
   }
 
@@ -60,6 +66,7 @@ class LessonModel {
       'audioUrl': audioUrl,
       'videoUrl': videoUrl,
       'transcript': transcript,
+      if (pdfUrl != null && pdfUrl!.trim().isNotEmpty) 'pdfUrl': pdfUrl!.trim(),
     };
   }
 
@@ -73,6 +80,7 @@ class LessonModel {
     String? audioUrl,
     String? videoUrl,
     String? transcript,
+    String? pdfUrl,
   }) {
     return LessonModel(
       id: id ?? this.id,
@@ -83,6 +91,7 @@ class LessonModel {
       audioUrl: audioUrl ?? this.audioUrl,
       videoUrl: videoUrl ?? this.videoUrl,
       transcript: transcript ?? this.transcript,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
     );
   }
 

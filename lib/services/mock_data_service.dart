@@ -220,6 +220,7 @@ class MockDataService {
       categoryId: 'cat_aqeedah',
       title: 'شرح كتاب التوحيد - الشيخ ابن عثيمين',
       lessonsCount: 10,
+      pdfUrl: 'https://raw.githubusercontent.com/madoverse/tasheel-assets/main/matn_tawheed.pdf',
     ),
     const SeriesModel(
       id: 'series_tawheed_fawzan',
@@ -318,6 +319,7 @@ class MockDataService {
       order: 1,
       duration: '45:30',
       audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3',
+      pdfUrl: 'https://raw.githubusercontent.com/madoverse/tasheel-assets/main/matn_tawheed.pdf',
       transcript:
           'بسم الله الرحمن الرحيم، الحمد لله رب العالمين والصلاة والسلام على نبينا محمد وعلى آله وصحبه أجمعين. '
           'أما بعد: فإن كتاب التوحيد الذي هو حق الله على العبيد للإمام المجدد محمد بن عبد الوهاب رحمه الله تعالى '
@@ -377,6 +379,7 @@ class MockDataService {
       order: 1,
       duration: '38:10',
       audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3',
+      pdfUrl: 'https://raw.githubusercontent.com/madoverse/tasheel-assets/main/matn_tawheed.pdf',
       transcript:
           'الحمد لله رب العالمين وصلى الله وسلم وبارك على عبده ورسوله نبينا محمد. '
           'هذا الكتاب كتاب عظيم ألفه الشيخ الإمام المجدد محمد بن عبد الوهاب رحمه الله تعالى في بيان عقيدة التوحيد.',
@@ -406,6 +409,7 @@ class MockDataService {
       order: 1,
       duration: '35:20',
       audioUrl: 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/001.mp3',
+      pdfUrl: 'https://raw.githubusercontent.com/madoverse/tasheel-assets/main/matn_tawheed.pdf',
       transcript:
           'بسم الله الرحمن الرحيم. قال المؤلف رحمه الله تعالى: اعلم رحمك الله أنه يجب علينا '
           'تعلم أربع مسائل: الأولى العلم وهو معرفة الله ومعرفة نبيه ومعرفة دين الإسلام بالأدلة، '
@@ -609,6 +613,24 @@ class MockDataService {
   static CategoryModel? getCategoryById(String categoryId) {
     try {
       return categories.firstWhere((c) => c.id == categoryId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// جلب شرح حسب المعرّف
+  static SeriesModel? getSeriesById(String seriesId) {
+    try {
+      return series.firstWhere((s) => s.id == seriesId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// جلب درس حسب المعرّف
+  static LessonModel? getLessonById(String lessonId) {
+    try {
+      return lessons.firstWhere((l) => l.id == lessonId);
     } catch (_) {
       return null;
     }
