@@ -121,7 +121,7 @@ class MoreScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'تطبيق تسهيل للعلوم الشرعية • الإصدار 1.0.0',
+                        'تطبيق تسهيل للعلوم الشرعية • الإصدار ${appProvider.currentAppVersion}',
                         style: GoogleFonts.readexPro(
                           fontSize: 12,
                           color: AppColors.textSecondary,

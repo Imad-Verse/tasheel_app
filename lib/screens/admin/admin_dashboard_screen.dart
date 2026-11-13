@@ -2844,7 +2844,7 @@ class _NotificationsAndUpdatesTabState extends State<_NotificationsAndUpdatesTab
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    AppProvider.currentAppVersion,
+                    widget.appProvider.currentAppVersion,
                     style: GoogleFonts.readexPro(
                       color: AppColors.textGoldLight,
                       fontWeight: FontWeight.bold,

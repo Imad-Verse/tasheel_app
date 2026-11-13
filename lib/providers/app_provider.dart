@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
@@ -27,8 +28,8 @@ class AppProvider extends ChangeNotifier {
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
-  // ثابت إصدار التطبيق الحالي
-  static const String currentAppVersion = '1.0.0';
+  // إصدار التطبيق الحالي الفعلي (يُجلب تلقائياً عبر PackageInfo)
+  String currentAppVersion = '1.0.0';
 
   AppProvider({this.isFirebaseConnected = false}) {
     _initData();
@@ -1705,9 +1706,23 @@ class AppProvider extends ChangeNotifier {
   // ═══════════════════════════════════════════════════════════════════════════
   Future<void> _initData() async {
     _initDefaultState();
+    await _loadAppVersion();
     await _loadFromPreferences();
     if (isFirebaseConnected) {
       _startFirestoreListeners();
+    }
+  }
+
+  /// جلب رقم الإصدار الفعلي للتطبيق تلقائياً عبر PackageInfo
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (packageInfo.version.trim().isNotEmpty) {
+        currentAppVersion = packageInfo.version.trim();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error getting package info: $e');
     }
   }
 
