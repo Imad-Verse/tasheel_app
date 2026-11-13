@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة إعدادات التطبيق (SettingsScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تتيح تعديل اسم طالب العلم، والتحكم بحجم خط التفريغ الافتراضي،
-/// والتشغيل التلقائي، ومسح الذاكرة المؤقتة.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// - هيدر علوي مع زر الرجوع على اليمين بسهم موجه لليمين.
+/// - بطاقات الإعدادات: الأيقونات والعناوين على اليمين.
+/// - صفوف الخيارات: النصوص والشروح على اليمين، ومفاتيح التبديل (Switch) على اليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -41,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           backgroundColor: AppColors.scaffoldCream,
           body: Column(
             children: [
-              // ── 1. الهيدر العلوي المزخرف ─────────────────────────────────
+              // ── 1. الهيدر العلوي المزخرف مع زر الرجوع على اليمين ─────────
               _buildHeader(context),
 
               // ── 2. محتوى الإعدادات ──────────────────────────────────────
@@ -100,7 +103,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 44),
+          // زر الرجوع على اليمين دائماً في RTL
+          IconButton(
+            tooltip: 'رجوع',
+            icon: const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.textGoldLight,
+              size: 24,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+
+          // العنوان في المنتصف
           Expanded(
             child: Text(
               'إعدادات التطبيق',
@@ -112,15 +126,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               textAlign: TextAlign.center,
             ),
           ),
-          IconButton(
-            tooltip: 'رجوع',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: AppColors.textGoldLight,
-              size: 24,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
+
+          // مسافة موازنة على اليسار
+          const SizedBox(width: 44),
         ],
       ),
     );
@@ -147,7 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              const Spacer(),
+              const Icon(
+                Icons.person_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
               Text(
                 'اسمك يا طالب العلم',
                 style: GoogleFonts.readexPro(
@@ -156,8 +169,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.primaryDarkBrown,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Icon(Icons.person_rounded, color: AppColors.iconGold, size: 22),
             ],
           ),
           const SizedBox(height: 6),
@@ -182,11 +193,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             decoration: InputDecoration(
               hintText: 'أدخل اسمك أو كنيتك...',
-              hintStyle: GoogleFonts.readexPro(fontSize: 13, color: AppColors.textSecondary),
+              hintStyle: GoogleFonts.readexPro(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
               filled: true,
               fillColor: AppColors.scaffoldCream,
-              prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.iconGold, size: 22),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              prefixIcon: const Icon(
+                Icons.badge_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppColors.dividerLight),
@@ -197,7 +218,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primaryDarkBrown, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primaryDarkBrown,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -268,7 +292,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              const Spacer(),
+              const Icon(
+                Icons.format_size_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
               Text(
                 'حجم خط التفريغ الافتراضي',
                 style: GoogleFonts.readexPro(
@@ -277,8 +306,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.primaryDarkBrown,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Icon(Icons.format_size_rounded, color: AppColors.iconGold, size: 22),
             ],
           ),
           const SizedBox(height: 14),
@@ -295,10 +322,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 50,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primaryDarkBrown : AppColors.scaffoldCream,
+                    color: isSelected
+                        ? AppColors.primaryDarkBrown
+                        : AppColors.scaffoldCream,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+                      color: isSelected
+                          ? AppColors.primaryDarkBrown
+                          : AppColors.dividerLight,
                     ),
                   ),
                   child: Text(
@@ -306,7 +337,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: GoogleFonts.readexPro(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.textWhite : AppColors.textPrimary,
+                      color: isSelected
+                          ? AppColors.textWhite
+                          : AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -326,7 +359,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               border: Border.all(color: AppColors.dividerLight),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start, // في RTL يبدأ من اليمين
               children: [
                 Text(
                   'معاينة الخط:',
@@ -335,6 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontWeight: FontWeight.w600,
                     color: AppColors.iconGold,
                   ),
+                  textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -355,7 +390,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// بطاقة إعدادات مشغل الصوت
-  Widget _buildAudioPlayerSettingsCard(BuildContext context, AppProvider appProvider) {
+  Widget _buildAudioPlayerSettingsCard(
+    BuildContext context,
+    AppProvider appProvider,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -375,7 +413,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              const Spacer(),
+              const Icon(
+                Icons.music_note_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
               Text(
                 'مشغل الصوتيات',
                 style: GoogleFonts.readexPro(
@@ -384,40 +427,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.primaryDarkBrown,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Icon(Icons.music_note_rounded, color: AppColors.iconGold, size: 22),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
+              // النصوص التوضيحية على اليمين في RTL
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                  children: [
+                    Text(
+                      'التشغيل التلقائي للدرس التالي',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'الانتقال للدرس اللاحق فور اكتمال الاستماع',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // مفتاح التبديل على اليسار في RTL
               Switch(
                 value: appProvider.autoPlayNextLesson,
                 activeThumbColor: AppColors.accentGoldBeige,
                 activeTrackColor: AppColors.primaryDarkBrown,
                 onChanged: (val) => appProvider.setAutoPlayNextLesson(val),
-              ),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'التشغيل التلقائي للدرس التالي',
-                    style: GoogleFonts.readexPro(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'الانتقال للدرس اللاحق فور اكتمال الاستماع',
-                    style: GoogleFonts.readexPro(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -427,7 +477,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// بطاقة الذاكرة المؤقتة
-  Widget _buildCacheSettingsCard(BuildContext context, AppProvider appProvider) {
+  Widget _buildCacheSettingsCard(
+    BuildContext context,
+    AppProvider appProvider,
+  ) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -447,7 +500,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              const Spacer(),
+              const Icon(
+                Icons.cleaning_services_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
               Text(
                 'التخزين والذاكرة المؤقتة',
                 style: GoogleFonts.readexPro(
@@ -456,8 +514,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppColors.primaryDarkBrown,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Icon(Icons.cleaning_services_rounded, color: AppColors.iconGold, size: 22),
             ],
           ),
           const SizedBox(height: 10),

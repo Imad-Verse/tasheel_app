@@ -151,11 +151,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         children: [
           Row(
             children: [
-              // زر تسجيل الخروج
+              // زر العودة للتطبيق في اليمين
               IconButton(
-                tooltip: 'تسجيل الخروج',
-                icon: const Icon(Icons.logout_rounded, color: AppColors.textGoldLight),
-                onPressed: _handleLogout,
+                tooltip: 'العودة للتطبيق',
+                icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.textGoldLight),
+                onPressed: () => Navigator.pop(context),
               ),
 
               const SizedBox(width: 4),
@@ -210,6 +210,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     side: const BorderSide(color: AppColors.goldMuted),
                   ),
                 ),
+              ),
+
+              const SizedBox(width: 6),
+
+              // زر تسجيل الخروج في أقصى اليسار
+              IconButton(
+                tooltip: 'تسجيل الخروج',
+                icon: const Icon(Icons.logout_rounded, color: AppColors.textGoldLight),
+                onPressed: _handleLogout,
               ),
             ],
           ),
@@ -3611,21 +3620,20 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                 ),
                 child: Row(
                   children: [
-                    IconButton(
-                      tooltip: 'تعديل',
-                      icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
-                      onPressed: () => _openAddEditProjectDialog(project: proj),
+                    // أيقونة المشروع وتفاصيله على اليمين
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDarkBrown.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.menu_book_rounded, color: AppColors.iconGold, size: 20),
                     ),
-                    IconButton(
-                      tooltip: 'حذف',
-                      icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
-                      onPressed: () => _confirmDeleteProject(proj),
-                    ),
-                    const Spacer(),
+                    const SizedBox(width: 10),
                     Expanded(
-                      flex: 4,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             proj.title,
@@ -3634,7 +3642,6 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                               fontWeight: FontWeight.bold,
                               color: AppColors.primaryDarkBrown,
                             ),
-                            textAlign: TextAlign.right,
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -3645,7 +3652,6 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.right,
                           ),
                           if (proj.url.isNotEmpty) ...[
                             const SizedBox(height: 2),
@@ -3662,6 +3668,18 @@ class _AboutAppTabState extends State<_AboutAppTab> {
                           ],
                         ],
                       ),
+                    ),
+
+                    // أزرار التعديل والحذف على اليسار
+                    IconButton(
+                      tooltip: 'تعديل',
+                      icon: const Icon(Icons.edit_rounded, color: AppColors.iconGold, size: 20),
+                      onPressed: () => _openAddEditProjectDialog(project: proj),
+                    ),
+                    IconButton(
+                      tooltip: 'حذف',
+                      icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                      onPressed: () => _confirmDeleteProject(proj),
                     ),
                   ],
                 ),

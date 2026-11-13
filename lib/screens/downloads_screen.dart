@@ -72,19 +72,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         children: [
           Row(
             children: [
-              // زر إفراغ التنزيلات على اليسار في RTL (إن وجدت دروس)
-              if (totalCount > 0)
-                IconButton(
-                  tooltip: 'إفراغ كافة التنزيلات',
-                  icon: const Icon(
-                    Icons.delete_sweep_rounded,
-                    color: AppColors.textGoldLight,
-                    size: 24,
-                  ),
-                  onPressed: () => _confirmClearAllDownloads(context, audioProvider),
-                )
-              else
-                const SizedBox(width: 44),
+              // زر الرجوع على اليمين دائماً في RTL
+              IconButton(
+                tooltip: 'رجوع',
+                icon: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.textGoldLight,
+                  size: 24,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
 
               // العنوان في المنتصف
               Expanded(
@@ -99,16 +96,19 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 ),
               ),
 
-              // زر الرجوع على اليمين في RTL
-              IconButton(
-                tooltip: 'رجوع',
-                icon: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: AppColors.textGoldLight,
-                  size: 24,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
+              // زر إفراغ التنزيلات على اليسار في RTL (إن وجدت دروس)
+              if (totalCount > 0)
+                IconButton(
+                  tooltip: 'إفراغ كافة التنزيلات',
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: AppColors.textGoldLight,
+                    size: 24,
+                  ),
+                  onPressed: () => _confirmClearAllDownloads(context, audioProvider),
+                )
+              else
+                const SizedBox(width: 44),
             ],
           ),
           if (totalCount > 0) ...[
@@ -270,33 +270,47 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        // سهم التوسيع/الطي
-                        Icon(
-                          isExpanded
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.iconGold,
-                          size: 26,
+                        // ── 1. أيقونة المجلد / التنزيل على اليمين في RTL ─────────────
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.folder_special_rounded,
+                            color: AppColors.iconGold,
+                            size: 26,
+                          ),
                         ),
 
-                        const Spacer(),
+                        const SizedBox(width: 12),
 
-                        // المعلومات
+                        // ── 2. المعلومات في المنتصف بمحاذاة اليمين ─────────────────
                         Expanded(
-                          flex: 8,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                             children: [
+                              // عنوان الشرح المجمع (الكتاب + الشيخ)
+                              Text(
+                                '${book?.title ?? series.title} - شرح ${sheikh?.name ?? "الشيخ"}',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDarkBrown,
+                                ),
+                                textAlign: TextAlign.right,
+                              ),
+                              const SizedBox(height: 6),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // كبسولة عدد الدروس المحملة
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: AppColors.accentGoldBeige
-                                          .withValues(alpha: 0.25),
+                                      color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -313,13 +327,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                   // كبسولة القسم
                                   if (category != null)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: AppColors.scaffoldCream,
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color: AppColors.dividerLight),
+                                        border: Border.all(color: AppColors.dividerLight),
                                       ),
                                       child: Text(
                                         category.name,
@@ -332,38 +344,19 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                     ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-
-                              // عنوان الشرح المجمع (الكتاب + الشيخ)
-                              Text(
-                                '${book?.title ?? series.title} - شرح ${sheikh?.name ?? "الشيخ"}',
-                                style: GoogleFonts.readexPro(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primaryDarkBrown,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
                             ],
                           ),
                         ),
 
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
 
-                        // أيقونة المجلد / التنزيل
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGoldBeige
-                                .withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.folder_special_rounded,
-                            color: AppColors.iconGold,
-                            size: 26,
-                          ),
+                        // ── 3. سهم التوسيع/الطي على اليسار في RTL ───────────────────
+                        Icon(
+                          isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.iconGold,
+                          size: 26,
                         ),
                       ],
                     ),
@@ -387,22 +380,70 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       child: Row(
                         children: [
-                          // زر حذف التنزيل
-                          IconButton(
-                            tooltip: 'حذف من الجهاز',
-                            icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              color: Color(0xFFC62828),
-                              size: 20,
+                          // ── 1. رقم الدرس على اليمين في RTL ───────────────
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
                             ),
-                            onPressed: () => _confirmDeleteLesson(
-                              context,
-                              audioProvider,
-                              lesson,
+                            child: Center(
+                              child: Text(
+                                '${lesson.order}',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDarkBrown,
+                                ),
+                              ),
                             ),
                           ),
 
-                          // زر تشغيل الدرس بدون إنترنت
+                          const SizedBox(width: 10),
+
+                          // ── 2. عنوان الدرس ومدته في المنتصف بمحاذاة اليمين ─
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                              children: [
+                                Text(
+                                  lesson.title,
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.right,
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.offline_pin_rounded,
+                                      color: Color(0xFF2E7D32),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${lesson.duration} د • محمل على الجهاز',
+                                      style: GoogleFonts.readexPro(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // ── 3. زر تشغيل الدرس بدون إنترنت على اليسار ────────
                           ElevatedButton.icon(
                             onPressed: () {
                               Navigator.push(
@@ -436,41 +477,21 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                             ),
                           ),
 
-                          const Spacer(),
+                          const SizedBox(width: 4),
 
-                          // عنوان الدرس ومدته
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                lesson.title,
-                                style: GoogleFonts.readexPro(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '${lesson.duration} د • محمل على الجهاز',
-                                    style: GoogleFonts.readexPro(
-                                      fontSize: 11,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.offline_pin_rounded,
-                                    color: Color(0xFF2E7D32),
-                                    size: 14,
-                                  ),
-                                ],
-                              ),
-                            ],
+                          // ── 4. زر حذف التنزيل في أقصى اليسار في RTL ─────────
+                          IconButton(
+                            tooltip: 'حذف من الجهاز',
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: Color(0xFFC62828),
+                              size: 20,
+                            ),
+                            onPressed: () => _confirmDeleteLesson(
+                              context,
+                              audioProvider,
+                              lesson,
+                            ),
                           ),
                         ],
                       ),

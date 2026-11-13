@@ -11,10 +11,10 @@ import 'category_books_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة المتون / الأقسام العلمية (CategoriesScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تتضمن:
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
 /// 1. هيدر بني مزخرف مع عنوان "المتون" وزر البحث.
-/// 2. شريط تحكم يضم عنوان "جميع المتون العلمية" وزر التبديل (قائمة / شبكة 3 في السطر).
-/// 3. وضع القائمة (List View) مطابق للصورة المرجعية الثالثة.
+/// 2. شريط تحكم يضم: عنوان "جميع المتون العلمية" على اليمين، وزر التبديل (قائمة/شبكة) على اليسار.
+/// 3. وضع القائمة (List View): الأيقونة الزخرفية على اليمين، النصوص بمحاذاة اليمين، وسهم الانتقال على اليسار.
 /// 4. وضع الشبكة (Grid View - 3 في السطر) بزخرفة إسلامية وقورة ونسبة 1:1.
 /// 5. انتقال عند النقر لعرض كتب ومتون القسم.
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -55,7 +55,7 @@ class CategoriesScreen extends StatelessWidget {
     );
   }
 
-  /// شريط التحكم: العنوان وزر التبديل
+  /// شريط التحكم: العنوان على اليمين وزر التبديل على اليسار في RTL
   Widget _buildControlBar(
     BuildContext context,
     AppProvider appProvider,
@@ -66,7 +66,17 @@ class CategoriesScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // زر التبديل بين العرضين على اليسار في RTL
+          // ── عنوان القسم على اليمين في RTL ──────────────────────────
+          Text(
+            'جميع المتون العلمية',
+            style: GoogleFonts.readexPro(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+
+          // ── زر التبديل بين العرضين على اليسار في RTL ───────────────
           InkWell(
             onTap: () => appProvider.toggleCategoriesView(),
             borderRadius: BorderRadius.circular(10),
@@ -105,16 +115,6 @@ class CategoriesScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ),
-
-          // عنوان القسم على اليمين في RTL
-          Text(
-            'جميع المتون العلمية',
-            style: GoogleFonts.readexPro(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -161,44 +161,46 @@ class CategoriesScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // سهم التنقل في أقصى اليسار
+                // ── 1. أيقونة النجمة والزخرفة الإسلامية الذهبية على اليمين في RTL ──
+                _buildIslamicStarBadge(cat.iconName),
+
+                const SizedBox(width: 14),
+
+                // ── 2. معلومات القسم في المنتصف بمحاذاة اليمين ─────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    children: [
+                      Text(
+                        cat.name,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${cat.booksCount} متون  •  ${cat.sheikhsCount} شيوخ  •  ${cat.lessonsCount} درس',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ── 3. سهم التنقل في أقصى اليسار في RTL ───────────────────
                 const Icon(
                   Icons.chevron_left_rounded,
                   color: AppColors.iconGold,
                   size: 22,
                 ),
-
-                const Spacer(),
-
-                // معلومات القسم (الاسم + البيانات التفصيلية)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      cat.name,
-                      style: GoogleFonts.readexPro(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${cat.booksCount} متون  •  ${cat.sheikhsCount} شيوخ  •  ${cat.lessonsCount} درس',
-                      style: GoogleFonts.readexPro(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 14),
-
-                // أيقونة النجمة والزخرفة الإسلامية الذهبية
-                _buildIslamicStarBadge(cat.iconName),
               ],
             ),
           ),
@@ -220,16 +222,11 @@ class CategoriesScreen extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(
-              Icons.auto_awesome,
-              color: AppColors.iconGold,
-              size: 22,
-            ),
-          ],
+      child: const Center(
+        child: Icon(
+          Icons.auto_awesome,
+          color: AppColors.iconGold,
+          size: 22,
         ),
       ),
     );

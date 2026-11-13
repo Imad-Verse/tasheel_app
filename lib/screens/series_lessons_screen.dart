@@ -11,11 +11,12 @@ import 'lesson_player_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة قائمة دروس الشرح (SeriesLessonsScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// نقطة الالتقاء بين الكتاب والشيخ الشارح، وتتضمن:
-/// 1. هيدر بني مزخرف مع زر الرجوع.
-/// 2. بطاقة معلومات الشرح، ونسبة الإنجاز والتقدم.
-/// 3. زر محوري: "بدء دراسة هذا المتن" (يضيف الشرح للمحفوظات ويحفظه في SharedPreferences).
-/// 4. قائمة الدروس المرقمة مع علامة التفريغ النصي ومدة الدرس وحالة الاكتمال.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// 1. هيدر بني مزخرف مع زر الرجوع في أقصى اليمين (RTL) بسهم موجه لليمين.
+/// 2. بطاقة معلومات الشرح، ونسبة الإنجاز والتقدم من اليمين لليسار.
+/// 3. زر محوري: "بدء دراسة هذا المتن" (يضيف الشرح للمحفوظات).
+/// 4. قائمة الدروس المرقمة: رقم الدرس في أقصى اليمين، العنوان والبيانات بمحاذاة اليمين،
+///    وأزرار التشغيل والتعليم كمكتمل في أقصى اليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class SeriesLessonsScreen extends StatelessWidget {
   final SeriesModel series;
@@ -45,20 +46,11 @@ class SeriesLessonsScreen extends StatelessWidget {
           backgroundColor: AppColors.scaffoldCream,
           body: Column(
             children: [
-              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع ─────────────
+              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
               DecoratedHeader(
                 title: actualBook?.title ?? series.title,
                 showSearchIcon: false,
-                actions: [
-                  IconButton(
-                    tooltip: 'رجوع',
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: AppColors.textGoldLight,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                onBackPressed: () => Navigator.pop(context),
               ),
 
               // ── 2. محتوى الشاشة ──────────────────────────────────────────
@@ -82,25 +74,28 @@ class SeriesLessonsScreen extends StatelessWidget {
 
                     const SizedBox(height: 20),
 
-                    // ── عنوان قائمة الدروس ────────────────────────────────
+                    // ── عنوان قائمة الدروس (عنوان يمين، عدد يسار) ───────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '${lessons.length} درس',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                          // عنوان القائمة على اليمين في RTL
                           Text(
                             'قائمة الدروس العلمية',
                             style: GoogleFonts.readexPro(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
+                            ),
+                          ),
+
+                          // عدد الدروس على اليسار في RTL
+                          Text(
+                            '${lessons.length} درس',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
@@ -164,31 +159,27 @@ class SeriesLessonsScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // كبسولة القسم
-              if (category != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    category.name,
-                    style: GoogleFonts.readexPro(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+              // ── 1. أيقونة الكتاب على اليمين في RTL ──────────────────────
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: const Icon(
+                  Icons.menu_book_rounded,
+                  color: AppColors.iconGold,
+                  size: 26,
+                ),
+              ),
 
-              const Spacer(),
+              const SizedBox(width: 12),
 
-              // اسم الكتاب والشارح
+              // ── 2. اسم الكتاب والشارح بمحاذاة اليمين ─────────────────────
               Expanded(
-                flex: 8,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                   children: [
                     Text(
                       actualBook?.title ?? series.title,
@@ -212,22 +203,25 @@ class SeriesLessonsScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
 
-              // أيقونة الكتاب
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+              // ── 3. كبسولة القسم على اليسار في RTL ───────────────────────
+              if (category != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGoldBeige.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    category.name,
+                    style: GoogleFonts.readexPro(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.menu_book_rounded,
-                  color: AppColors.iconGold,
-                  size: 26,
-                ),
-              ),
             ],
           ),
 
@@ -235,23 +229,23 @@ class SeriesLessonsScreen extends StatelessWidget {
           const Divider(color: AppColors.dividerLight, height: 1),
           const SizedBox(height: 14),
 
-          // ── شريط نسبة الإنجاز في الشرح ───────────────────────────
+          // ── شريط نسبة الإنجاز في الشرح (نص يمين، نسبة يسار) ─────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text(
+                'أنجزت $completedCount من $totalCount درساً',
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               Text(
                 '${(progress * 100).toInt()}%',
                 style: GoogleFonts.readexPro(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primaryDarkBrown,
-                ),
-              ),
-              Text(
-                'أنجزت $completedCount من $totalCount درساً',
-                style: GoogleFonts.readexPro(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -338,7 +332,7 @@ class SeriesLessonsScreen extends StatelessWidget {
     );
   }
 
-  /// بطاقة الدرس المرقمة
+  /// بطاقة الدرس المرقمة (RTL: رقم الدرس يمين، التفاصيل يمين، التشغيل والإكمال يسار)
   Widget _buildLessonCard(
     BuildContext context, {
     required LessonModel lesson,
@@ -385,87 +379,7 @@ class SeriesLessonsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
-                // زر تعليم الدرس كمكتمل على اليسار في RTL
-                IconButton(
-                  tooltip: isCompleted ? 'مكتمل' : 'تعليم كمكتمل',
-                  icon: Icon(
-                    isCompleted
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: isCompleted
-                        ? const Color(0xFF2E7D32)
-                        : AppColors.dividerLight,
-                    size: 24,
-                  ),
-                  onPressed: () {
-                    appProvider.toggleLessonCompleted(lesson.id);
-                  },
-                ),
-
-                const SizedBox(width: 6),
-
-                // سهم أو زر التشغيل
-                const Icon(
-                  Icons.play_circle_outline_rounded,
-                  color: AppColors.iconGold,
-                  size: 26,
-                ),
-
-                const Spacer(),
-
-                // معلومات الدرس
-                Expanded(
-                  flex: 10,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        lesson.title,
-                        style: GoogleFonts.readexPro(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isCompleted
-                              ? AppColors.textSecondary
-                              : AppColors.textPrimary,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                      const SizedBox(height: 5),
-
-                      // شارات المعلومات: المدة، التفريغ، الفيديو
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (lesson.hasVideo) ...[
-                            _buildFeatureBadge('مرئي', Icons.videocam_rounded),
-                            const SizedBox(width: 6),
-                          ],
-                          if (lesson.hasTranscript) ...[
-                            _buildFeatureBadge('مفرغ نصياً', Icons.description_rounded),
-                            const SizedBox(width: 6),
-                          ],
-                          Text(
-                            lesson.duration,
-                            style: GoogleFonts.readexPro(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.access_time_rounded,
-                            size: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // رقم الدرس داخل دائرة
+                // ── 1. رقم الدرس داخل دائرة على اليمين في RTL ─────────────
                 Container(
                   width: 36,
                   height: 36,
@@ -494,6 +408,85 @@ class SeriesLessonsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                const SizedBox(width: 12),
+
+                // ── 2. معلومات الدرس والتفاصيل في المنتصف بمحاذاة اليمين ───
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    children: [
+                      Text(
+                        lesson.title,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isCompleted
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 5),
+
+                      // شارات المعلومات: المدة، التفريغ، الفيديو
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            lesson.duration,
+                            style: GoogleFonts.readexPro(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          if (lesson.hasTranscript) ...[
+                            const SizedBox(width: 6),
+                            _buildFeatureBadge('مفرغ نصياً', Icons.description_rounded),
+                          ],
+                          if (lesson.hasVideo) ...[
+                            const SizedBox(width: 6),
+                            _buildFeatureBadge('مرئي', Icons.videocam_rounded),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ── 3. زر التشغيل على اليسار في RTL ───────────────────────
+                const Icon(
+                  Icons.play_circle_outline_rounded,
+                  color: AppColors.iconGold,
+                  size: 26,
+                ),
+
+                const SizedBox(width: 4),
+
+                // ── 4. زر تعليم الدرس كمكتمل في أقصى اليسار في RTL ────────
+                IconButton(
+                  tooltip: isCompleted ? 'مكتمل' : 'تعليم كمكتمل',
+                  icon: Icon(
+                    isCompleted
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: isCompleted
+                        ? const Color(0xFF2E7D32)
+                        : AppColors.dividerLight,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    appProvider.toggleLessonCompleted(lesson.id);
+                  },
+                ),
               ],
             ),
           ),
@@ -513,6 +506,8 @@ class SeriesLessonsScreen extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, size: 10, color: AppColors.iconGold),
+          const SizedBox(width: 3),
           Text(
             label,
             style: GoogleFonts.readexPro(
@@ -521,8 +516,6 @@ class SeriesLessonsScreen extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(width: 3),
-          Icon(icon, size: 10, color: AppColors.iconGold),
         ],
       ),
     );
@@ -549,4 +542,3 @@ class SeriesLessonsScreen extends StatelessWidget {
     );
   }
 }
-

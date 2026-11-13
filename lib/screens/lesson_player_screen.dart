@@ -185,16 +185,18 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     final audioProvider = Provider.of<AudioProvider>(context);
     final appProvider = Provider.of<AppProvider>(context);
 
-    // استخدام الدرس الحالي من المزود إذا كان نفس السلسلة، لتحديث الشاشة عند الانتقال للتالي/السابق
-    final currentLesson = (audioProvider.currentSeries?.id == widget.series.id &&
+    // استخدام الدرس الحالي من المزود إذا كان نفس السلسلة، لتحديث الشاشة عند الانتقال للتالي/السابق مع دعم التحديثات اللحظية
+    final baseLesson = (audioProvider.currentSeries?.id == widget.series.id &&
             audioProvider.currentLesson != null)
         ? audioProvider.currentLesson!
         : widget.lesson;
+    final currentLesson = appProvider.getLessonById(baseLesson.id) ?? baseLesson;
 
-    final book = appProvider.getBookById(widget.series.bookId) ??
-        MockDataService.getBookById(widget.series.bookId);
-    final sheikh = appProvider.getSheikhById(widget.series.sheikhId) ??
-        MockDataService.getSheikhById(widget.series.sheikhId);
+    final currentSeries = appProvider.getSeriesById(widget.series.id) ?? widget.series;
+    final book = appProvider.getBookById(currentSeries.bookId) ??
+        MockDataService.getBookById(currentSeries.bookId);
+    final sheikh = appProvider.getSheikhById(currentSeries.sheikhId) ??
+        MockDataService.getSheikhById(currentSeries.sheikhId);
     final hasVideo = currentLesson.hasVideo;
 
     // إذا تم الانتقال لدرس لا يحتوي على فيديو، العودة التلقائية لوضع الصوت
@@ -228,7 +230,15 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                   if (_selectedMediaMode == 1 && hasVideo)
                     _buildYouTubeCard(currentLesson, book, sheikh)
                   else
-                    _buildAudioPlayerCard(context, currentLesson, audioProvider, appProvider),
+                    _buildAudioPlayerCard(
+                      context,
+                      currentLesson,
+                      audioProvider,
+                      appProvider,
+                      currentSeries,
+                      book,
+                      sheikh,
+                    ),
 
                   const SizedBox(height: 20),
 
@@ -243,7 +253,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     );
   }
 
-  /// الهيدر العلوي: زر الرجوع، اسم الكتاب والشارح وعنوان الدرس
+  /// الهيدر العلوي: زر الرجوع على اليمين، اسم الكتاب والشارح وعنوان الدرس
   Widget _buildPlayerHeader(
     BuildContext context,
     LessonModel lesson,
@@ -253,19 +263,10 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     return DecoratedHeader(
       title: lesson.title,
       showSearchIcon: false,
-      actions: [
-        IconButton(
-          tooltip: 'رجوع',
-          icon: const Icon(
-            Icons.arrow_forward_rounded,
-            color: AppColors.textGoldLight,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
+      onBackPressed: () => Navigator.pop(context),
       customTitleWidget: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '${book?.title ?? ""} • ${sheikh?.name ?? ""}',
@@ -276,6 +277,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
           const SizedBox(height: 2),
           Text(
@@ -287,6 +289,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
           ),
         ],
       ),
@@ -507,6 +510,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     LessonModel lesson,
     AudioProvider audioProvider,
     AppProvider appProvider,
+    SeriesModel currentSeries,
+    BookModel? book,
+    SheikhModel? sheikh,
   ) {
     final currentPos = audioProvider.currentPosition;
     final totalDur = audioProvider.totalDuration;
@@ -550,25 +556,25 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
             ),
           ),
 
-          // الوقت المنقضي والوقت الكلي (يمين: المنقضي، يسار: الكلي)
+          // الوقت المنقضي والوقت الكلي (يمين: المنقضي، يسار: الكلي في RTL)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _formatDuration(totalDur.inSeconds > 0 ? totalDur : _parseDurationString(lesson.duration)),
-                  style: GoogleFonts.readexPro(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
                   _formatDuration(currentPos),
                   style: GoogleFonts.readexPro(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  _formatDuration(totalDur.inSeconds > 0 ? totalDur : _parseDurationString(lesson.duration)),
+                  style: GoogleFonts.readexPro(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -793,8 +799,242 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
               ),
             ],
           ),
+
+          const SizedBox(height: 16),
+
+          // ── صف أزرار التنقل السريع بين الدروس (الدرس التالي، قائمة الدروس، الدرس السابق) ──
+          _buildQuickNavigationRow(
+            context: context,
+            currentLesson: lesson,
+            currentSeries: currentSeries,
+            book: book,
+            sheikh: sheikh,
+            audioProvider: audioProvider,
+            appProvider: appProvider,
+          ),
         ],
       ),
+    );
+  }
+
+  /// ── صف أزرار التنقل السريع بين الدروس ─────────────────────────────────────
+  Widget _buildQuickNavigationRow({
+    required BuildContext context,
+    required LessonModel currentLesson,
+    required SeriesModel currentSeries,
+    required BookModel? book,
+    required SheikhModel? sheikh,
+    required AudioProvider audioProvider,
+    required AppProvider appProvider,
+  }) {
+    // جلب قائمة دروس الشرح الحالي مرتبة حسب order
+    final seriesLessons = appProvider.getLessonsBySeries(currentSeries.id).isNotEmpty
+        ? appProvider.getLessonsBySeries(currentSeries.id)
+        : MockDataService.getLessonsBySeries(currentSeries.id);
+
+    int currentIndex = seriesLessons.indexWhere((l) => l.id == currentLesson.id);
+    if (currentIndex == -1) {
+      currentIndex = seriesLessons.indexWhere((l) => l.order == currentLesson.order);
+    }
+
+    final hasNextLesson = currentIndex != -1 && currentIndex < seriesLessons.length - 1;
+    final nextLesson = hasNextLesson ? seriesLessons[currentIndex + 1] : null;
+
+    final hasPreviousLesson = currentIndex > 0;
+    final prevLesson = hasPreviousLesson ? seriesLessons[currentIndex - 1] : null;
+
+    return Row(
+      children: [
+        // ── 1. زر الدرس التالي (في أقصى اليمين في واجهة RTL) ───────────────
+        Expanded(
+          child: Opacity(
+            opacity: hasNextLesson ? 1.0 : 0.5,
+            child: Material(
+              color: AppColors.accentGoldBeige,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(
+                  color: AppColors.accentGoldBeige,
+                  width: 1,
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  if (hasNextLesson && nextLesson != null) {
+                    audioProvider.loadAndPlayLesson(
+                      lesson: nextLesson,
+                      series: currentSeries,
+                      book: book,
+                      sheikh: sheikh,
+                      autoPlay: true,
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'هذا هو الدرس الأخير في هذا الشرح',
+                          style: GoogleFonts.readexPro(),
+                        ),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 44,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.skip_next_rounded,
+                          size: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'الدرس التالي',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // ── 2. زر قائمة الدروس (في المنتصف تماماً) ──────────────────────────
+        Expanded(
+          child: Material(
+            color: AppColors.primaryDarkBrown,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 44,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.format_list_bulleted_rounded,
+                        size: 18,
+                        color: AppColors.textGoldLight,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'قائمة الدروس',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textGoldLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // ── 3. زر الدرس السابق (في أقصى اليسار في واجهة RTL) ────────────────
+        Expanded(
+          child: Opacity(
+            opacity: hasPreviousLesson ? 1.0 : 0.5,
+            child: Material(
+              color: AppColors.accentGoldBeige,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(
+                  color: AppColors.accentGoldBeige,
+                  width: 1,
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  if (hasPreviousLesson && prevLesson != null) {
+                    audioProvider.loadAndPlayLesson(
+                      lesson: prevLesson,
+                      series: currentSeries,
+                      book: book,
+                      sheikh: sheikh,
+                      autoPlay: true,
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'هذا هو الدرس الأول في هذا الشرح',
+                          style: GoogleFonts.readexPro(),
+                        ),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 44,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.skip_previous_rounded,
+                          size: 18,
+                          color: AppColors.textPrimary,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'الدرس السابق',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -100,10 +100,11 @@ class NotificationsScreen extends StatelessWidget {
           backgroundColor: AppColors.scaffoldCream,
           body: Column(
             children: [
-              // ── هيدر الصفحة المزخرف ────────────────────────────────────
+              // ── هيدر الصفحة المزخرف مع زر الرجوع على اليمين في RTL ────────
               DecoratedHeader(
                 title: 'الإشعارات',
                 showSearchIcon: false,
+                onBackPressed: () => Navigator.pop(context),
                 actions: [
                   if (unreadCount > 0)
                     TextButton.icon(
@@ -129,16 +130,6 @@ class NotificationsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    tooltip: 'رجوع',
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: AppColors.textGoldLight,
-                      size: 22,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
                 ],
               ),
 

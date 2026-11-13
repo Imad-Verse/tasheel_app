@@ -102,7 +102,15 @@ class StatisticsScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 44),
+          IconButton(
+            tooltip: 'رجوع',
+            icon: const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.textGoldLight,
+              size: 24,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
           Expanded(
             child: Text(
               'الإحصائيات والإنجاز',
@@ -114,15 +122,7 @@ class StatisticsScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          IconButton(
-            tooltip: 'رجوع',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: AppColors.textGoldLight,
-              size: 24,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
+          const SizedBox(width: 44),
         ],
       ),
     );
@@ -156,6 +156,14 @@ class StatisticsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text(
+                'إحصائيات إنجازك',
+                style: GoogleFonts.readexPro(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -169,14 +177,6 @@ class StatisticsScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppColors.primaryDarkBrown,
                   ),
-                ),
-              ),
-              Text(
-                'إحصائيات إنجازك',
-                style: GoogleFonts.readexPro(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryDarkBrown,
                 ),
               ),
             ],
@@ -291,7 +291,7 @@ class StatisticsScreen extends StatelessWidget {
     required int lessons,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'مكتبة تطبيق تسهيل',
@@ -365,7 +365,6 @@ class StatisticsScreen extends StatelessWidget {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             width: 38,
@@ -376,25 +375,29 @@ class StatisticsScreen extends StatelessWidget {
             ),
             child: Icon(icon, color: AppColors.iconGold, size: 20),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                count,
-                style: GoogleFonts.readexPro(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryDarkBrown,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  count,
+                  style: GoogleFonts.readexPro(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDarkBrown,
+                  ),
                 ),
-              ),
-              Text(
-                title,
-                style: GoogleFonts.readexPro(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
+                Text(
+                  title,
+                  style: GoogleFonts.readexPro(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -447,6 +450,14 @@ class StatisticsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text(
+                'توزيع الدروس حسب الأقسام',
+                style: GoogleFonts.readexPro(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -461,14 +472,6 @@ class StatisticsScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppColors.iconGold,
                   ),
-                ),
-              ),
-              Text(
-                'توزيع الدروس حسب الأقسام',
-                style: GoogleFonts.readexPro(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primaryDarkBrown,
                 ),
               ),
             ],
@@ -532,12 +535,12 @@ class StatisticsScreen extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '$pct%',
-                      style: GoogleFonts.readexPro(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryDarkBrown,
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: s.color,
+                        shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -549,12 +552,12 @@ class StatisticsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: s.color,
-                        shape: BoxShape.circle,
+                    Text(
+                      '$pct%',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryDarkBrown,
                       ),
                     ),
                   ],

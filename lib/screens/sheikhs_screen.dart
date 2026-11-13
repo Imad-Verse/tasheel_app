@@ -11,10 +11,10 @@ import 'sheikh_details_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة الشيوخ والعلماء (SheikhsScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تتضمن:
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
 /// 1. هيدر بني مزخرف مع عنوان "الشيوخ" وزر البحث.
-/// 2. شريط تحكم يضم عنوان "جميع الشيوخ والعلماء" وزر التبديل (قائمة / شبكة 3 في السطر).
-/// 3. وضع القائمة (List View): اسم الشيخ، عدد الشروحات، عدد الدروس.
+/// 2. شريط تحكم يضم: عنوان "جميع الشيوخ والعلماء" على اليمين، وزر التبديل (قائمة/شبكة) على اليسار.
+/// 3. وضع القائمة (List View): أيقونة الشيخ/الكتاب على اليمين، البيانات بمحاذاة اليمين، وسهم الانتقال على اليسار.
 /// 4. وضع الشبكة (Grid View - 3 في السطر): بطاقة 1:1 بإطار وزخرفة إسلامية
 ///    واسم الشيخ بخط أميري وقور دون أي صور بشرية، وتحتها الاسم.
 /// 5. تفاصيل سيرة الشيخ وقائمة شروحاته عند النقر.
@@ -56,7 +56,7 @@ class SheikhsScreen extends StatelessWidget {
     );
   }
 
-  /// شريط التحكم: العنوان وزر التبديل
+  /// شريط التحكم: العنوان على اليمين وزر التبديل على اليسار في RTL
   Widget _buildControlBar(
     BuildContext context,
     AppProvider appProvider,
@@ -67,7 +67,17 @@ class SheikhsScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // زر التبديل بين العرضين
+          // ── عنوان القسم على اليمين في RTL ──────────────────────────
+          Text(
+            'جميع الشيوخ والعلماء',
+            style: GoogleFonts.readexPro(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+
+          // ── زر التبديل بين العرضين على اليسار في RTL ───────────────
           InkWell(
             onTap: () => appProvider.toggleSheikhsView(),
             borderRadius: BorderRadius.circular(10),
@@ -106,16 +116,6 @@ class SheikhsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ),
-
-          // عنوان القسم
-          Text(
-            'جميع الشيوخ والعلماء',
-            style: GoogleFonts.readexPro(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -159,43 +159,7 @@ class SheikhsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // سهم التنقل
-                const Icon(
-                  Icons.chevron_left_rounded,
-                  color: AppColors.iconGold,
-                  size: 22,
-                ),
-
-                const Spacer(),
-
-                // معلومات الشيخ
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      sheikh.name,
-                      style: GoogleFonts.readexPro(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${sheikh.booksCount} شروحات  •  ${sheikh.lessonsCount} درس',
-                      style: GoogleFonts.readexPro(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 14),
-
-                // أيقونة زخرفية إسلامية وقورة
+                // ── 1. أيقونة الشيخ / الكتاب على اليمين في RTL ─────────────
                 Container(
                   width: 48,
                   height: 48,
@@ -214,6 +178,44 @@ class SheikhsScreen extends StatelessWidget {
                       size: 22,
                     ),
                   ),
+                ),
+
+                const SizedBox(width: 14),
+
+                // ── 2. معلومات الشيخ في المنتصف بمحاذاة اليمين ─────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    children: [
+                      Text(
+                        sheikh.name,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${sheikh.booksCount} شروحات  •  ${sheikh.lessonsCount} درس',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ── 3. سهم التنقل في أقصى اليسار في RTL ───────────────────
+                const Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppColors.iconGold,
+                  size: 22,
                 ),
               ],
             ),

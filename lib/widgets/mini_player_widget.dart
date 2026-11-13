@@ -84,20 +84,56 @@ class MiniPlayerWidget extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       child: Row(
                         children: [
-                          // زر الإغلاق على اليسار في RTL
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              size: 18,
-                              color: AppColors.textSecondary,
+                          // أيقونة سماعات على اليمين في RTL
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryDarkBrown,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            tooltip: 'إغلاق المشغل',
-                            onPressed: () {
-                              audioProvider.closeMiniPlayer();
-                            },
+                            child: const Icon(
+                              Icons.headphones_rounded,
+                              color: AppColors.textGoldLight,
+                              size: 18,
+                            ),
                           ),
 
-                          // زر التشغيل والإيقاف المؤقت
+                          const SizedBox(width: 10),
+
+                          // نصوص الدرس والشيخ في المنتصف بمحاذاة اليمين
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  lesson.title,
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  sheikh?.name ?? series.title,
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // زر التشغيل والإيقاف المؤقت على اليسار في RTL
                           InkWell(
                             onTap: () {
                               audioProvider.togglePlayPause();
@@ -127,55 +163,19 @@ class MiniPlayerWidget extends StatelessWidget {
                             ),
                           ),
 
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 4),
 
-                          // نصوص الدرس والشيخ
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  lesson.title,
-                                  style: GoogleFonts.readexPro(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.right,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  sheikh?.name ?? series.title,
-                                  style: GoogleFonts.readexPro(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.right,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 10),
-
-                          // أيقونة سماعات / غلاف مصغر
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryDarkBrown,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.headphones_rounded,
-                              color: AppColors.textGoldLight,
+                          // زر الإغلاق على أقصى اليسار في RTL
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
                               size: 18,
+                              color: AppColors.textSecondary,
                             ),
+                            tooltip: 'إغلاق المشغل',
+                            onPressed: () {
+                              audioProvider.closeMiniPlayer();
+                            },
                           ),
                         ],
                       ),

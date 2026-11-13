@@ -10,10 +10,10 @@ import 'book_details_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة كتب ومتون القسم العلمي (CategoryBooksScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تعرض جميع الكتب التابعة لقسم علمي معين (مثلاً: متون العقيدة):
-/// - هيدر بني مزخرف مع زر الرجوع.
-/// - شريط تحكم مع عدد الكتب المتوفرة وزر تبديل العرض (قائمة / شبكة 3 في السطر).
-/// - وضع القائمة (غلاف مصغر، اسم المتن، المؤلف، عدد الشروحات).
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// - هيدر بني مزخرف مع زر الرجوع في أقصى اليمين (RTL) بسهم موجه لليمين.
+/// - شريط تحكم: عدد المتون على اليمين، وزر تبديل العرض (قائمة/شبكة) على اليسار.
+/// - وضع القائمة: غلاف الكتاب على اليمين، البيانات بمحاذاة اليمين، وسهم الانتقال على اليسار.
 /// - وضع الشبكة (3 في السطر بنسبة 1:1 وغلاف إسلامي وقور).
 /// - عند الضغط ينتقل المستخدم لصفحة تفاصيل الكتاب (BookDetailsScreen).
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -38,20 +38,11 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
       backgroundColor: AppColors.scaffoldCream,
       body: Column(
         children: [
-          // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع ─────────────────
+          // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
           DecoratedHeader(
             title: 'متون ${widget.category.name}',
             showSearchIcon: false,
-            actions: [
-              IconButton(
-                tooltip: 'رجوع',
-                icon: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: AppColors.textGoldLight,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            onBackPressed: () => Navigator.pop(context),
           ),
 
           // ── 2. شريط التحكم وزر تبديل العرض ─────────────────────────────
@@ -60,7 +51,17 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // زر التبديل بين القائمة والشبكة
+                // ── عدد الكتب المتوفرة على اليمين في RTL ───────────────────
+                Text(
+                  '${books.length} متون معتمدة',
+                  style: GoogleFonts.readexPro(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+
+                // ── زر التبديل بين القائمة والشبكة على اليسار في RTL ───────
                 InkWell(
                   onTap: () {
                     setState(() => _isGridView = !_isGridView);
@@ -101,16 +102,6 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                     ),
                   ),
                 ),
-
-                // عدد الكتب المتوفرة
-                Text(
-                  '${books.length} متون معتمدة',
-                  style: GoogleFonts.readexPro(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
               ],
             ),
           ),
@@ -128,7 +119,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 
-  /// وضع القائمة
+  /// وضع القائمة (مرتب من اليمين لليسار)
   Widget _buildListView(BuildContext context, List<BookModel> books) {
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
@@ -166,60 +157,62 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    // سهم الانتقال
+                    // ── 1. غلاف مصغر للكتاب على اليمين في RTL ─────────────
+                    _buildMiniCover(book.title),
+
+                    const SizedBox(width: 14),
+
+                    // ── 2. نصوص ومعلومات الكتاب في المنتصف بمحاذاة اليمين ───
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                        children: [
+                          Text(
+                            book.title,
+                            style: GoogleFonts.readexPro(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'المؤلف: ${book.author}',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${book.seriesCount} شروحات متوفرة',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // ── 3. سهم الانتقال في أقصى اليسار في RTL ──────────────
                     const Icon(
                       Icons.chevron_left_rounded,
                       color: AppColors.iconGold,
                       size: 24,
                     ),
-
-                    const Spacer(),
-
-                    // نصوص ومعلومات الكتاب
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          book.title,
-                          style: GoogleFonts.readexPro(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'المؤلف: ${book.author}',
-                          style: GoogleFonts.readexPro(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${book.seriesCount} شروحات متوفرة',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    // غلاف مصغر بزخرفة إسلامية
-                    _buildMiniCover(book.title),
                   ],
                 ),
               ),
@@ -370,4 +363,3 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 }
-

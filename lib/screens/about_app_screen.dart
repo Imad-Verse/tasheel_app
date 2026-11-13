@@ -138,7 +138,15 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 44),
+          IconButton(
+            tooltip: 'رجوع',
+            icon: const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.textGoldLight,
+              size: 24,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
           Expanded(
             child: Text(
               'عن التطبيق',
@@ -150,15 +158,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
               textAlign: TextAlign.center,
             ),
           ),
-          IconButton(
-            tooltip: 'رجوع',
-            icon: const Icon(
-              Icons.arrow_forward_rounded,
-              color: AppColors.textGoldLight,
-              size: 24,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
+          const SizedBox(width: 44),
         ],
       ),
     );
@@ -284,8 +284,9 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
           ),
           const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              const Icon(Icons.verified_rounded, color: AppColors.iconGold, size: 16),
+              const SizedBox(width: 6),
               Text(
                 'وفق منهج أهل السنة والجماعة',
                 style: GoogleFonts.readexPro(
@@ -294,8 +295,6 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   color: AppColors.iconGold,
                 ),
               ),
-              const SizedBox(width: 6),
-              const Icon(Icons.verified_rounded, color: AppColors.iconGold, size: 16),
             ],
           ),
         ],
@@ -338,7 +337,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     if (channels.isEmpty) return const SizedBox.shrink();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'قنوات التواصل والمتابعة',
@@ -401,7 +400,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
     if (projects.isEmpty) return const SizedBox.shrink();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'من مشاريعنا التقنية والعلمية',
@@ -435,6 +434,34 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // الأيقونة الرمزية على اليمين في RTL
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: AppColors.iconGold,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // اسم المشروع
+                      Expanded(
+                        child: Text(
+                          proj.title,
+                          style: GoogleFonts.readexPro(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryDarkBrown,
+                          ),
+                        ),
+                      ),
+
                       // زر الانتقال على اليسار في RTL
                       if (proj.url.trim().isNotEmpty)
                         ElevatedButton.icon(
@@ -460,34 +487,6 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
                             elevation: 0,
                           ),
                         ),
-
-                      const Spacer(),
-
-                      // اسم المشروع
-                      Text(
-                        proj.title,
-                        style: GoogleFonts.readexPro(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryDarkBrown,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // الأيقونة الرمزية الإسلامية الخالية من الأرواح
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.accentGoldBeige.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.menu_book_rounded,
-                          color: AppColors.iconGold,
-                          size: 20,
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 10),

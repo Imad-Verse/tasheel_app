@@ -10,10 +10,11 @@ import 'series_lessons_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// صفحة تفاصيل الكتاب / المتن (BookDetailsScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تتضمن:
-/// 1. هيدر بني مزخرف مع زر الرجوع وعنوان المتن.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// 1. هيدر بني مزخرف مع زر الرجوع في أقصى اليمين (RTL) بسهم موجه لليمين.
 /// 2. بطاقة تعريف الكتاب الفنية (غلاف إسلامي وقور، المؤلف، القسم، الوصف).
-/// 3. قائمة الشيوخ الشارحين للكتاب مع عدد الدروس، وتنتقل لـ SeriesLessonsScreen.
+/// 3. عنوان "الشيوخ الشارحون للكتاب" على اليمين وشارة العدد على اليسار.
+/// 4. بطاقات الشيوخ الشارحين: أيقونة الشيخ على اليمين، البيانات بمحاذاة اليمين، وسهم الانتقال على اليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class BookDetailsScreen extends StatelessWidget {
   final BookModel book;
@@ -31,20 +32,11 @@ class BookDetailsScreen extends StatelessWidget {
           backgroundColor: AppColors.scaffoldCream,
           body: Column(
             children: [
-              // ── 1. الهيدر البني العلوي المزخرف ─────────────────────────
+              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
               DecoratedHeader(
                 title: book.title,
                 showSearchIcon: false,
-                actions: [
-                  IconButton(
-                    tooltip: 'رجوع',
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: AppColors.textGoldLight,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                onBackPressed: () => Navigator.pop(context),
               ),
 
               // ── 2. محتوى الصفحة ──────────────────────────────────────────
@@ -58,10 +50,21 @@ class BookDetailsScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // ── قائمة الشيوخ الشارحين للكتاب ───────────────────────
+                    // ── قائمة الشيوخ الشارحين للكتاب (عنوان يمين، شارة يسار) ───
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // عنوان القسم على اليمين في RTL
+                        Text(
+                          'الشيوخ الشارحون للكتاب',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+
+                        // كبسولة عدد الشروحات على اليسار في RTL
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -75,14 +78,6 @@ class BookDetailsScreen extends StatelessWidget {
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
                             ),
-                          ),
-                        ),
-                        Text(
-                          'الشيوخ الشارحون للكتاب',
-                          style: GoogleFonts.readexPro(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -134,10 +129,15 @@ class BookDetailsScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // نصوص الكتاب
+              // غلاف فني إسلامي وقور للكتاب على اليمين في RTL
+              _buildArtisticBookCover(book.title),
+
+              const SizedBox(width: 16),
+
+              // نصوص ومعلومات الكتاب في المنتصف بمحاذاة اليمين
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                   children: [
                     if (category != null)
                       Container(
@@ -180,11 +180,6 @@ class BookDetailsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              const SizedBox(width: 16),
-
-              // غلاف فني إسلامي وقور للكتاب
-              _buildArtisticBookCover(book.title),
             ],
           ),
 
@@ -219,7 +214,7 @@ class BookDetailsScreen extends StatelessWidget {
     );
   }
 
-  /// غلاف فني إسلامي مربع 1:1
+  /// غلاف فني إسلامي مربع
   Widget _buildArtisticBookCover(String title) {
     return Container(
       width: 90,
@@ -268,7 +263,7 @@ class BookDetailsScreen extends StatelessWidget {
     );
   }
 
-  /// بطاقة شرح الشيخ للكتاب
+  /// بطاقة شرح الشيخ للكتاب (RTL: أيقونة الشيخ يمين، البيانات يمين، سهم يسار)
   Widget _buildSheikhSeriesCard(
     BuildContext context, {
     required SeriesModel series,
@@ -308,52 +303,7 @@ class BookDetailsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // سهم الانتقال
-                const Icon(
-                  Icons.chevron_left_rounded,
-                  color: AppColors.iconGold,
-                  size: 24,
-                ),
-
-                const Spacer(),
-
-                // معلومات الشرح
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      sheikh?.name ?? series.title,
-                      style: GoogleFonts.readexPro(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                    const SizedBox(height: 5),
-
-                    // كبسولة عدد الدروس
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${series.lessonsCount} درساً علمياً',
-                        style: GoogleFonts.readexPro(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 14),
-
-                // أيقونة الشيخ / الزخرفة
+                // ── 1. أيقونة الشيخ على اليمين في RTL ──────────────────────
                 Container(
                   width: 48,
                   height: 48,
@@ -372,6 +322,53 @@ class BookDetailsScreen extends StatelessWidget {
                       size: 24,
                     ),
                   ),
+                ),
+
+                const SizedBox(width: 14),
+
+                // ── 2. معلومات الشرح في المنتصف بمحاذاة اليمين ─────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    children: [
+                      Text(
+                        sheikh?.name ?? series.title,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 5),
+
+                      // كبسولة عدد الدروس
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${series.lessonsCount} درساً علمياً',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ── 3. سهم الانتقال في أقصى اليسار في RTL ───────────────────
+                const Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppColors.iconGold,
+                  size: 24,
                 ),
               ],
             ),

@@ -10,12 +10,13 @@ import 'series_lessons_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// صفحة تفاصيل الشيخ وسيرته وشروحاته (SheikhDetailsScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تتضمن:
-/// 1. هيدر بني مزخرف مع زر الرجوع.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// 1. هيدر بني مزخرف مع زر الرجوع في أقصى اليمين (RTL) بسهم موجه لليمين.
 /// 2. لوحة زخرفية وقورة باسم الشيخ ونبذة مختصرة وزر "اقرأ السيرة كاملة".
-/// 3. نافذة منبثقة أنيقة لقراءة السيرة الكاملة مع زر إغلاق.
+/// 3. نافذة منبثقة أنيقة لقراءة السيرة الكاملة.
 /// 4. شريط أزرار أفقي لفلترة شروحات الشيخ حسب الأقسام العلمية (الكل + الأقسام).
-/// 5. قائمة الكتب والشروحات المفلترة مع الانتقال لـ SeriesLessonsScreen.
+/// 5. عنوان "الشروحات والمتون المسجلة" على اليمين وشارة العدد على اليسار.
+/// 6. بطاقات الشروحات: أيقونة الكتاب على اليمين، البيانات بمحاذاة اليمين، وسهم الانتقال على اليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class SheikhDetailsScreen extends StatefulWidget {
   final SheikhModel sheikh;
@@ -43,20 +44,11 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
           backgroundColor: AppColors.scaffoldCream,
           body: Column(
             children: [
-              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع ─────────────
+              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
               DecoratedHeader(
                 title: widget.sheikh.name,
                 showSearchIcon: false,
-                actions: [
-                  IconButton(
-                    tooltip: 'رجوع',
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: AppColors.textGoldLight,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                onBackPressed: () => Navigator.pop(context),
               ),
 
               // ── 2. محتوى الصفحة ──────────────────────────────────────────
@@ -75,10 +67,21 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
 
                     const SizedBox(height: 16),
 
-                    // ── عنوان قائمة الشروحات ──────────────────────────────
+                    // ── عنوان قائمة الشروحات (عنوان يمين، شارة يسار) ───────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // عنوان القسم على اليمين في RTL
+                        Text(
+                          'الشروحات والمتون المسجلة',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+
+                        // كبسولة عدد الشروحات على اليسار في RTL
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
@@ -92,14 +95,6 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
                             ),
-                          ),
-                        ),
-                        Text(
-                          'الشروحات والمتون المسجلة',
-                          style: GoogleFonts.readexPro(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -421,7 +416,7 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
     );
   }
 
-  /// بطاقة الشرح
+  /// بطاقة الشرح (RTL: أيقونة الكتاب يمين، البيانات يمين، سهم يسار)
   Widget _buildSeriesCard(
     BuildContext context, {
     required SeriesModel series,
@@ -462,66 +457,7 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
             child: Row(
               children: [
-                // سهم الانتقال
-                const Icon(
-                  Icons.chevron_left_rounded,
-                  color: AppColors.iconGold,
-                  size: 24,
-                ),
-
-                const Spacer(),
-
-                // معلومات الكتاب والشرح
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      book?.title ?? series.title,
-                      style: GoogleFonts.readexPro(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                    const SizedBox(height: 4),
-
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${series.lessonsCount} درس',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        if (category != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            category.name,
-                            style: GoogleFonts.readexPro(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(width: 14),
-
-                // أيقونة الكتاب
+                // ── 1. أيقونة الكتاب على اليمين في RTL ────────────────────
                 Container(
                   width: 46,
                   height: 46,
@@ -540,6 +476,67 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
                       size: 22,
                     ),
                   ),
+                ),
+
+                const SizedBox(width: 14),
+
+                // ── 2. معلومات الكتاب والشرح في المنتصف بمحاذاة اليمين ─────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                    children: [
+                      Text(
+                        book?.title ?? series.title,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 4),
+
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${series.lessonsCount} درس',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (category != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              category.name,
+                              style: GoogleFonts.readexPro(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ── 3. سهم الانتقال في أقصى اليسار في RTL ───────────────────
+                const Icon(
+                  Icons.chevron_left_rounded,
+                  color: AppColors.iconGold,
+                  size: 24,
                 ),
               ],
             ),
@@ -570,4 +567,3 @@ class _SheikhDetailsScreenState extends State<SheikhDetailsScreen> {
     );
   }
 }
-

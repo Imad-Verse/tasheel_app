@@ -11,12 +11,12 @@ import 'notifications_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// الشاشة الرئيسية (HomeScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// مطابقة تماماً للصورة المرجعية:
-/// 1. هيدر بني داكن مزخرف مع زر الجرس وزر البحث والترحيب.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// 1. هيدر بني داكن مزخرف: الترحيب واسم التطبيق على اليمين، أزرار البحث والإشعارات على اليسار.
 /// 2. بطاقة "درر السلف" المتداخلة مع خلفية الهيدر.
-/// 3. بطاقة "أكمل الاستماع" بديل بطاقة الورد اليومي مع الدرس الأخير.
-/// 4. بطاقة "المحفوظات" مع رابط سريع للتبويب.
-/// 5. بطاقة "إحصائيات الإنجاز" بالمربعات الثلاثة.
+/// 3. بطاقة "أكمل الاستماع" باتجاه RTL: الأيقونة على اليمين، النصوص بمحاذاة اليمين، والسهم على اليسار.
+/// 4. بطاقة "المحفوظات" باتجاه RTL: الأيقونة على اليمين، النصوص بمحاذاة اليمين، والسهم على اليسار.
+/// 5. بطاقة "إحصائيات الإنجاز" باتجاه RTL: العنوان بمحاذاة اليمين، والمربعات الثلاثة مرتبة من اليمين لليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -61,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // ── شريط الهيدر العلوي (الترحيب + الأزرار) ─────────
+                      // ── شريط الهيدر العلوي (الترحيب على اليمين + الأزرار على اليسار) ──
                       _buildTopBar(context, appProvider),
 
                       const SizedBox(height: 18),
@@ -71,7 +71,7 @@ class HomeScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // ── بطاقة أكمل الاستماع ──────────────────────────────
+                      // ── بطاقة أكمل الاستماع (RTL: أيقونة يمين، نصوص يمين، سهم يسار) ──
                       _buildContinueListeningCard(
                         context,
                         seriesTitle: lastSeries?.title ?? 'شرح كتاب التوحيد',
@@ -93,7 +93,7 @@ class HomeScreen extends StatelessWidget {
 
                       const SizedBox(height: 12),
 
-                      // ── بطاقة المحفوظات ──────────────────────────────────
+                      // ── بطاقة المحفوظات (RTL: أيقونة يمين، نصوص يمين، سهم يسار) ───
                       _buildBookmarksCard(
                         context,
                         studiedCount: appProvider.studiedSeriesCount,
@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // ── بطاقة إحصائيات الإنجاز ───────────────────────────
+                      // ── بطاقة إحصائيات الإنجاز (RTL: العنوان يمين والمربعات من اليمين) ──
                       _buildStatsCard(appProvider),
                     ],
                   ),
@@ -118,14 +118,39 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// شريط الهيدر العلوي: الأزرار على اليسار والترحيب على اليمين
+  /// شريط الهيدر العلوي: العنوان والترحيب على اليمين، وأزرار البحث والإشعارات على اليسار
   Widget _buildTopBar(BuildContext context, AppProvider appProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // أزرار الإجراءات على اليسار في RTL (البحث والإشعارات)
+          // ── 1. العنوان الترحيبي على اليمين في RTL ───────────────────
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'تَسْهِيل',
+                style: GoogleFonts.amiri(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textGoldLight,
+                  height: 1.1,
+                ),
+              ),
+              Text(
+                'مرحبًا، يا طالب العلم',
+                style: GoogleFonts.readexPro(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textWhite,
+                ),
+              ),
+            ],
+          ),
+
+          // ── 2. أزرار الإجراءات على اليسار في RTL (البحث والإشعارات) ──
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -149,16 +174,6 @@ class HomeScreen extends StatelessWidget {
                 },
               ),
             ],
-          ),
-
-          // النص الترحيبي على اليمين في RTL
-          Text(
-            'مرحبًا، يا طالب العلم',
-            style: GoogleFonts.readexPro(
-              fontSize: 19,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textWhite,
-            ),
           ),
         ],
       ),
@@ -270,7 +285,7 @@ class HomeScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // علامة الاقتباس العلوية على اليسار (أو اليمين حسب التصميم)
+              // علامة الاقتباس العلوية على اليمين
               Align(
                 alignment: Alignment.topRight,
                 child: Text(
@@ -346,7 +361,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// بطاقة "أكمل الاستماع"
+  /// بطاقة "أكمل الاستماع" (من اليمين لليسار: أيقونة على اليمين، نصوص يمين، سهم على اليسار)
   Widget _buildContinueListeningCard(
     BuildContext context, {
     required String seriesTitle,
@@ -373,20 +388,27 @@ class HomeScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // سهم التنقل في أقصى اليسار
-              const Icon(
-                Icons.chevron_left_rounded,
-                color: AppColors.iconGold,
-                size: 24,
+              // ── 1. الدائرة الذهبية والأيقونة في أقصى اليمين (في RTL) ────
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.headphones_rounded,
+                  color: AppColors.iconGold,
+                  size: 26,
+                ),
               ),
 
-              const Spacer(),
+              const SizedBox(width: 14),
 
-              // النصوص التوضيحية
+              // ── 2. النصوص التوضيحية في المنتصف بمحاذاة اليمين ───────────
               Expanded(
-                flex: 8,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                   children: [
                     Text(
                       'أكمل الاستماع',
@@ -412,21 +434,13 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 14),
+              const SizedBox(width: 8),
 
-              // الدائرة الذهبية الفاتحة والأيقونة
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.accentGoldBeige.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.headphones_rounded,
-                  color: AppColors.iconGold,
-                  size: 26,
-                ),
+              // ── 3. سهم التنقل في أقصى اليسار في RTL ─────────────────────
+              const Icon(
+                Icons.chevron_left_rounded,
+                color: AppColors.iconGold,
+                size: 24,
               ),
             ],
           ),
@@ -435,7 +449,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// بطاقة "المحفوظات"
+  /// بطاقة "المحفوظات" (من اليمين لليسار: أيقونة على اليمين، نصوص يمين، سهم على اليسار)
   Widget _buildBookmarksCard(
     BuildContext context, {
     required int studiedCount,
@@ -461,41 +475,7 @@ class HomeScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // سهم التنقل
-              const Icon(
-                Icons.chevron_left_rounded,
-                color: AppColors.iconGold,
-                size: 24,
-              ),
-
-              const Spacer(),
-
-              // النصوص
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'المحفوظات',
-                    style: GoogleFonts.readexPro(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'بدأت دراسة $studiedCount متون',
-                    style: GoogleFonts.readexPro(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(width: 14),
-
-              // الدائرة والأيقونة
+              // ── 1. الدائرة والأيقونة في أقصى اليمين (في RTL) ────────────
               Container(
                 width: 50,
                 height: 50,
@@ -509,6 +489,44 @@ class HomeScreen extends StatelessWidget {
                   size: 26,
                 ),
               ),
+
+              const SizedBox(width: 14),
+
+              // ── 2. النصوص في المنتصف بمحاذاة اليمين ─────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
+                  children: [
+                    Text(
+                      'المحفوظات',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'بدأت دراسة $studiedCount متون',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // ── 3. سهم التنقل في أقصى اليسار في RTL ─────────────────────
+              const Icon(
+                Icons.chevron_left_rounded,
+                color: AppColors.iconGold,
+                size: 24,
+              ),
             ],
           ),
         ),
@@ -516,7 +534,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// بطاقة "إحصائيات الإنجاز" بالمربعات الثلاثة
+  /// بطاقة "إحصائيات الإنجاز" بالمربعات الثلاثة مرتبة من اليمين لليسار
   Widget _buildStatsCard(AppProvider appProvider) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -532,7 +550,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ العنوان من أقصى اليمين
         children: [
           Text(
             'إحصائيات الإنجاز',
@@ -541,8 +559,10 @@ class HomeScreen extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
+            textAlign: TextAlign.right,
           ),
           const SizedBox(height: 16),
+          // المربعات الثلاثة: تبدأ في RTL من اليمين: درس مكتمل -> متن منجز -> ساعة استماع
           Row(
             children: [
               _buildStatBox(

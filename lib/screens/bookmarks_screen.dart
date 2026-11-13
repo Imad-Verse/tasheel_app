@@ -12,7 +12,11 @@ import 'series_lessons_screen.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة المحفوظات والمتون قيد الدراسة (BookmarksScreen)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// تعرض فقط الشروحات المضافة صراحةً في `studiedSeriesIds`.
+/// مضبوطة بالكامل باتجاه اليمين إلى اليسار (RTL):
+/// 1. هيدر علوي مزخرف مع عنوان وزر البحث.
+/// 2. شريط تحكم: عنوان "المتون قيد الدراسة" على اليمين، وشارة عدد المتون على اليسار.
+/// 3. بطاقات المحفوظات: أيقونة الكتاب على اليمين، التفاصيل بمحاذاة اليمين، وزر الإزالة على اليسار.
+/// 4. شريط التقدم: تفاصيل الدروس المكتملة على اليمين والنسبة المئوية على اليسار.
 /// ═══════════════════════════════════════════════════════════════════════════
 class BookmarksScreen extends StatelessWidget {
   const BookmarksScreen({super.key});
@@ -34,12 +38,23 @@ class BookmarksScreen extends StatelessWidget {
                 onSearchPressed: () => GlobalSearchDelegate.show(context),
               ),
 
-              // ── 2. شريط عدد المتون ──────────────────────────────────────
+              // ── 2. شريط عدد المتون (عنوان يمين، عدد يسار) ───────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // عنوان القسم على اليمين في RTL
+                    Text(
+                      'المتون قيد الدراسة',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+
+                    // كبسولة عدد المتون على اليسار في RTL
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
@@ -56,14 +71,6 @@ class BookmarksScreen extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppColors.primaryDarkBrown,
                         ),
-                      ),
-                    ),
-                    Text(
-                      'المتون قيد الدراسة',
-                      style: GoogleFonts.readexPro(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -157,7 +164,7 @@ class BookmarksScreen extends StatelessWidget {
     );
   }
 
-  /// قائمة المتون قيد الدراسة
+  /// قائمة المتون قيد الدراسة (RTL: أيقونة يمين، تفاصيل يمين، حذف يسار)
   Widget _buildStudiedList(
     BuildContext context,
     List<SeriesModel> list,
@@ -199,41 +206,31 @@ class BookmarksScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── الصف العلوي: القسم واسم الكتاب والشيخ ─────────────────
+                // ── الصف العلوي: أيقونة يمين، تفاصيل يمين، حذف يسار ────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // أيقونة الحذف من المحفوظات على اليسار في RTL
-                    IconButton(
-                      tooltip: 'إزالة من المحفوظات',
-                      icon: const Icon(
-                        Icons.bookmark_remove_rounded,
-                        color: AppColors.textSecondary,
-                        size: 22,
+                    // ── 1. أيقونة المتن البنية على اليمين في RTL ─────────────
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDarkBrown,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      onPressed: () {
-                        appProvider.toggleStudySeries(series.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'تمت إزالة (${book?.title ?? series.title}) من المحفوظات',
-                              style: GoogleFonts.readexPro(),
-                            ),
-                            backgroundColor: AppColors.primaryDarkBrown,
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppColors.textGoldLight,
+                        size: 24,
+                      ),
                     ),
 
-                    const Spacer(),
+                    const SizedBox(width: 12),
 
-                    // معلومات الكتاب والشيخ والكبسولة
+                    // ── 2. معلومات الكتاب والشيخ في المنتصف بمحاذاة اليمين ───
                     Expanded(
-                      flex: 8,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start, // في RTL يبدأ من اليمين
                         children: [
                           // كبسولة القسم
                           if (category != null)
@@ -280,48 +277,57 @@ class BookmarksScreen extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
 
-                    // أيقونة المتن البنية
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDarkBrown,
-                        borderRadius: BorderRadius.circular(12),
+                    // ── 3. أيقونة الحذف من المحفوظات على اليسار في RTL ───────
+                    IconButton(
+                      tooltip: 'إزالة من المحفوظات',
+                      icon: const Icon(
+                        Icons.bookmark_remove_rounded,
+                        color: AppColors.textSecondary,
+                        size: 22,
                       ),
-                      child: const Icon(
-                        Icons.menu_book_rounded,
-                        color: AppColors.textGoldLight,
-                        size: 24,
-                      ),
+                      onPressed: () {
+                        appProvider.toggleStudySeries(series.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'تمت إزالة (${book?.title ?? series.title}) من المحفوظات',
+                              style: GoogleFonts.readexPro(),
+                            ),
+                            backgroundColor: AppColors.primaryDarkBrown,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 14),
 
-                // ── شريط التقدم ──────────────────────────────────────────
+                // ── شريط التقدم (نص الإنجاز يمين، النسبة يسار) ─────────────
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '$percent%',
-                          style: GoogleFonts.readexPro(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.iconGold,
-                          ),
-                        ),
                         Text(
                           'أتممت $completedLessons من $totalLessons درساً - $percent%',
                           style: GoogleFonts.readexPro(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '$percent%',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.iconGold,
                           ),
                         ),
                       ],

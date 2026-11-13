@@ -7,11 +7,12 @@ import 'global_search_delegate.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 /// الهيدر البني المزخرف العلوي (DecoratedHeader)
 /// ═══════════════════════════════════════════════════════════════════════════
-/// يُستخدم في أعلى الشاشات الرئيسية (المتون، الشيوخ، المحفوظات...).
+/// يُستخدم في أعلى الشاشات الرئيسية والفرعية (المتون، الشيوخ، المحفوظات...).
 /// يحتوي على:
 /// - خلفية بنية داكنة مع زخرفة إسلامية هندسية مرسومة يدوياً.
-/// - عنوان الصفحة باللون الأبيض أو الذهبي بخط Readex Pro.
-/// - زر البحث الدائري وزر الإجراءات الإضافية.
+/// - زر الرجوع في الجهة اليمنى من الهيدر (RTL) برأس سهم موجه لليمين عند الحاجة.
+/// - عنوان الصفحة باللون الأبيض أو الذهبي بخط Readex Pro بمحاذاة اليمين.
+/// - زر البحث الدائري وزر الإجراءات الإضافية في الجهة اليسرى (RTL).
 /// ═══════════════════════════════════════════════════════════════════════════
 class DecoratedHeader extends StatelessWidget {
   final String title;
@@ -20,6 +21,7 @@ class DecoratedHeader extends StatelessWidget {
   final bool showSearchIcon;
   final VoidCallback? onSearchPressed;
   final Widget? customTitleWidget;
+  final VoidCallback? onBackPressed;
 
   const DecoratedHeader({
     super.key,
@@ -29,6 +31,7 @@ class DecoratedHeader extends StatelessWidget {
     this.showSearchIcon = true,
     this.onSearchPressed,
     this.customTitleWidget,
+    this.onBackPressed,
   });
 
   @override
@@ -59,9 +62,18 @@ class DecoratedHeader extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // عنوان الصفحة على اليمين في RTL
+                  // ── زر الرجوع على اليمين دائماً في RTL مع توجيه السهم لليمين ──
+                  if (onBackPressed != null) ...[
+                    _buildActionButton(
+                      icon: Icons.arrow_forward_rounded,
+                      onTap: onBackPressed!,
+                      tooltip: 'رجوع',
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+
+                  // ── عنوان الصفحة على اليمين بجانب زر الرجوع في RTL ──────────
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerRight,
@@ -82,7 +94,7 @@ class DecoratedHeader extends StatelessWidget {
 
                   const SizedBox(width: 8),
 
-                  // أيقونات الإجراءات (بحث، رجوع...) على اليسار في RTL
+                  // ── أيقونات الإجراءات (بحث، خيارات...) على اليسار في RTL ────
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -110,7 +122,7 @@ class DecoratedHeader extends StatelessWidget {
     String? tooltip,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Tooltip(
         message: tooltip ?? '',
         child: InkWell(

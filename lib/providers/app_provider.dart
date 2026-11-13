@@ -343,16 +343,237 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  // ── الاستماع اللحظي للإشعارات والتحديثات ─────────────────────────────────────
-  StreamSubscription<QuerySnapshot>? _notificationsSub;
-  StreamSubscription<DocumentSnapshot>? _appUpdateSub;
+  // ── مستمعات البث اللحظي السحابي (Real-time Firestore Streams) ──────────────
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sheikhsSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _booksSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _seriesSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _lessonsSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _aboutAppSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _appUpdateSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _notificationsSub;
+
   bool _isFirstNotificationsSnapshot = true;
+  bool _hasSyncedCategoriesFromCloud = false;
+  bool _hasSyncedSheikhsFromCloud = false;
+  bool _hasSyncedBooksFromCloud = false;
+  bool _hasSyncedSeriesFromCloud = false;
+  bool _hasSyncedLessonsFromCloud = false;
 
   void _startFirestoreListeners() {
-    _notificationsSub?.cancel();
-    _appUpdateSub?.cancel();
+    _cancelFirestoreListeners();
 
-    // 1. الاستماع اللحظي لمجموعة الإشعارات
+    // 1. الاستماع اللحظي لمجموعة الأقسام (categories)
+    try {
+      _categoriesSub = FirebaseFirestore.instance
+          .collection('categories')
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (snapshot.docs.isNotEmpty || _hasSyncedCategoriesFromCloud) {
+            _hasSyncedCategoriesFromCloud = true;
+            final List<CategoryModel> fetched = [];
+            for (final doc in snapshot.docs) {
+              try {
+                fetched.add(CategoryModel.fromMap(doc.data(), docId: doc.id));
+              } catch (e) {
+                debugPrint('Error parsing category ${doc.id}: $e');
+              }
+            }
+            _categories.clear();
+            _categories.addAll(fetched);
+            recalculateAllCounts();
+            _validateReferencesAfterSync();
+            _saveDataToPersistence();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore categories stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore categories stream setup error: $e');
+    }
+
+    // 2. الاستماع اللحظي لمجموعة الشيوخ (sheikhs)
+    try {
+      _sheikhsSub = FirebaseFirestore.instance
+          .collection('sheikhs')
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (snapshot.docs.isNotEmpty || _hasSyncedSheikhsFromCloud) {
+            _hasSyncedSheikhsFromCloud = true;
+            final List<SheikhModel> fetched = [];
+            for (final doc in snapshot.docs) {
+              try {
+                fetched.add(SheikhModel.fromMap(doc.data(), docId: doc.id));
+              } catch (e) {
+                debugPrint('Error parsing sheikh ${doc.id}: $e');
+              }
+            }
+            _sheikhs.clear();
+            _sheikhs.addAll(fetched);
+            recalculateAllCounts();
+            _validateReferencesAfterSync();
+            _saveDataToPersistence();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore sheikhs stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore sheikhs stream setup error: $e');
+    }
+
+    // 3. الاستماع اللحظي لمجموعة الكتب (books)
+    try {
+      _booksSub = FirebaseFirestore.instance
+          .collection('books')
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (snapshot.docs.isNotEmpty || _hasSyncedBooksFromCloud) {
+            _hasSyncedBooksFromCloud = true;
+            final List<BookModel> fetched = [];
+            for (final doc in snapshot.docs) {
+              try {
+                fetched.add(BookModel.fromMap(doc.data(), docId: doc.id));
+              } catch (e) {
+                debugPrint('Error parsing book ${doc.id}: $e');
+              }
+            }
+            _books.clear();
+            _books.addAll(fetched);
+            recalculateAllCounts();
+            _validateReferencesAfterSync();
+            _saveDataToPersistence();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore books stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore books stream setup error: $e');
+    }
+
+    // 4. الاستماع اللحظي لمجموعة الشروحات (series)
+    try {
+      _seriesSub = FirebaseFirestore.instance
+          .collection('series')
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (snapshot.docs.isNotEmpty || _hasSyncedSeriesFromCloud) {
+            _hasSyncedSeriesFromCloud = true;
+            final List<SeriesModel> fetched = [];
+            for (final doc in snapshot.docs) {
+              try {
+                fetched.add(SeriesModel.fromMap(doc.data(), docId: doc.id));
+              } catch (e) {
+                debugPrint('Error parsing series ${doc.id}: $e');
+              }
+            }
+            _series.clear();
+            _series.addAll(fetched);
+            recalculateAllCounts();
+            _validateReferencesAfterSync();
+            _saveDataToPersistence();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore series stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore series stream setup error: $e');
+    }
+
+    // 5. الاستماع اللحظي لمجموعة الدروس (lessons)
+    try {
+      _lessonsSub = FirebaseFirestore.instance
+          .collection('lessons')
+          .snapshots()
+          .listen(
+        (snapshot) {
+          if (snapshot.docs.isNotEmpty || _hasSyncedLessonsFromCloud) {
+            _hasSyncedLessonsFromCloud = true;
+            final List<LessonModel> fetched = [];
+            for (final doc in snapshot.docs) {
+              try {
+                fetched.add(LessonModel.fromMap(doc.data(), docId: doc.id));
+              } catch (e) {
+                debugPrint('Error parsing lesson ${doc.id}: $e');
+              }
+            }
+            fetched.sort((a, b) => a.order.compareTo(b.order));
+            _lessons.clear();
+            _lessons.addAll(fetched);
+            recalculateAllCounts();
+            _validateReferencesAfterSync();
+            _saveDataToPersistence();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore lessons stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore lessons stream setup error: $e');
+    }
+
+    // 6. الاستماع اللحظي لوثيقة إعدادات عن التطبيق والمشاريع (settings/about_app)
+    try {
+      _aboutAppSub = FirebaseFirestore.instance
+          .collection('settings')
+          .doc('about_app')
+          .snapshots()
+          .listen(
+        (doc) {
+          if (doc.exists && doc.data() != null) {
+            _aboutApp = AboutAppModel.fromMap(doc.data()!);
+            _saveAboutAppLocally();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore about_app stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore about_app stream setup error: $e');
+    }
+
+    // 7. الاستماع اللحظي لوثيقة تحديثات التطبيق (settings/app_update)
+    try {
+      _appUpdateSub = FirebaseFirestore.instance
+          .collection('settings')
+          .doc('app_update')
+          .snapshots()
+          .listen(
+        (doc) {
+          if (doc.exists && doc.data() != null) {
+            _appUpdateInfo = AppUpdateModel.fromMap(doc.data()!);
+            _saveAppUpdateLocally();
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore app_update stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Firestore app_update stream setup error: $e');
+    }
+
+    // 8. الاستماع اللحظي لمجموعة الإشعارات (notifications)
     try {
       _notificationsSub = FirebaseFirestore.instance
           .collection('notifications')
@@ -375,11 +596,13 @@ class AppProvider extends ChangeNotifier {
             for (final change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
                 try {
-                  final data = change.doc.data() as Map<String, dynamic>;
-                  final newNotif =
-                      AppNotificationModel.fromMap(data, docId: change.doc.id);
-                  if (!_notifications.any((n) => n.id == newNotif.id)) {
-                    _showInAppNotificationBanner(newNotif);
+                  final data = change.doc.data();
+                  if (data != null) {
+                    final newNotif =
+                        AppNotificationModel.fromMap(data, docId: change.doc.id);
+                    if (!_notifications.any((n) => n.id == newNotif.id)) {
+                      _showInAppNotificationBanner(newNotif);
+                    }
                   }
                 } catch (_) {}
               }
@@ -390,8 +613,8 @@ class AppProvider extends ChangeNotifier {
 
           _notifications.clear();
           _notifications.addAll(fetched);
-          notifyListeners();
           _saveNotificationsLocally();
+          notifyListeners();
         },
         onError: (e) {
           debugPrint('Firestore notifications listener error: $e');
@@ -400,27 +623,69 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Firestore notifications stream setup error: $e');
     }
+  }
 
-    // 2. الاستماع اللحظي لتحديثات التطبيق
-    try {
-      _appUpdateSub = FirebaseFirestore.instance
-          .collection('settings')
-          .doc('app_update')
-          .snapshots()
-          .listen(
-        (doc) {
-          if (doc.exists && doc.data() != null) {
-            _appUpdateInfo = AppUpdateModel.fromMap(doc.data()!);
-            notifyListeners();
-            _saveAppUpdateLocally();
-          }
-        },
-        onError: (e) {
-          debugPrint('Firestore app_update listener error: $e');
-        },
-      );
-    } catch (e) {
-      debugPrint('Firestore app_update stream setup error: $e');
+  /// إلغاء كافة مستمعات البث بأمان لمنع تسرب الذاكرة
+  void _cancelFirestoreListeners() {
+    _categoriesSub?.cancel();
+    _categoriesSub = null;
+    _sheikhsSub?.cancel();
+    _sheikhsSub = null;
+    _booksSub?.cancel();
+    _booksSub = null;
+    _seriesSub?.cancel();
+    _seriesSub = null;
+    _lessonsSub?.cancel();
+    _lessonsSub = null;
+    _aboutAppSub?.cancel();
+    _aboutAppSub = null;
+    _appUpdateSub?.cancel();
+    _appUpdateSub = null;
+    _notificationsSub?.cancel();
+    _notificationsSub = null;
+  }
+
+  /// التحقق من سلامة المراجع وتطهير السجلات بعد كل مزامنة سحابية
+  void _validateReferencesAfterSync() {
+    // 1. التحقق من سلامة آخر درس تم الاستماع إليه
+    if (_lastPlayedLesson != null && !_lessons.any((l) => l.id == _lastPlayedLesson!.id)) {
+      if (_lessons.isNotEmpty) {
+        _lastPlayedLesson = _lessons.first;
+        _lastPlayedSeries = _series.firstWhere(
+          (s) => s.id == _lastPlayedLesson!.seriesId,
+          orElse: () => _series.isNotEmpty
+              ? _series.first
+              : const SeriesModel(id: '', bookId: '', sheikhId: '', categoryId: '', title: ''),
+        );
+        _lastPlayedBook = getBookById(_lastPlayedSeries?.bookId ?? '');
+        _lastPlayedSheikh = getSheikhById(_lastPlayedSeries?.sheikhId ?? '');
+      } else {
+        _lastPlayedLesson = null;
+        _lastPlayedSeries = null;
+        _lastPlayedBook = null;
+        _lastPlayedSheikh = null;
+      }
+    } else if (_lastPlayedLesson != null) {
+      final updatedLesson = getLessonById(_lastPlayedLesson!.id);
+      if (updatedLesson != null) {
+        _lastPlayedLesson = updatedLesson;
+      }
+      if (_lastPlayedSeries != null) {
+        final updatedSeries = getSeriesById(_lastPlayedSeries!.id);
+        if (updatedSeries != null) {
+          _lastPlayedSeries = updatedSeries;
+        }
+      }
+    }
+
+    // 2. تنظيف الشروحات المحذوفة من قائمة المحفوظات
+    if (_series.isNotEmpty) {
+      _studiedSeriesIds.removeWhere((id) => !_series.any((s) => s.id == id));
+    }
+
+    // 3. تنظيف الدروس المحذوفة من قائمة الدروس المكتملة
+    if (_lessons.isNotEmpty) {
+      _completedLessonIds.removeWhere((id) => !_lessons.any((l) => l.id == id));
     }
   }
 
@@ -1314,6 +1579,8 @@ class AppProvider extends ChangeNotifier {
         ? 1
         : existingLessons.map((l) => l.order).reduce((a, b) => a > b ? a : b) + 1;
 
+    final List<LessonModel> newlyAdded = [];
+
     for (final raw in rawEntries) {
       final line = raw.trim();
       if (line.isEmpty) continue;
@@ -1340,6 +1607,7 @@ class AppProvider extends ChangeNotifier {
       );
 
       _lessons.add(newLesson);
+      newlyAdded.add(newLesson);
       currentOrder++;
       addedCount++;
     }
@@ -1347,6 +1615,20 @@ class AppProvider extends ChangeNotifier {
     if (addedCount > 0) {
       recalculateAllCounts();
       await _saveDataToPersistence();
+      notifyListeners();
+
+      if (isFirebaseConnected && newlyAdded.isNotEmpty) {
+        try {
+          final firestore = FirebaseFirestore.instance;
+          final batch = firestore.batch();
+          for (final l in newlyAdded) {
+            batch.set(firestore.collection('lessons').doc(l.id), l.toMap());
+          }
+          await batch.commit();
+        } catch (e) {
+          debugPrint('Firestore bulkAddLessons batch error: $e');
+        }
+      }
     }
 
     return addedCount;
@@ -1425,38 +1707,7 @@ class AppProvider extends ChangeNotifier {
     _initDefaultState();
     await _loadFromPreferences();
     if (isFirebaseConnected) {
-      await _loadFromFirestore();
       _startFirestoreListeners();
-    }
-  }
-
-  Future<void> _loadFromFirestore() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('about_app')
-          .get();
-      if (doc.exists && doc.data() != null) {
-        _aboutApp = AboutAppModel.fromMap(doc.data()!);
-        notifyListeners();
-        await _saveAboutAppLocally();
-      }
-    } catch (e) {
-      debugPrint('Firestore load about_app error: $e');
-    }
-
-    try {
-      final updateDoc = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('app_update')
-          .get();
-      if (updateDoc.exists && updateDoc.data() != null) {
-        _appUpdateInfo = AppUpdateModel.fromMap(updateDoc.data()!);
-        notifyListeners();
-        await _saveAppUpdateLocally();
-      }
-    } catch (e) {
-      debugPrint('Firestore load app_update error: $e');
     }
   }
 
@@ -1611,8 +1862,7 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _notificationsSub?.cancel();
-    _appUpdateSub?.cancel();
+    _cancelFirestoreListeners();
     super.dispose();
   }
 }
