@@ -64,6 +64,11 @@ class StatisticsScreen extends StatelessWidget {
 
                       const SizedBox(height: 18),
 
+                      // ── إحصائيات الورد العلمي والمداومة ──────────────────
+                      _buildHabitStatsCard(appProvider),
+
+                      const SizedBox(height: 18),
+
                       // ── إحصائيات مكتبة التطبيق ───────────────────────────
                       _buildLibrarySummaryGrid(
                         sheikhs: totalSheikhs,
@@ -280,6 +285,158 @@ class StatisticsScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// بطاقة إحصائيات الورد اليومي وسلسلة الاستمرارية
+  Widget _buildHabitStatsCard(AppProvider appProvider) {
+    final progress = appProvider.dailyGoalProgress;
+    final isCompleted = appProvider.isDailyGoalCompleted;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_stories_rounded,
+                    color: AppColors.iconGold,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'الورد العلمي وسلسلة المداومة',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryDarkBrown,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: appProvider.streakCount > 0
+                      ? const Color(0xFFFFF3E0)
+                      : AppColors.scaffoldCream,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: appProvider.streakCount > 0
+                        ? const Color(0xFFFFB74D)
+                        : AppColors.dividerLight,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      color: appProvider.streakCount > 0
+                          ? const Color(0xFFE65100)
+                          : AppColors.textSecondary,
+                      size: 15,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${appProvider.streakCount} أيام',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: appProvider.streakCount > 0
+                            ? const Color(0xFFBF360C)
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // المقاييس الثلاثة للورد والمداومة
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildAchievementMetric(
+                icon: Icons.timer_outlined,
+                value: '${appProvider.todayListeningMinutes} د',
+                label: 'استماع اليوم',
+              ),
+              Container(width: 1, height: 36, color: AppColors.dividerLight),
+              _buildAchievementMetric(
+                icon: Icons.flag_outlined,
+                value: '${appProvider.dailyGoalMinutes} د',
+                label: 'الهدف اليومي',
+              ),
+              Container(width: 1, height: 36, color: AppColors.dividerLight),
+              _buildAchievementMetric(
+                icon: Icons.emoji_events_outlined,
+                value: '${appProvider.longestStreak} يوماً',
+                label: 'أفضل مداومة',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // شريط نسبة إنجاز ورد اليوم
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isCompleted
+                    ? '✨ تم إنجاز ورد اليوم كاملاً'
+                    : 'إنجاز ورد اليوم: ${(progress * 100).toInt()}%',
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isCompleted ? const Color(0xFF2E7D32) : AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '${appProvider.todayListeningMinutes} / ${appProvider.dailyGoalMinutes} دقيقة',
+                style: GoogleFonts.readexPro(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: AppColors.scaffoldCream,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isCompleted ? const Color(0xFF2E7D32) : AppColors.iconGold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

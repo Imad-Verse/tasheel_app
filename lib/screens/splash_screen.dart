@@ -28,6 +28,27 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   Timer? _splashTimer;
+  bool _hasNavigated = false;
+
+  void _navigateToMain() {
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+    _splashTimer?.cancel();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const MainScaffold(),
+        transitionsBuilder:
+            (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -56,24 +77,9 @@ class _SplashScreenState extends State<SplashScreen>
     // بدء الحركة
     _controller.forward();
 
-    // الانتقال بعد 2.5 ثانية بحركة تلاشٍ أنيقة
-    _splashTimer = Timer(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const MainScaffold(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 600),
-          ),
-        );
-      }
+    // الانتقال بعد 2.2 ثانية بحركة تلاشٍ أنيقة ومستقلة عن أي شبكة أو مزامنة
+    _splashTimer = Timer(const Duration(milliseconds: 2200), () {
+      _navigateToMain();
     });
   }
 
@@ -91,7 +97,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     return Scaffold(
       backgroundColor: splashBgColor,
-      body: Stack(
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _navigateToMain,
+        child: Stack(
         fit: StackFit.expand,
         children: [
           // ── صورة شاشة البداية الرسمية مع الحركات الناعمة ────────────────
@@ -140,6 +149,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }

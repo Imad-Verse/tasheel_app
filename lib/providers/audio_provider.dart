@@ -77,6 +77,25 @@ class AudioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── تتبع الورد اليومي والاستماع النشط ─────────────────────────────────────
+  static void Function(int seconds)? onListeningSecondRecorded;
+  Timer? _listeningTicker;
+
+  void _updateListeningTicker() {
+    if (_isPlaying) {
+      if (_listeningTicker == null || !_listeningTicker!.isActive) {
+        _listeningTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (_isPlaying) {
+            onListeningSecondRecorded?.call(1);
+          }
+        });
+      }
+    } else {
+      _listeningTicker?.cancel();
+      _listeningTicker = null;
+    }
+  }
+
   // ─── مؤقت النوم (Sleep Timer) ───────────────────────────────────────────
   Timer? _sleepTimer;
   Timer? _countdownTimer;
@@ -161,6 +180,7 @@ class AudioProvider extends ChangeNotifier {
       final processingState = state.processingState;
 
       _isPlaying = isNowPlaying && processingState != ProcessingState.completed;
+      _updateListeningTicker();
       _isBuffering =
           processingState == ProcessingState.buffering ||
           processingState == ProcessingState.loading;
@@ -647,6 +667,7 @@ class AudioProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _listeningTicker?.cancel();
     _playerStateSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();

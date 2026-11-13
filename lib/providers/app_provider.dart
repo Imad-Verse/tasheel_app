@@ -9,6 +9,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
+import '../services/study_reminder_service.dart';
+import 'audio_provider.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// مزود الحالة الشامل للتطبيق ولوحة التحكم السحابية (AppProvider)
@@ -20,6 +22,8 @@ import '../services/mock_data_service.dart';
 /// - عمليات الإدارة الكاملة (CRUD) والإضافة الجماعية Bulk Add للدروس.
 /// - التحديث التلقائي للعدادات والإحصائيات عبر recalculateAllCounts().
 /// - تتبع آخر درس مستمع والمحفوظات وإعدادات التطبيق.
+/// - تتبع الورد العلمي اليومي (Daily Study Goal) وسلسلة الاستمرارية (Streak Tracker).
+/// - إدارة التذكير اليومي بطلب العلم (Daily Study Reminder).
 /// ═══════════════════════════════════════════════════════════════════════════
 class AppProvider extends ChangeNotifier {
   final bool isFirebaseConnected;
@@ -32,6 +36,10 @@ class AppProvider extends ChangeNotifier {
   String currentAppVersion = '1.0.0';
 
   AppProvider({this.isFirebaseConnected = false}) {
+    // ربط ثواني الاستماع في الخلفية والأمامية مع تتبع الورد العلمي اليومي
+    AudioProvider.onListeningSecondRecorded = (seconds) {
+      addListeningSeconds(seconds);
+    };
     _initData();
   }
 
@@ -41,6 +49,17 @@ class AppProvider extends ChangeNotifier {
   static const String _keyUserName = 'tasheel_user_name';
   static const String _keyFontSize = 'tasheel_font_size';
   static const String _keyAutoPlay = 'tasheel_autoplay_next';
+
+  // مفاتيح الورد العلمي وسلسلة الاستمرارية والتذكير اليومي
+  static const String _keyDailyGoalMinutes = 'tasheel_daily_goal_minutes';
+  static const String _keyTodayListeningSeconds = 'tasheel_today_listening_seconds';
+  static const String _keyTodayDate = 'tasheel_today_date';
+  static const String _keyStreakCount = 'tasheel_streak_count';
+  static const String _keyLongestStreak = 'tasheel_longest_streak';
+  static const String _keyLastActiveDate = 'tasheel_last_active_date';
+  static const String _keyDailyReminderEnabled = 'tasheel_daily_reminder_enabled';
+  static const String _keyDailyReminderHour = 'tasheel_daily_reminder_hour';
+  static const String _keyDailyReminderMinute = 'tasheel_daily_reminder_minute';
 
   // مفاتيح حفظ المحتوى الإداري محلياً
   static const String _keyAdminCategories = 'tasheel_admin_categories';
@@ -87,6 +106,206 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> clearCache() async {
     notifyListeners();
+  }
+
+  // ─── 0.1 الورد العلمي وسلسلة الاستمرارية والتذكير اليومي ───────────────────
+  int _dailyGoalMinutes = 30; // 15, 30, 45, 60, 90
+  int _todayListeningSeconds = 0;
+  String _todayDate = '';
+  int _streakCount = 0;
+  int _longestStreak = 0;
+  String _lastActiveDate = '';
+  bool _dailyReminderEnabled = true;
+  int _dailyReminderHour = 7;
+  int _dailyReminderMinute = 0;
+  bool _dailyGoalCelebrationShownToday = false;
+  int _unsavedSecondsBuffer = 0;
+
+  int get dailyGoalMinutes => _dailyGoalMinutes;
+  int get todayListeningSeconds => _todayListeningSeconds;
+  int get todayListeningMinutes => (_todayListeningSeconds / 60).floor();
+  double get dailyGoalProgress => _dailyGoalMinutes > 0
+      ? (_todayListeningSeconds / (_dailyGoalMinutes * 60)).clamp(0.0, 1.0)
+      : 0.0;
+  bool get isDailyGoalCompleted => _dailyGoalMinutes > 0 && _todayListeningSeconds >= (_dailyGoalMinutes * 60);
+
+  int get streakCount => _streakCount;
+  int get longestStreak => _longestStreak;
+  bool get isStreakActiveToday => _lastActiveDate == _getTodayDateString() && _todayListeningSeconds >= 30;
+
+  bool get dailyReminderEnabled => _dailyReminderEnabled;
+  int get dailyReminderHour => _dailyReminderHour;
+  int get dailyReminderMinute => _dailyReminderMinute;
+  TimeOfDay get dailyReminderTime => TimeOfDay(hour: _dailyReminderHour, minute: _dailyReminderMinute);
+  String get formattedDailyReminderTime {
+    final hour = _dailyReminderHour;
+    final minute = _dailyReminderMinute.toString().padLeft(2, '0');
+    final isPm = hour >= 12;
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final period = isPm ? 'م' : 'ص';
+    return '$displayHour:$minute $period';
+  }
+
+  String _getTodayDateString() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  String _getYesterdayDateString() {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+  }
+
+  void _checkDayRollover() {
+    final today = _getTodayDateString();
+    if (_todayDate.isEmpty) {
+      _todayDate = today;
+    } else if (_todayDate != today) {
+      _todayDate = today;
+      _todayListeningSeconds = 0;
+      _dailyGoalCelebrationShownToday = false;
+
+      final yesterday = _getYesterdayDateString();
+      if (_lastActiveDate.isNotEmpty && _lastActiveDate != yesterday && _lastActiveDate != today) {
+        // انقطاع أكثر من يوم
+        _streakCount = 0;
+      }
+      _saveStudyHabitPreferences();
+      notifyListeners();
+    }
+  }
+
+  void addListeningSeconds(int seconds) {
+    if (seconds <= 0) return;
+    _checkDayRollover();
+    _todayListeningSeconds += seconds;
+    _unsavedSecondsBuffer += seconds;
+
+    final today = _getTodayDateString();
+    // تفعيل وتحديث السلسلة بمجرد الاستماع لـ 30 ثانية فأكثر
+    if (_lastActiveDate != today && _todayListeningSeconds >= 30) {
+      final yesterday = _getYesterdayDateString();
+      if (_lastActiveDate == yesterday) {
+        _streakCount++;
+      } else {
+        _streakCount = 1;
+      }
+      _lastActiveDate = today;
+      if (_streakCount > _longestStreak) {
+        _longestStreak = _streakCount;
+      }
+      _saveStudyHabitPreferences();
+    }
+
+    // تنبيه إتمام الورد اليومي
+    if (_dailyGoalMinutes > 0 &&
+        _todayListeningSeconds >= (_dailyGoalMinutes * 60) &&
+        !_dailyGoalCelebrationShownToday) {
+      _dailyGoalCelebrationShownToday = true;
+      _showInAppNotificationBanner(
+        AppNotificationModel(
+          id: 'goal_completed_${DateTime.now().millisecondsSinceEpoch}',
+          title: 'أتممت وردك اليومي بحمد الله! 🌟',
+          body: 'مبارك يا طالب العلم، حققت ورد الـ $_dailyGoalMinutes دقيقة اليوم، جعلها الله في ميزان حسناتك.',
+          type: 'general',
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+
+    // حفظ كل 15 ثانية لتخفيف الكتابة على القرص
+    if (_unsavedSecondsBuffer >= 15) {
+      _unsavedSecondsBuffer = 0;
+      _saveStudyHabitPreferences();
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setDailyGoalMinutes(int minutes) async {
+    _dailyGoalMinutes = minutes;
+    notifyListeners();
+    await _saveStudyHabitPreferences();
+  }
+
+  Future<void> setDailyReminderEnabled(bool enabled) async {
+    _dailyReminderEnabled = enabled;
+    if (enabled) {
+      await StudyReminderService.instance.requestPermissions();
+      await StudyReminderService.instance.scheduleDailyReminder(
+        hour: _dailyReminderHour,
+        minute: _dailyReminderMinute,
+      );
+    } else {
+      await StudyReminderService.instance.cancelDailyReminder();
+    }
+    notifyListeners();
+    await _saveStudyHabitPreferences();
+  }
+
+  Future<void> setDailyReminderTime(TimeOfDay time) async {
+    _dailyReminderHour = time.hour;
+    _dailyReminderMinute = time.minute;
+    if (_dailyReminderEnabled) {
+      await StudyReminderService.instance.scheduleDailyReminder(
+        hour: _dailyReminderHour,
+        minute: _dailyReminderMinute,
+      );
+    }
+    notifyListeners();
+    await _saveStudyHabitPreferences();
+  }
+
+  Future<void> resetStreak() async {
+    _streakCount = 0;
+    _lastActiveDate = '';
+    notifyListeners();
+    await _saveStudyHabitPreferences();
+  }
+
+  Future<void> _loadStudyHabitPreferences(SharedPreferences prefs) async {
+    try {
+      _dailyGoalMinutes = prefs.getInt(_keyDailyGoalMinutes) ?? 30;
+      _todayDate = prefs.getString(_keyTodayDate) ?? _getTodayDateString();
+      _todayListeningSeconds = prefs.getInt(_keyTodayListeningSeconds) ?? 0;
+      _streakCount = prefs.getInt(_keyStreakCount) ?? 0;
+      _longestStreak = prefs.getInt(_keyLongestStreak) ?? 0;
+      _lastActiveDate = prefs.getString(_keyLastActiveDate) ?? '';
+      _dailyReminderEnabled = prefs.getBool(_keyDailyReminderEnabled) ?? true;
+      _dailyReminderHour = prefs.getInt(_keyDailyReminderHour) ?? 7;
+      _dailyReminderMinute = prefs.getInt(_keyDailyReminderMinute) ?? 0;
+
+      // فحص إذا كان تاريخ اليوم المسجل مختلفاً عن اليوم الفعلي
+      _checkDayRollover();
+
+      // تهيئة خدمة التذكيرات اليومية بأمان مع مهلة زمنية
+      try {
+        await StudyReminderService.instance.init().timeout(const Duration(seconds: 3));
+        if (_dailyReminderEnabled) {
+          await StudyReminderService.instance.scheduleDailyReminder(
+            hour: _dailyReminderHour,
+            minute: _dailyReminderMinute,
+          ).timeout(const Duration(seconds: 3));
+        }
+      } catch (e) {
+        debugPrint('Study reminder init timeout/error: $e');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveStudyHabitPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyDailyGoalMinutes, _dailyGoalMinutes);
+      await prefs.setString(_keyTodayDate, _todayDate);
+      await prefs.setInt(_keyTodayListeningSeconds, _todayListeningSeconds);
+      await prefs.setInt(_keyStreakCount, _streakCount);
+      await prefs.setInt(_keyLongestStreak, _longestStreak);
+      await prefs.setString(_keyLastActiveDate, _lastActiveDate);
+      await prefs.setBool(_keyDailyReminderEnabled, _dailyReminderEnabled);
+      await prefs.setInt(_keyDailyReminderHour, _dailyReminderHour);
+      await prefs.setInt(_keyDailyReminderMinute, _dailyReminderMinute);
+    } catch (_) {}
   }
 
   // ─── 0.1 إعدادات صفحة عن التطبيق والتواصل والمشاريع ─────────────────────────
@@ -1767,17 +1986,29 @@ class AppProvider extends ChangeNotifier {
   // ═══════════════════════════════════════════════════════════════════════════
   Future<void> _initData() async {
     _initDefaultState();
-    await _loadAppVersion();
-    await _loadFromPreferences();
+    try {
+      await _loadAppVersion().timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('App version load timeout/error: $e');
+    }
+    try {
+      await _loadFromPreferences().timeout(const Duration(seconds: 4));
+    } catch (e) {
+      debugPrint('Preferences load timeout/error: $e');
+    }
     if (isFirebaseConnected) {
-      _startFirestoreListeners();
+      try {
+        _startFirestoreListeners();
+      } catch (e) {
+        debugPrint('Firestore listeners error: $e');
+      }
     }
   }
 
-  /// جلب رقم الإصدار الفعلي للتطبيق تلقائياً عبر PackageInfo
+  /// جلب رقم الإصدار الفعلي للتطبيق تلقائياً عبر PackageInfo بأمان
   Future<void> _loadAppVersion() async {
     try {
-      final packageInfo = await PackageInfo.fromPlatform();
+      final packageInfo = await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2));
       if (packageInfo.version.trim().isNotEmpty) {
         currentAppVersion = packageInfo.version.trim();
         notifyListeners();
@@ -1911,6 +2142,9 @@ class AppProvider extends ChangeNotifier {
 
       // تحميل فوائد الدروس المسجلة
       await _loadLessonNotes(prefs);
+
+      // تحميل إعدادات الورد العلمي وسلسلة الاستمرارية والتذكير اليومي
+      await _loadStudyHabitPreferences(prefs);
       notifyListeners();
     } catch (_) {
       // الاعتماد على البيانات الافتراضية

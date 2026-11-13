@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
+import '../services/study_reminder_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// شاشة إعدادات التطبيق (SettingsScreen)
@@ -67,6 +68,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       // ── بطاقة مشغل الصوتيات ──────────────────────────────
                       _buildAudioPlayerSettingsCard(context, appProvider),
+
+                      const SizedBox(height: 16),
+
+                      // ── بطاقة الورد العلمي والتذكير اليومي ───────────────
+                      _buildStudyHabitsSettingsCard(context, appProvider),
 
                       const SizedBox(height: 16),
 
@@ -557,5 +563,377 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// بطاقة الورد العلمي وسلسلة الاستمرارية والتذكير اليومي
+  Widget _buildStudyHabitsSettingsCard(
+    BuildContext context,
+    AppProvider appProvider,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_stories_rounded,
+                color: AppColors.iconGold,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'الورد العلمي والتذكير اليومي',
+                style: GoogleFonts.readexPro(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // ── 1. تحديد الهدف اليومي ──
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'الهدف اليومي للاستماع',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'المدة المحددة: ${appProvider.dailyGoalMinutes} دقيقة يومياً',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () => _openGoalSelectionDialog(context, appProvider),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.scaffoldCream,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.dividerLight),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.edit_calendar_rounded, size: 14, color: AppColors.iconGold),
+                      const SizedBox(width: 4),
+                      Text(
+                        'تعديل',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryDarkBrown,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: AppColors.dividerLight, height: 1),
+          ),
+
+          // ── 2. تفعيل التذكير اليومي ──
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'التذكير اليومي بطلب العلم',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'إرسال إشعار في الموعد المفضل لمواصلة الورد',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: appProvider.dailyReminderEnabled,
+                onChanged: (val) => appProvider.setDailyReminderEnabled(val),
+                activeColor: AppColors.primaryDarkBrown,
+                activeTrackColor: AppColors.accentGoldBeige,
+              ),
+            ],
+          ),
+
+          // ── 3. موعد التذكير إن كان مفعلاً ──
+          if (appProvider.dailyReminderEnabled) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'موعد التذكير',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        appProvider.formattedDailyReminderTime,
+                        style: GoogleFonts.readexPro(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.iconGold,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () => _pickReminderTime(context, appProvider),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.scaffoldCream,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.dividerLight),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 14, color: AppColors.iconGold),
+                        const SizedBox(width: 4),
+                        Text(
+                          'تغيير الوقت',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryDarkBrown,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await StudyReminderService.instance.showInstantReminder(
+                  title: 'حان وقت وردك العلمي 📖',
+                  body: 'يا طالب العلم، خصص وقتاً لسماع درسك اليومي ومواصلة سلسلة استمرارك.',
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'تم إرسال إشعار تجريبي بنجاح!',
+                        style: GoogleFonts.readexPro(),
+                      ),
+                      backgroundColor: AppColors.primaryDarkBrown,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.notifications_active_outlined, size: 16),
+              label: Text(
+                'تجربة إرسال إشعار التذكير الآن',
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primaryDarkBrown,
+                side: const BorderSide(color: AppColors.dividerLight),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: AppColors.dividerLight, height: 1),
+          ),
+
+          // ── 4. حالة سلسلة الاستمرارية ──
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.scaffoldCream,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.dividerLight),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFE65100),
+                  size: 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'سلسلة الاستمرارية: ${appProvider.streakCount} أيام متتالية',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'أفضل مداومة حققتها: ${appProvider.longestStreak} يوماً',
+                        style: GoogleFonts.readexPro(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openGoalSelectionDialog(BuildContext context, AppProvider appProvider) {
+    const options = [15, 30, 45, 60, 90];
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.scaffoldCream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              const Icon(Icons.auto_stories_rounded, color: AppColors.iconGold),
+              const SizedBox(width: 8),
+              Text(
+                'اختر الورد اليومي',
+                style: GoogleFonts.readexPro(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDarkBrown,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((mins) {
+              final isSelected = appProvider.dailyGoalMinutes == mins;
+              return ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                tileColor: isSelected ? AppColors.accentGoldBeige.withValues(alpha: 0.2) : null,
+                leading: Icon(
+                  isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  color: isSelected ? AppColors.primaryDarkBrown : AppColors.dividerLight,
+                ),
+                title: Text(
+                  '$mins دقيقة يومياً',
+                  style: GoogleFonts.readexPro(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                onTap: () {
+                  appProvider.setDailyGoalMinutes(mins);
+                  Navigator.pop(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickReminderTime(BuildContext context, AppProvider appProvider) async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: appProvider.dailyReminderTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryDarkBrown,
+              onPrimary: AppColors.textGoldLight,
+              surface: AppColors.scaffoldCream,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: child!,
+          ),
+        );
+      },
+    );
+
+    if (pickedTime != null && context.mounted) {
+      await appProvider.setDailyReminderTime(pickedTime);
+    }
   }
 }

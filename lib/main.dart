@@ -15,44 +15,61 @@ import 'screens/splash_screen.dart';
 /// تطبيق تسهيل - طريقك لتيسير العلوم الشرعية
 /// ═══════════════════════════════════════════════════════════════════════════
 /// نقطة الدخول الرئيسية للتطبيق.
-/// يُهيئ Firebase بأمان (Safe Initialization)، ويضبط Provider لإدارة الحالة،
-/// ويحدد الاتجاه RTL الافتراضي لكامل التطبيق.
+/// يُهيئ مشغل الصوتيات و Firebase بأمان (Safe Initialization مع Timeout وحماية)،
+/// ويضبط Provider لإدارة الحالة، ويحدد الاتجاه RTL الافتراضي لكامل التطبيق.
 /// ═══════════════════════════════════════════════════════════════════════════
+
+bool _isAudioBackgroundInitialized = false;
+
+Future<void> _safeInitAudioBackground() async {
+  if (_isAudioBackgroundInitialized) return;
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.madoverse.tasheel.channel.audio',
+      androidNotificationChannelName: 'تطبيق تسهيل - مشغل الدروس الصوتية',
+      androidNotificationChannelDescription: 'شريط التحكم في تشغيل الدروس والشروحات الشرعية',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+      androidNotificationIcon: 'mipmap/ic_launcher',
+      notificationColor: const Color(0xFF4A3B32),
+    ).timeout(const Duration(seconds: 4));
+    _isAudioBackgroundInitialized = true;
+    debugPrint('JustAudioBackground initialized successfully.');
+  } catch (e) {
+    debugPrint('JustAudioBackground safe initialization error/timeout: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة مشغل الصوتيات للعمل في الخلفية وشاشة القفل
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.tasheel.tasheel_app.channel.audio',
-    androidNotificationChannelName: 'تطبيق تسهيل - مشغل الدروس الصوتية',
-    androidNotificationChannelDescription: 'شريط التحكم في تشغيل الدروس والشروحات الشرعية',
-    androidNotificationOngoing: true,
-    androidStopForegroundOnPause: true,
-    androidNotificationIcon: 'mipmap/ic_launcher',
-    notificationColor: const Color(0xFF4A3B32),
-  );
+  // 1. تهيئة مشغل الصوتيات للعمل في الخلفية وشاشة القفل بأمان مع مهلة زمنية
+  await _safeInitAudioBackground();
 
-  // تهيئة Firebase عبر DefaultFirebaseOptions مع معالجة الأخطاء بأمان
+  // 2. تهيئة Firebase عبر DefaultFirebaseOptions بأمان مع مهلة زمنية
   bool isFirebaseConnected = false;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    );
+    ).timeout(const Duration(seconds: 4));
     isFirebaseConnected = true;
     debugPrint('Firebase initialized successfully with DefaultFirebaseOptions.');
   } catch (e) {
-    debugPrint('Firebase not configured yet or platform offline, running in local mode: $e');
+    debugPrint('Firebase safe initialization warning (local mode): $e');
   }
 
-  // ضبط ألوان شريط الحالة
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-    ),
-  );
+  // 3. ضبط ألوان شريط الحالة
+  try {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
+  } catch (_) {}
 
+  // 4. تشغيل التطبيق دائماً دون تأخير أو توقف
   runApp(TasheelApp(isFirebaseConnected: isFirebaseConnected));
 }
 
