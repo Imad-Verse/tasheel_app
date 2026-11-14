@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:home_widget/home_widget.dart';
+import '../config/app_flavor.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
@@ -330,6 +331,7 @@ class AppProvider extends ChangeNotifier {
     required String shareDescription,
     required String shareUrl,
   }) async {
+    if (!kIsAdminBuild) return;
     _aboutApp = _aboutApp.copyWith(
       appDescription: appDescription.trim(),
       telegramUrl: telegramUrl.trim(),
@@ -355,6 +357,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> addOurProject(OurProjectModel project) async {
+    if (!kIsAdminBuild) return;
     final currentList = List<OurProjectModel>.from(_aboutApp.projects);
     currentList.add(project);
     _aboutApp = _aboutApp.copyWith(projects: currentList);
@@ -373,6 +376,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateOurProject(OurProjectModel project) async {
+    if (!kIsAdminBuild) return;
     final currentList = List<OurProjectModel>.from(_aboutApp.projects);
     final idx = currentList.indexWhere((p) => p.id == project.id);
     if (idx != -1) {
@@ -394,6 +398,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> deleteOurProject(String projectId) async {
+    if (!kIsAdminBuild) return;
     final currentList = List<OurProjectModel>.from(_aboutApp.projects);
     currentList.removeWhere((p) => p.id == projectId);
     _aboutApp = _aboutApp.copyWith(projects: currentList);
@@ -493,6 +498,7 @@ class AppProvider extends ChangeNotifier {
     String type = 'general',
     String? actionUrl,
   }) async {
+    if (!kIsAdminBuild) return;
     final newNotif = AppNotificationModel(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
       title: title.trim(),
@@ -520,6 +526,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حذف إشعار من السجل السحابي والمحلي
   Future<void> deleteNotification(String id) async {
+    if (!kIsAdminBuild) return;
     _notifications.removeWhere((n) => n.id == id);
     _readNotificationIds.remove(id);
     notifyListeners();
@@ -543,6 +550,7 @@ class AppProvider extends ChangeNotifier {
     AppUpdateModel updateInfo, {
     bool notifyUsers = true,
   }) async {
+    if (!kIsAdminBuild) return;
     _appUpdateInfo = updateInfo;
     notifyListeners();
     await _saveAppUpdateLocally();
@@ -1998,6 +2006,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── الأقسام ───────────────────────────────────────────────────────────────
   Future<void> addCategory(CategoryModel category) async {
+    if (!kIsAdminBuild) return;
     _categories.add(category);
     recalculateAllCounts();
     await _saveDataToPersistence();
@@ -2014,6 +2023,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateCategory(CategoryModel category) async {
+    if (!kIsAdminBuild) return;
     final idx = _categories.indexWhere((c) => c.id == category.id);
     if (idx != -1) {
       _categories[idx] = category;
@@ -2036,6 +2046,7 @@ class AppProvider extends ChangeNotifier {
   /// يحذف القسم، والكتب التابعة له، والشروحات التابعة لتلك الكتب،
   /// وجميع الدروس والتفريغات التابعة لها، وأي شيخ لا يملك شروحات إلا في هذا القسم.
   Future<void> deleteCategory(String categoryId) async {
+    if (!kIsAdminBuild) return;
     final booksToDelete = _books.where((b) => b.categoryId == categoryId).map((b) => b.id).toSet();
     final seriesToDelete = _series
         .where((s) => s.categoryId == categoryId || booksToDelete.contains(s.bookId))
@@ -2101,6 +2112,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── الشيوخ ────────────────────────────────────────────────────────────────
   Future<void> addSheikh(SheikhModel sheikh) async {
+    if (!kIsAdminBuild) return;
     _sheikhs.add(sheikh);
     recalculateAllCounts();
     await _saveDataToPersistence();
@@ -2117,6 +2129,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateSheikh(SheikhModel sheikh) async {
+    if (!kIsAdminBuild) return;
     final idx = _sheikhs.indexWhere((s) => s.id == sheikh.id);
     if (idx != -1) {
       _sheikhs[idx] = sheikh;
@@ -2139,6 +2152,7 @@ class AppProvider extends ChangeNotifier {
   /// يحذف الشيخ، وجميع شروحاته، والدروس والتفريغات التابعة لها،
   /// وأي كتاب لم يعد له أي شرح آخر في التطبيق.
   Future<void> deleteSheikh(String sheikhId) async {
+    if (!kIsAdminBuild) return;
     final seriesToDelete = _series.where((s) => s.sheikhId == sheikhId).map((s) => s.id).toSet();
     final lessonsToDelete = _lessons
         .where((l) => seriesToDelete.contains(l.seriesId))
@@ -2196,6 +2210,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── الكتب ─────────────────────────────────────────────────────────────────
   Future<void> addBook(BookModel book) async {
+    if (!kIsAdminBuild) return;
     _books.add(book);
     recalculateAllCounts();
     await _saveDataToPersistence();
@@ -2212,6 +2227,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateBook(BookModel book) async {
+    if (!kIsAdminBuild) return;
     final idx = _books.indexWhere((b) => b.id == book.id);
     if (idx != -1) {
       _books[idx] = book;
@@ -2233,6 +2249,7 @@ class AppProvider extends ChangeNotifier {
   /// حذف الكتاب تتابعياً (Cascading Delete):
   /// يحذف الكتاب، وجميع شروحاته، والدروس والتفريغات التابعة لتلك الشروحات.
   Future<void> deleteBook(String bookId) async {
+    if (!kIsAdminBuild) return;
     final seriesToDelete = _series.where((s) => s.bookId == bookId).map((s) => s.id).toSet();
     final lessonsToDelete = _lessons
         .where((l) => seriesToDelete.contains(l.seriesId))
@@ -2275,6 +2292,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── الشروحات ──────────────────────────────────────────────────────────────
   Future<void> addSeries(SeriesModel seriesItem) async {
+    if (!kIsAdminBuild) return;
     _series.add(seriesItem);
     recalculateAllCounts();
     await _saveDataToPersistence();
@@ -2291,6 +2309,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateSeries(SeriesModel seriesItem) async {
+    if (!kIsAdminBuild) return;
     final idx = _series.indexWhere((s) => s.id == seriesItem.id);
     if (idx != -1) {
       _series[idx] = seriesItem;
@@ -2312,6 +2331,7 @@ class AppProvider extends ChangeNotifier {
   /// حذف الشرح تتابعياً (Cascading Delete):
   /// يحذف الشرح، وجميع الدروس والتفريغات التابعة له.
   Future<void> deleteSeries(String seriesId) async {
+    if (!kIsAdminBuild) return;
     final lessonsToDelete = _lessons.where((l) => l.seriesId == seriesId).map((l) => l.id).toSet();
 
     _series.removeWhere((s) => s.id == seriesId);
@@ -2345,6 +2365,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── الدروس (فردية + جماعية Bulk Add) ──────────────────────────────────────
   Future<void> addLesson(LessonModel lesson) async {
+    if (!kIsAdminBuild) return;
     _lessons.add(lesson);
     recalculateAllCounts();
     await _saveDataToPersistence();
@@ -2361,6 +2382,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> updateLesson(LessonModel lesson) async {
+    if (!kIsAdminBuild) return;
     final idx = _lessons.indexWhere((l) => l.id == lesson.id);
     if (idx != -1) {
       _lessons[idx] = lesson;
@@ -2382,6 +2404,7 @@ class AppProvider extends ChangeNotifier {
   /// حذف الدرس:
   /// يحذف الدرس وتفريغه الصوتي وينظفه من سجلات المشغل والمحفوظات.
   Future<void> deleteLesson(String lessonId) async {
+    if (!kIsAdminBuild) return;
     _lessons.removeWhere((l) => l.id == lessonId);
 
     _cleanUpAfterDeletion(deletedLessonIds: {lessonId});
@@ -2404,6 +2427,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حذف التفريغ النصي فقط للدرس مع الحفاظ على الملف الصوتي والدرس
   Future<void> deleteLessonTranscript(String lessonId) async {
+    if (!kIsAdminBuild) return;
     final idx = _lessons.indexWhere((l) => l.id == lessonId);
     if (idx != -1) {
       _lessons[idx] = _lessons[idx].copyWith(transcript: '');
@@ -2475,6 +2499,7 @@ class AppProvider extends ChangeNotifier {
     required String titlePrefix,
     required List<String> rawEntries,
   }) async {
+    if (!kIsAdminBuild) return 0;
     int addedCount = 0;
     final existingLessons = getLessonsBySeries(seriesId);
     int currentOrder = existingLessons.isEmpty
@@ -2538,6 +2563,7 @@ class AppProvider extends ChangeNotifier {
 
   /// تحديث التفريغ النصي لدرس معين
   Future<void> updateLessonTranscript(String lessonId, String newTranscript) async {
+    if (!kIsAdminBuild) return;
     final idx = _lessons.indexWhere((l) => l.id == lessonId);
     if (idx != -1) {
       _lessons[idx] = _lessons[idx].copyWith(transcript: newTranscript.trim());
@@ -2560,6 +2586,7 @@ class AppProvider extends ChangeNotifier {
   // ─── 11. رفع البيانات الأولية إلى السحابة (Seed Data to Firestore) ────────
   // ═══════════════════════════════════════════════════════════════════════════
   Future<bool> seedDataToFirestore() async {
+    if (!kIsAdminBuild) return false;
     if (!isFirebaseConnected) return false;
 
     try {

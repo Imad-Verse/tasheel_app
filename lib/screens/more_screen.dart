@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
+import '../config/app_flavor.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
 import 'about_app_screen.dart';
+import 'admin/admin_dashboard_screen.dart';
 import 'downloads_screen.dart';
 import 'notes_notebook_screen.dart';
 import 'playlists_screen.dart';
@@ -128,13 +130,59 @@ class MoreScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'تطبيق تسهيل للعلوم الشرعية • الإصدار ${appProvider.currentAppVersion}',
-                        style: GoogleFonts.readexPro(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                      if (kIsAdminBuild)
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              'تطبيق تسهيل للعلوم الشرعية • الإصدار ${appProvider.currentAppVersion}',
+                              style: GoogleFonts.readexPro(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryDarkBrown,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.iconGold,
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryDarkBrown.withValues(alpha: 0.15),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                '(نسخة الإدارة - Admin)',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textGoldLight,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          'تطبيق تسهيل للعلوم الشرعية • الإصدار ${appProvider.currentAppVersion}',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -208,9 +256,21 @@ class MoreScreen extends StatelessWidget {
     );
   }
 
-  /// البطاقة البيضاء الأولى: المحفوظات، التنزيلات، الإعدادات، الإحصائيات
+  /// البطاقة البيضاء الأولى: لوحة التحكم (نسخة الإدارة فقط)، المحفوظات، التنزيلات، الإعدادات، الإحصائيات
   Widget _buildFirstMenuCard(BuildContext context, AppProvider appProvider) {
     return _buildCardWrapper([
+      if (kIsAdminBuild)
+        _MenuItemData(
+          title: 'لوحة التحكم والإدارة',
+          icon: Icons.admin_panel_settings_rounded,
+          badgeText: 'Admin',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            );
+          },
+        ),
       _MenuItemData(
         title: 'المحفوظات',
         icon: Icons.bookmark_outline_rounded,
@@ -650,14 +710,44 @@ class MoreScreen extends StatelessWidget {
                         ),
                         const Spacer(),
 
-                        // النص في اليمين
-                        Text(
-                          item.title,
-                          style: GoogleFonts.readexPro(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
+                        // النص في اليمين مع شارة اختيارية
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (item.badgeText != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryDarkBrown,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: AppColors.iconGold,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  item.badgeText!,
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textGoldLight,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(
+                              item.title,
+                              style: GoogleFonts.readexPro(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(width: 14),
 
@@ -693,11 +783,13 @@ class _MenuItemData {
   final String title;
   final IconData icon;
   final VoidCallback onTap;
+  final String? badgeText;
 
   const _MenuItemData({
     required this.title,
     required this.icon,
     required this.onTap,
+    this.badgeText,
   });
 }
 

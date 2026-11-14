@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/app_flavor.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
@@ -30,6 +31,7 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
   DateTime? _lastTapTime;
 
   void _handleLogoTap() {
+    if (!kIsAdminBuild) return;
     final now = DateTime.now();
     if (_lastTapTime == null || now.difference(_lastTapTime!).inSeconds > 3) {
       _secretTapCount = 1;
@@ -40,17 +42,19 @@ class _AboutAppScreenState extends State<AboutAppScreen> {
 
     if (_secretTapCount >= 5) {
       _secretTapCount = 0;
-      Navigator.push(
-        context,
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 350),
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const AdminLoginScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
+      if (kIsAdminBuild) {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 350),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const AdminLoginScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      }
     }
   }
 
