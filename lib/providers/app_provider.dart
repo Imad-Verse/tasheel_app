@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +12,8 @@ import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
 import '../services/study_reminder_service.dart';
+import '../utils/file_helper.dart';
+import '../utils/platform_helper.dart';
 import 'audio_provider.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -969,16 +969,15 @@ class AppProvider extends ChangeNotifier {
 
   /// الحصول على الحجم الفعلي للدرس بالبايت
   int getLessonStorageBytes(String lessonId, [Map<String, String>? downloadedMap]) {
+    if (PlatformHelper.isWeb) return 0;
     if (downloadedMap != null && !downloadedMap.containsKey(lessonId)) return 0;
     final path = downloadedMap?[lessonId];
     if (path != null &&
-        !kIsWeb &&
         !path.startsWith('cached_') &&
         !path.startsWith('web_cached')) {
       try {
-        final file = File(path);
-        if (file.existsSync()) {
-          return file.lengthSync();
+        if (fileExists(path)) {
+          return getFileSizeSync(path);
         }
       } catch (_) {}
     }
@@ -987,6 +986,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حساب إجمالي مساحة التخزين المستخدمة للتطبيق بالبايت
   Future<int> getTotalStorageBytes([AudioProvider? audioProvider]) async {
+    if (PlatformHelper.isWeb) return 0;
     if (audioProvider != null) {
       return audioProvider.getTotalStorageBytes();
     }
@@ -999,13 +999,11 @@ class AppProvider extends ChangeNotifier {
       for (final entry in map.entries) {
         final path = entry.value?.toString();
         if (path != null &&
-            !kIsWeb &&
             !path.startsWith('cached_') &&
             !path.startsWith('web_cached')) {
           try {
-            final file = File(path);
-            if (file.existsSync()) {
-              total += file.lengthSync();
+            if (fileExists(path)) {
+              total += getFileSizeSync(path);
               continue;
             }
           } catch (_) {}
@@ -1020,6 +1018,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حساب حجم الدروس المحملة لشرح/كتاب معين بالبايت
   Future<int> getSeriesStorageBytes(String seriesId, [AudioProvider? audioProvider]) async {
+    if (PlatformHelper.isWeb) return 0;
     final seriesLessons = getLessonsBySeries(seriesId);
     if (audioProvider != null) {
       return audioProvider.getSeriesStorageBytes(seriesId, seriesLessons);
@@ -1034,13 +1033,11 @@ class AppProvider extends ChangeNotifier {
         if (map.containsKey(lesson.id)) {
           final path = map[lesson.id]?.toString();
           if (path != null &&
-              !kIsWeb &&
               !path.startsWith('cached_') &&
               !path.startsWith('web_cached')) {
             try {
-              final file = File(path);
-              if (file.existsSync()) {
-                total += file.lengthSync();
+              if (fileExists(path)) {
+                total += getFileSizeSync(path);
                 continue;
               }
             } catch (_) {}
@@ -1056,6 +1053,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حساب حجم الدروس المحملة لشيخ معين بالبايت
   Future<int> getSheikhStorageBytes(String sheikhId, [AudioProvider? audioProvider]) async {
+    if (PlatformHelper.isWeb) return 0;
     if (audioProvider != null) {
       return audioProvider.getSheikhStorageBytes(sheikhId, _series, _lessons);
     }
@@ -1070,13 +1068,11 @@ class AppProvider extends ChangeNotifier {
         if (seriesIds.contains(lesson.seriesId) && map.containsKey(lesson.id)) {
           final path = map[lesson.id]?.toString();
           if (path != null &&
-              !kIsWeb &&
               !path.startsWith('cached_') &&
               !path.startsWith('web_cached')) {
             try {
-              final file = File(path);
-              if (file.existsSync()) {
-                total += file.lengthSync();
+              if (fileExists(path)) {
+                total += getFileSizeSync(path);
                 continue;
               }
             } catch (_) {}
@@ -1095,6 +1091,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حذف جميع الملفات الصوتية المحملة لشرح كامل دفعة واحدة
   Future<void> deleteSeriesDownloads(String seriesId, [AudioProvider? audioProvider]) async {
+    if (PlatformHelper.isWeb) return;
     final seriesLessons = getLessonsBySeries(seriesId);
     if (audioProvider != null) {
       await audioProvider.deleteSeriesDownloads(seriesId, seriesLessons);
@@ -1108,14 +1105,10 @@ class AppProvider extends ChangeNotifier {
           for (final lessonId in targets) {
             final path = map[lessonId]?.toString();
             if (path != null &&
-                !kIsWeb &&
                 !path.startsWith('cached_') &&
                 !path.startsWith('web_cached')) {
               try {
-                final file = File(path);
-                if (await file.exists()) {
-                  await file.delete();
-                }
+                await deleteFileSafely(path);
               } catch (_) {}
             }
             map.remove(lessonId);
@@ -1129,6 +1122,7 @@ class AppProvider extends ChangeNotifier {
 
   /// حذف جميع التحميلات لتفريغ المساحة بالكامل
   Future<void> clearAllDownloads([AudioProvider? audioProvider]) async {
+    if (PlatformHelper.isWeb) return;
     if (audioProvider != null) {
       await audioProvider.clearAllDownloads();
     } else {
@@ -1140,14 +1134,10 @@ class AppProvider extends ChangeNotifier {
           for (final path in map.values) {
             final p = path?.toString();
             if (p != null &&
-                !kIsWeb &&
                 !p.startsWith('cached_') &&
                 !p.startsWith('web_cached')) {
               try {
-                final file = File(p);
-                if (await file.exists()) {
-                  await file.delete();
-                }
+                await deleteFileSafely(p);
               } catch (_) {}
             }
           }
@@ -1609,6 +1599,7 @@ class AppProvider extends ChangeNotifier {
 
   // ── تحديث ويدجت الشاشة الرئيسية (Android Home Widgets) ─────────────────────
   Future<void> updateHomeWidgets() async {
+    if (!PlatformHelper.isMobile) return;
     try {
       // 1. ويدجت إكمال المدارسة السريع (Continue Listening Widget)
       final lastLesson = _lastPlayedLesson;

@@ -34,114 +34,119 @@ class StorageManagerScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: AppColors.scaffoldCream,
-          body: Column(
-            children: [
-              // ── 1. الهيدر العلوي المزخرف ─────────────────────────────────
-              _buildHeader(context, audioProvider, totalLessonsCount),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850),
+              child: Column(
+                children: [
+                  // ── 1. الهيدر العلوي المزخرف ─────────────────────────────────
+                  _buildHeader(context, audioProvider, totalLessonsCount),
 
-              // ── 2. المحتوى الرئيسي ───────────────────────────────────────
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── بطاقة إجمالي المساحة والمؤشر البصري ───────────────
-                      _buildTotalStorageCard(
-                        context: context,
-                        audioProvider: audioProvider,
-                        formattedTotal: formattedTotal,
-                        totalBytes: totalBytes,
-                        totalLessonsCount: totalLessonsCount,
-                        storageRatio: storageRatio,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ── عنوان قسم الشروحات المحملة ────────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // ── 2. المحتوى الرئيسي ───────────────────────────────────────
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // ── بطاقة إجمالي المساحة والمؤشر البصري ───────────────
+                          _buildTotalStorageCard(
+                            context: context,
+                            audioProvider: audioProvider,
+                            formattedTotal: formattedTotal,
+                            totalBytes: totalBytes,
+                            totalLessonsCount: totalLessonsCount,
+                            storageRatio: storageRatio,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // ── عنوان قسم الشروحات المحملة ────────────────────────
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Icon(
-                                Icons.folder_special_rounded,
-                                size: 20,
-                                color: AppColors.primaryDarkBrown,
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.folder_special_rounded,
+                                    size: 20,
+                                    color: AppColors.primaryDarkBrown,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'الشروحات المحملة حسب المساحة',
+                                    style: GoogleFonts.readexPro(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryDarkBrown,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'الشروحات المحملة حسب المساحة',
-                                style: GoogleFonts.readexPro(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryDarkBrown,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGoldBeige.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${downloadedSeries.length} شروحات',
+                                  style: GoogleFonts.readexPro(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryDarkBrown,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
+
+                          const SizedBox(height: 12),
+
+                          // ── قائمة الشروحات مع أحجامها وأزرار تفريغ مساحتها ───
+                          if (downloadedSeries.isEmpty)
+                            _buildEmptyStorageCard(context)
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: downloadedSeries.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final series = downloadedSeries[index];
+                                final seriesLessons = audioProvider
+                                    .getDownloadedLessonsForSeries(series.id);
+                                final seriesBytes = audioProvider
+                                    .getSeriesStorageBytes(series.id, seriesLessons);
+                                final book = appProvider.getBookById(series.bookId) ??
+                                    MockDataService.getBookById(series.bookId);
+                                final sheikh = appProvider.getSheikhById(series.sheikhId) ??
+                                    MockDataService.getSheikhById(series.sheikhId);
+
+                                return _buildSeriesStorageCard(
+                                  context: context,
+                                  series: series,
+                                  seriesLessons: seriesLessons,
+                                  seriesBytes: seriesBytes,
+                                  book: book,
+                                  sheikh: sheikh,
+                                  audioProvider: audioProvider,
+                                );
+                              },
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentGoldBeige.withValues(
-                                alpha: 0.25,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${downloadedSeries.length} شروحات',
-                              style: GoogleFonts.readexPro(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primaryDarkBrown,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-
-                      const SizedBox(height: 12),
-
-                      // ── قائمة الشروحات مع أحجامها وأزرار تفريغ مساحتها ───
-                      if (downloadedSeries.isEmpty)
-                        _buildEmptyStorageCard(context)
-                      else
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: downloadedSeries.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final series = downloadedSeries[index];
-                            final seriesLessons = audioProvider
-                                .getDownloadedLessonsForSeries(series.id);
-                            final seriesBytes = audioProvider
-                                .getSeriesStorageBytes(series.id, seriesLessons);
-                            final book = appProvider.getBookById(series.bookId) ??
-                                MockDataService.getBookById(series.bookId);
-                            final sheikh = appProvider.getSheikhById(series.sheikhId) ??
-                                MockDataService.getSheikhById(series.sheikhId);
-
-                            return _buildSeriesStorageCard(
-                              context: context,
-                              series: series,
-                              seriesLessons: seriesLessons,
-                              seriesBytes: seriesBytes,
-                              book: book,
-                              sheikh: sheikh,
-                              audioProvider: audioProvider,
-                            );
-                          },
-                        ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

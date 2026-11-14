@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
+import '../utils/file_helper.dart';
+import '../utils/platform_helper.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// مزود إدارة الصوتيات المتقدم والتنزيلات (AudioProvider)
@@ -368,9 +368,8 @@ class AudioProvider extends ChangeNotifier {
       final localPath = _downloadedFilePaths[lesson.id];
 
       // إذا كان الملف محملاً على الهاتف أو الديسكتوب، يتم تشغيله مباشرة من الجهاز
-      if (localPath != null && !kIsWeb && !localPath.startsWith('web_cached')) {
-        final file = File(localPath);
-        if (await file.exists()) {
+      if (localPath != null && !PlatformHelper.isWeb && !localPath.startsWith('web_cached')) {
+        if (fileExists(localPath)) {
           await _player.setAudioSource(
             AudioSource.file(localPath, tag: mediaItem),
           );
@@ -608,8 +607,20 @@ class AudioProvider extends ChangeNotifier {
 
   // ─── إدارة التنزيل الفعلي وحفظ الملفات ───────────────────────────────────
 
+  /// دالة رد نداء مخصصة لإظهار رسالة عدم توفر التحميل في الويب
+  static void Function()? onWebOfflineDownloadNotice;
+
+  /// إظهار التنبيه اللطيف لنسخة الويب
+  void showWebOfflineNotice() {
+    onWebOfflineDownloadNotice?.call();
+  }
+
   /// تنزيل درس معين مع متابعة نسبة التقدم وحفظه محلياً
   Future<void> downloadLesson(LessonModel lesson) async {
+    if (PlatformHelper.isWeb) {
+      showWebOfflineNotice();
+      return;
+    }
     if (isDownloaded(lesson.id) || isDownloading(lesson.id)) return;
 
     _downloadingLessonIds.add(lesson.id);
@@ -617,21 +628,9 @@ class AudioProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kIsWeb) {
-        // محاكاة سريعة على الويب حيث لا توجد أنظمة ملفات مباشرة
-        for (int i = 1; i <= 5; i++) {
-          await Future.delayed(const Duration(milliseconds: 100));
-          _downloadProgress[lesson.id] = i / 5.0;
-          notifyListeners();
-        }
-        _downloadedFilePaths[lesson.id] = 'web_cached_${lesson.id}';
-      } else {
-        final appDir = await getApplicationDocumentsDirectory();
-        final saveDir = Directory('${appDir.path}/tasheel_downloads');
-        if (!await saveDir.exists()) {
-          await saveDir.create(recursive: true);
-        }
-        final savePath = '${saveDir.path}/${lesson.id}.mp3';
+      final saveDirPath = await getAppDownloadDirectoryPath();
+      if (saveDirPath != null) {
+        final savePath = '$saveDirPath/${lesson.id}.mp3';
 
         _dio ??= Dio();
         if (lesson.audioUrl.isNotEmpty) {
@@ -650,8 +649,7 @@ class AudioProvider extends ChangeNotifier {
           );
         } else {
           // ملف تجريبي في حال عدم وجود رابط
-          final file = File(savePath);
-          await file.writeAsString('mock audio data');
+          await writeMockFile(savePath, 'mock audio data');
         }
 
         _downloadedFilePaths[lesson.id] = savePath;
@@ -674,17 +672,10 @@ class AudioProvider extends ChangeNotifier {
   Future<void> deleteDownload(String lessonId) async {
     final path = _downloadedFilePaths[lessonId];
     if (path != null &&
-        !kIsWeb &&
+        !PlatformHelper.isWeb &&
         !path.startsWith('web_cached') &&
         !path.startsWith('cached_')) {
-      try {
-        final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (e) {
-        debugPrint('File delete error: $e');
-      }
+      await deleteFileSafely(path);
     }
     _downloadedFilePaths.remove(lessonId);
     _downloadProgress.remove(lessonId);
@@ -695,6 +686,10 @@ class AudioProvider extends ChangeNotifier {
 
   /// تبديل حالة التنزيل للدرس
   Future<void> toggleDownload(String lessonId, {LessonModel? lesson}) async {
+    if (PlatformHelper.isWeb) {
+      showWebOfflineNotice();
+      return;
+    }
     if (isDownloaded(lessonId)) {
       await deleteDownload(lessonId);
     } else {
@@ -713,6 +708,10 @@ class AudioProvider extends ChangeNotifier {
     SeriesModel series,
     List<LessonModel> lessons,
   ) async {
+    if (PlatformHelper.isWeb) {
+      showWebOfflineNotice();
+      return;
+    }
     final undownloaded = lessons.where((l) => !isDownloaded(l.id)).toList();
     if (undownloaded.isEmpty) return;
 
@@ -744,16 +743,11 @@ class AudioProvider extends ChangeNotifier {
 
   /// إفراغ كافة التنزيلات
   Future<void> clearAllDownloads() async {
+    if (PlatformHelper.isWeb) return;
     for (final path in _downloadedFilePaths.values) {
-      if (!kIsWeb &&
-          !path.startsWith('web_cached') &&
+      if (!path.startsWith('web_cached') &&
           !path.startsWith('cached_')) {
-        try {
-          final file = File(path);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        } catch (_) {}
+        await deleteFileSafely(path);
       }
     }
     _downloadedFilePaths.clear();
@@ -767,16 +761,15 @@ class AudioProvider extends ChangeNotifier {
 
   /// الحصول على الحجم التخزيني الفعلي للدرس المحمل بالبايت
   int getLessonStorageBytes(String lessonId) {
+    if (PlatformHelper.isWeb) return 0;
     if (!_downloadedFilePaths.containsKey(lessonId)) return 0;
     final path = _downloadedFilePaths[lessonId];
     if (path != null &&
-        !kIsWeb &&
         !path.startsWith('cached_') &&
         !path.startsWith('web_cached')) {
       try {
-        final file = File(path);
-        if (file.existsSync()) {
-          return file.lengthSync();
+        if (fileExists(path)) {
+          return getFileSizeSync(path);
         }
       } catch (_) {}
     }
@@ -786,6 +779,7 @@ class AudioProvider extends ChangeNotifier {
 
   /// إجمالي مساحة التخزين المستخدمة للتطبيق لكافة التنزيلات بالبايت
   int getTotalStorageBytes() {
+    if (PlatformHelper.isWeb) return 0;
     int total = 0;
     for (final lessonId in _downloadedFilePaths.keys) {
       total += getLessonStorageBytes(lessonId);
@@ -795,6 +789,7 @@ class AudioProvider extends ChangeNotifier {
 
   /// حجم الدروس المحملة لشرح معين بالبايت
   int getSeriesStorageBytes(String seriesId, List<LessonModel> seriesLessons) {
+    if (PlatformHelper.isWeb) return 0;
     int total = 0;
     for (final lesson in seriesLessons) {
       if (lesson.seriesId == seriesId && isDownloaded(lesson.id)) {
@@ -810,6 +805,7 @@ class AudioProvider extends ChangeNotifier {
     List<SeriesModel> sheikhSeries,
     List<LessonModel> allLessons,
   ) {
+    if (PlatformHelper.isWeb) return 0;
     int total = 0;
     final seriesIds = sheikhSeries
         .where((s) => s.sheikhId == sheikhId)
@@ -844,6 +840,7 @@ class AudioProvider extends ChangeNotifier {
     String seriesId,
     List<LessonModel> seriesLessons,
   ) async {
+    if (PlatformHelper.isWeb) return;
     final targets = seriesLessons
         .where((l) => l.seriesId == seriesId && isDownloaded(l.id))
         .map((l) => l.id)
@@ -852,15 +849,9 @@ class AudioProvider extends ChangeNotifier {
     for (final lessonId in targets) {
       final path = _downloadedFilePaths[lessonId];
       if (path != null &&
-          !kIsWeb &&
           !path.startsWith('cached_') &&
           !path.startsWith('web_cached')) {
-        try {
-          final file = File(path);
-          if (await file.exists()) {
-            await file.delete();
-          }
-        } catch (_) {}
+        await deleteFileSafely(path);
       }
       _downloadedFilePaths.remove(lessonId);
       _downloadProgress.remove(lessonId);

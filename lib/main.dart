@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 import 'firebase_options.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/app_provider.dart';
 import 'providers/audio_provider.dart';
 import 'screens/splash_screen.dart';
+import 'utils/platform_helper.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// تطبيق تسهيل - طريقك لتيسير العلوم الشرعية
@@ -23,6 +26,8 @@ bool _isAudioBackgroundInitialized = false;
 
 Future<void> _safeInitAudioBackground() async {
   if (_isAudioBackgroundInitialized) return;
+  // JustAudioBackground مخصص فقط لبيئة الهواتف (Android / iOS)
+  if (!PlatformHelper.isMobile) return;
   try {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.madoverse.tasheel.channel.audio',
@@ -43,6 +48,21 @@ Future<void> _safeInitAudioBackground() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // إعداد إشعار التحميل لنسخة الويب
+  AudioProvider.onWebOfflineDownloadNotice = () {
+    AppProvider.scaffoldMessengerKey.currentState?.clearSnackBars();
+    AppProvider.scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(
+          'التحميل للاستماع دون إنترنت متاح عبر تطبيق الهاتف والحاسوب',
+          style: GoogleFonts.readexPro(color: AppColors.textWhite),
+        ),
+        backgroundColor: AppColors.primaryDarkBrown,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  };
 
   // 1. تهيئة مشغل الصوتيات للعمل في الخلفية وشاشة القفل بأمان مع مهلة زمنية
   await _safeInitAudioBackground();

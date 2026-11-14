@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import '../utils/platform_helper.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// خدمة التذكير اليومي بطلب العلم (StudyReminderService)
@@ -50,7 +50,7 @@ class StudyReminderService {
       );
 
       // إنشاء القناة لنظام أندرويد
-      if (!kIsWeb && Platform.isAndroid) {
+      if (PlatformHelper.isAndroid) {
         final androidPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         if (androidPlugin != null) {
@@ -75,15 +75,15 @@ class StudyReminderService {
 
   /// طلب صلاحيات الإشعارات على أندرويد 13+ و iOS
   Future<bool> requestPermissions() async {
-    if (kIsWeb) return false;
+    if (PlatformHelper.isWeb) return false;
 
     try {
-      if (Platform.isAndroid) {
+      if (PlatformHelper.isAndroid) {
         final androidPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
         final granted = await androidPlugin?.requestNotificationsPermission();
         return granted ?? false;
-      } else if (Platform.isIOS || Platform.isMacOS) {
+      } else if (PlatformHelper.isIOS || PlatformHelper.isMacOS) {
         final iosPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
         final granted = await iosPlugin?.requestPermissions(

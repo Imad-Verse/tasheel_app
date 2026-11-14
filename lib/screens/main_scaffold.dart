@@ -8,6 +8,7 @@ import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
 import '../providers/audio_provider.dart';
+import '../utils/platform_helper.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/mini_player_widget.dart';
 import 'home_screen.dart';
@@ -45,6 +46,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   void _initHomeWidgetClicks() {
+    if (!PlatformHelper.isMobile) return;
     HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
       if (uri != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -281,21 +283,32 @@ class _MainScaffoldState extends State<MainScaffold> {
 
         return Scaffold(
           backgroundColor: AppColors.scaffoldCream,
-          body: IndexedStack(
-            index: appProvider.currentTabIndex,
-            children: _screens,
-          ),
-          bottomNavigationBar: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const MiniPlayerWidget(),
-              CustomBottomNavBar(
-                currentIndex: appProvider.currentTabIndex,
-                onTabSelected: (index) {
-                  appProvider.setCurrentTab(index);
-                },
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850),
+              child: IndexedStack(
+                index: appProvider.currentTabIndex,
+                children: _screens,
               ),
-            ],
+            ),
+          ),
+          bottomNavigationBar: Center(
+            heightFactor: 1.0,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const MiniPlayerWidget(),
+                  CustomBottomNavBar(
+                    currentIndex: appProvider.currentTabIndex,
+                    onTabSelected: (index) {
+                      appProvider.setCurrentTab(index);
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },

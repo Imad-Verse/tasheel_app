@@ -12,6 +12,7 @@ import '../models/models.dart';
 import '../providers/app_provider.dart';
 import '../providers/audio_provider.dart';
 import '../services/mock_data_service.dart';
+import '../utils/platform_helper.dart';
 import '../widgets/decorated_header.dart';
 import 'playlists_screen.dart';
 
@@ -238,77 +239,82 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldCream,
-      body: Column(
-        children: [
-          // ── 1. الهيدر العلوي المزخرف ومعلومات الدرس ─────────────────────
-          _buildPlayerHeader(context, currentLesson, book, sheikh),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 850),
+          child: Column(
+            children: [
+              // ── 1. الهيدر العلوي المزخرف ومعلومات الدرس ─────────────────────
+              _buildPlayerHeader(context, currentLesson, book, sheikh),
 
-          // ── 2. محتوى المشغل والقسم السفلي ────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── كبسولة التبديل (صوت / فيديو يوتيوب / PDF) إن توفر ───
-                  if (hasVideo || hasPdf) ...[
-                    _buildMediaToggleCapsule(currentLesson, hasVideo, hasPdf),
-                    const SizedBox(height: 14),
-                  ],
+              // ── 2. محتوى المشغل والقسم السفلي ────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── كبسولة التبديل (صوت / فيديو يوتيوب / PDF) إن توفر ───
+                      if (hasVideo || hasPdf) ...[
+                        _buildMediaToggleCapsule(currentLesson, hasVideo, hasPdf),
+                        const SizedBox(height: 14),
+                      ],
 
-                  // ── عرض بطاقة الفيديو أو بطاقة عارض الـ PDF أو بطاقة المشغل الصوتي ──
-                  if (_selectedMediaMode == 1 && hasVideo)
-                    _buildYouTubeCard(currentLesson, book, sheikh)
-                  else if (_selectedMediaMode == 2 && hasPdf)
-                    _buildIntegratedPdfView(
-                      context,
-                      effectivePdfUrl,
-                      currentLesson,
-                      currentSeries,
-                      book,
-                      sheikh,
-                      audioProvider,
-                      appProvider,
-                    )
-                  else
-                    _buildAudioPlayerCard(
-                      context,
-                      currentLesson,
-                      audioProvider,
-                      appProvider,
-                      currentSeries,
-                      book,
-                      sheikh,
-                    ),
+                      // ── عرض بطاقة الفيديو أو بطاقة عارض الـ PDF أو بطاقة المشغل الصوتي ──
+                      if (_selectedMediaMode == 1 && hasVideo)
+                        _buildYouTubeCard(currentLesson, book, sheikh)
+                      else if (_selectedMediaMode == 2 && hasPdf)
+                        _buildIntegratedPdfView(
+                          context,
+                          effectivePdfUrl,
+                          currentLesson,
+                          currentSeries,
+                          book,
+                          sheikh,
+                          audioProvider,
+                          appProvider,
+                        )
+                      else
+                        _buildAudioPlayerCard(
+                          context,
+                          currentLesson,
+                          audioProvider,
+                          appProvider,
+                          currentSeries,
+                          book,
+                          sheikh,
+                        ),
 
-                  const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                  // ── قسم فوائد الدرس (كناشة الفوائد) ─────────────────────
-                  _buildLessonNotesCard(
-                    context,
-                    currentLesson,
-                    audioProvider,
-                    appProvider,
-                    book,
-                    sheikh,
+                      // ── قسم فوائد الدرس (كناشة الفوائد) ─────────────────────
+                      _buildLessonNotesCard(
+                        context,
+                        currentLesson,
+                        audioProvider,
+                        appProvider,
+                        book,
+                        sheikh,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ── قسم التفريغ النصي أسفل المشغل ───────────────────────
+                      _buildTranscriptCard(
+                        context,
+                        currentLesson,
+                        book,
+                        sheikh,
+                        appProvider,
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // ── قسم التفريغ النصي أسفل المشغل ───────────────────────
-                  _buildTranscriptCard(
-                    context,
-                    currentLesson,
-                    book,
-                    sheikh,
-                    appProvider,
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1478,6 +1484,19 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
                     : 'تحميل',
                 isActive: audioProvider.isDownloaded(lesson.id),
                 onTap: () {
+                  if (PlatformHelper.isWeb) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'التحميل للاستماع دون إنترنت متاح عبر تطبيق الهاتف والحاسوب',
+                          style: GoogleFonts.readexPro(),
+                        ),
+                        backgroundColor: AppColors.primaryDarkBrown,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    return;
+                  }
                   audioProvider.toggleDownload(lesson.id, lesson: lesson);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

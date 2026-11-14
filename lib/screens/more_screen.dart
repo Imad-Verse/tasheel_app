@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import '../config/app_flavor.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/app_provider.dart';
+import '../utils/platform_helper.dart';
 import 'about_app_screen.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'downloads_screen.dart';
@@ -101,10 +102,11 @@ class MoreScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // ── بطاقة ويدجت الشاشة الرئيسية (Home Widgets) ────────
-                      _buildHomeWidgetsCard(context, appProvider),
-
-                      const SizedBox(height: 16),
+                      // ── بطاقة ويدجت الشاشة الرئيسية (Home Widgets - للهواتف فقط) ──
+                      if (PlatformHelper.isMobile) ...[
+                        _buildHomeWidgetsCard(context, appProvider),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ── البطاقة البيضاء الثانية (4 عناصر) ────────────────
                       _buildSecondMenuCard(context),

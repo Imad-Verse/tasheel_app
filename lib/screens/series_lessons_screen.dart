@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../providers/app_provider.dart';
 import '../providers/audio_provider.dart';
 import '../services/mock_data_service.dart';
+import '../utils/platform_helper.dart';
 import '../widgets/decorated_header.dart';
 import 'lesson_player_screen.dart';
 
@@ -56,88 +57,93 @@ class SeriesLessonsScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: AppColors.scaffoldCream,
-          body: Column(
-            children: [
-              // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
-              DecoratedHeader(
-                title: actualBook?.title ?? series.title,
-                showSearchIcon: false,
-                onBackPressed: () => Navigator.pop(context),
-              ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 850),
+              child: Column(
+                children: [
+                  // ── 1. الهيدر البني العلوي المزخرف مع زر الرجوع على اليمين في RTL ──
+                  DecoratedHeader(
+                    title: actualBook?.title ?? series.title,
+                    showSearchIcon: false,
+                    onBackPressed: () => Navigator.pop(context),
+                  ),
 
-              // ── 2. محتوى الشاشة ──────────────────────────────────────────
-              Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                  children: [
-                    // ── بطاقة تعريف الشرح وزر بدء الدراسة ─────────────────
-                    _buildSeriesHeaderCard(
-                      context,
-                      appProvider: appProvider,
-                      audioProvider: audioProvider,
-                      series: series,
-                      lessons: lessons,
-                      actualBook: actualBook,
-                      actualSheikh: actualSheikh,
-                      category: category,
-                      isStudied: isStudied,
-                      progress: progress,
-                      completedCount: completedInSeries,
-                      totalCount: lessons.length,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ── عنوان قائمة الدروس (عنوان يمين، عدد يسار) ───────────
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // عنوان القائمة على اليمين في RTL
-                          Text(
-                            'قائمة الدروس العلمية',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-
-                          // عدد الدروس على اليسار في RTL
-                          Text(
-                            '${lessons.length} درس',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // ── قائمة الدروس المرقمة ───────────────────────────────
-                    if (lessons.isEmpty)
-                      _buildEmptyLessonsState()
-                    else
-                      ...lessons.map((lesson) {
-                        final isCompleted = appProvider.isLessonCompleted(
-                          lesson.id,
-                        );
-                        return _buildLessonCard(
+                  // ── 2. محتوى الشاشة ──────────────────────────────────────────
+                  Expanded(
+                    child: ListView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                      children: [
+                        // ── بطاقة تعريف الشرح وزر بدء الدراسة ─────────────────
+                        _buildSeriesHeaderCard(
                           context,
-                          lesson: lesson,
-                          isCompleted: isCompleted,
                           appProvider: appProvider,
-                        );
-                      }),
-                  ],
-                ),
+                          audioProvider: audioProvider,
+                          series: series,
+                          lessons: lessons,
+                          actualBook: actualBook,
+                          actualSheikh: actualSheikh,
+                          category: category,
+                          isStudied: isStudied,
+                          progress: progress,
+                          completedCount: completedInSeries,
+                          totalCount: lessons.length,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── عنوان قائمة الدروس (عنوان يمين، عدد يسار) ───────────
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // عنوان القائمة على اليمين في RTL
+                              Text(
+                                'قائمة الدروس العلمية',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+
+                              // عدد الدروس على اليسار في RTL
+                              Text(
+                                '${lessons.length} درس',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ── قائمة الدروس المرقمة ───────────────────────────────
+                        if (lessons.isEmpty)
+                          _buildEmptyLessonsState()
+                        else
+                          ...lessons.map((lesson) {
+                            final isCompleted = appProvider.isLessonCompleted(
+                              lesson.id,
+                            );
+                            return _buildLessonCard(
+                              context,
+                              lesson: lesson,
+                              isCompleted: isCompleted,
+                              appProvider: appProvider,
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -493,6 +499,19 @@ class SeriesLessonsScreen extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
+          if (PlatformHelper.isWeb) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'التحميل للاستماع دون إنترنت متاح عبر تطبيق الهاتف والحاسوب',
+                  style: GoogleFonts.readexPro(),
+                ),
+                backgroundColor: AppColors.primaryDarkBrown,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
           audioProvider.downloadSeriesBulk(series, lessons);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

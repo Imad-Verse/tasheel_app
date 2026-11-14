@@ -35,98 +35,103 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldCream,
-      body: Column(
-        children: [
-          // ── 1. الهيدر العلوي ─────────────────────────────────────────────
-          _buildDownloadsHeader(context, audioProvider, totalDownloadedLessons),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 850),
+          child: Column(
+            children: [
+              // ── 1. الهيدر العلوي ─────────────────────────────────────────────
+              _buildDownloadsHeader(context, audioProvider, totalDownloadedLessons),
 
-          // ── 2. بطاقة إدارة المساحة التخزينية الذكية ─────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StorageManagerScreen(),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.cardWhite,
+              // ── 2. بطاقة إدارة المساحة التخزينية الذكية ─────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const StorageManagerScreen(),
+                      ),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.accentGoldBeige.withValues(alpha: 0.5),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardWhite,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.accentGoldBeige.withValues(alpha: 0.5),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cardShadow,
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color:
+                                AppColors.primaryDarkBrown.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.pie_chart_outline_rounded,
+                            color: AppColors.primaryDarkBrown,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'إدارة المساحة التخزينية',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryDarkBrown,
+                                ),
+                              ),
+                              Text(
+                                'المساحة المستهلكة: ${AudioProvider.formatBytes(audioProvider.getTotalStorageBytes())}',
+                                style: GoogleFonts.readexPro(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.cardShadow,
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color:
-                            AppColors.primaryDarkBrown.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.pie_chart_outline_rounded,
-                        color: AppColors.primaryDarkBrown,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'إدارة المساحة التخزينية',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDarkBrown,
-                            ),
-                          ),
-                          Text(
-                            'المساحة المستهلكة: ${AudioProvider.formatBytes(audioProvider.getTotalStorageBytes())}',
-                            style: GoogleFonts.readexPro(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
                 ),
               ),
-            ),
-          ),
 
-          // ── 3. المحتوى ──────────────────────────────────────────────────
-          Expanded(
-            child: downloadedSeries.isEmpty
-                ? _buildEmptyDownloadsState(context, appProvider)
-                : _buildDownloadedSeriesList(context, audioProvider, appProvider, downloadedSeries),
+              // ── 3. المحتوى ──────────────────────────────────────────────────
+              Expanded(
+                child: downloadedSeries.isEmpty
+                    ? _buildEmptyDownloadsState(context, appProvider)
+                    : _buildDownloadedSeriesList(context, audioProvider, appProvider, downloadedSeries),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
