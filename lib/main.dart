@@ -28,10 +28,11 @@ Future<void> _safeInitAudioBackground() async {
       androidNotificationChannelId: 'com.madoverse.tasheel.channel.audio',
       androidNotificationChannelName: 'تطبيق تسهيل - مشغل الدروس الصوتية',
       androidNotificationChannelDescription: 'شريط التحكم في تشغيل الدروس والشروحات الشرعية',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
+      androidNotificationOngoing: false,
+      androidStopForegroundOnPause: false,
       androidNotificationIcon: 'mipmap/ic_launcher',
-      notificationColor: const Color(0xFF4A3B32),
+      notificationColor: const Color(0xFF3E2723),
+      androidNotificationClickStartsActivity: true,
     ).timeout(const Duration(seconds: 4));
     _isAudioBackgroundInitialized = true;
     debugPrint('JustAudioBackground initialized successfully.');

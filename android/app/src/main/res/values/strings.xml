@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">تسهيل</string>
+    <string name="widget_continue_desc">استئناف المدارسة والاستماع للدرس الحالي</string>
+    <string name="widget_benefit_desc">فائدة علمية متجددة من كناشة الفوائد</string>
+    <string name="widget_progress_desc">متابعة إنجاز طالب العلم وسلسلة الاستمرارية</string>
+</resources>
+

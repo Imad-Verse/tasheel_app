@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:home_widget/home_widget.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../services/mock_data_service.dart';
@@ -98,6 +99,7 @@ class AppProvider extends ChangeNotifier {
     _defaultTranscriptFontSize = size;
     notifyListeners();
     await _savePreferences();
+    updateHomeWidgets();
   }
 
   bool _autoPlayNextLesson = true;
@@ -107,6 +109,7 @@ class AppProvider extends ChangeNotifier {
     _autoPlayNextLesson = value;
     notifyListeners();
     await _savePreferences();
+    updateHomeWidgets();
   }
 
   Future<void> clearCache() async {
@@ -585,6 +588,7 @@ class AppProvider extends ChangeNotifier {
     _lessonNotes.add(note);
     notifyListeners();
     await _saveLessonNotes();
+    updateHomeWidgets();
   }
 
   /// تعديل فائدة موجودة
@@ -594,6 +598,7 @@ class AppProvider extends ChangeNotifier {
       _lessonNotes[index] = note;
       notifyListeners();
       await _saveLessonNotes();
+      updateHomeWidgets();
     }
   }
 
@@ -1594,6 +1599,98 @@ class AppProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── تحديث ويدجت الشاشة الرئيسية (Android Home Widgets) ─────────────────────
+  Future<void> updateHomeWidgets() async {
+    try {
+      // 1. ويدجت إكمال المدارسة السريع (Continue Listening Widget)
+      final lastLesson = _lastPlayedLesson;
+      final lastSeries = _lastPlayedSeries;
+      final book = lastSeries != null ? getBookById(lastSeries.bookId) : null;
+      final sheikh = lastSeries != null ? getSheikhById(lastSeries.sheikhId) : null;
+
+      final lessonTitle = lastLesson?.title ?? 'شرح كتاب التوحيد';
+      final subtitle = sheikh != null
+          ? '${sheikh.name} • ${book?.title ?? lastSeries?.title ?? ""}'.trim()
+          : (lastSeries?.title ?? 'تطبيق تسهيل');
+      final seriesProgress = lastSeries != null ? getSeriesProgress(lastSeries.id) : 0.0;
+      final progressPercent = (seriesProgress * 100).round();
+
+      await HomeWidget.saveWidgetData<String>('last_lesson_title', lessonTitle);
+      await HomeWidget.saveWidgetData<String>('last_lesson_subtitle', subtitle);
+      await HomeWidget.saveWidgetData<int>('last_lesson_progress', progressPercent);
+      await HomeWidget.saveWidgetData<String>('last_lesson_id', lastLesson?.id ?? '');
+      await HomeWidget.saveWidgetData<String>('last_series_id', lastSeries?.id ?? '');
+
+      await HomeWidget.updateWidget(
+        name: 'ContinueListeningWidgetProvider',
+        androidName: 'ContinueListeningWidgetProvider',
+      );
+
+      // 2. ويدجت فائدة علمية مختارة (Daily Benefit Widget)
+      final notes = _lessonNotes;
+      final List<Map<String, String>> benefitsList = [];
+      if (notes.isNotEmpty) {
+        for (final n in notes.take(10)) {
+          benefitsList.add({
+            'text': n.content,
+            'source': '${n.sheikhName} • ${n.bookTitle}'.trim(),
+          });
+        }
+      }
+      if (benefitsList.isEmpty) {
+        benefitsList.addAll([
+          {
+            'text': 'العلم قال الله قال رسوله، قال الصحابة هم أولو العرفان',
+            'source': 'ابن القيم رحمه الله',
+          },
+          {
+            'text': 'من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة',
+            'source': 'حديث نبوي شريف',
+          },
+          {
+            'text': 'قيدوا العلم بالكتابة، والمدارسة أثبت للعلم من مجرد الحفظ',
+            'source': 'درر السلف الصالح',
+          },
+          {
+            'text': 'إنما العلم الخشية؛ فإذا ازددت علماً فازدد تواضعاً لله ورجاءً',
+            'source': 'عبد الله بن مسعود رضي الله عنه',
+          },
+        ]);
+      }
+
+      await HomeWidget.saveWidgetData<int>('benefit_count', benefitsList.length);
+      for (int i = 0; i < benefitsList.length; i++) {
+        await HomeWidget.saveWidgetData<String>('benefit_${i}_text', benefitsList[i]['text'] ?? '');
+        await HomeWidget.saveWidgetData<String>('benefit_${i}_source', benefitsList[i]['source'] ?? '');
+      }
+      await HomeWidget.saveWidgetData<String>('benefit_text', benefitsList.first['text'] ?? '');
+      await HomeWidget.saveWidgetData<String>('benefit_source', benefitsList.first['source'] ?? '');
+
+      await HomeWidget.updateWidget(
+        name: 'DailyBenefitWidgetProvider',
+        androidName: 'DailyBenefitWidgetProvider',
+      );
+
+      // 3. ويدجت مؤشر إنجاز طالب العلم (Study Progress Widget)
+      final completed = completedLessonsCount;
+      final total = lessons.length;
+      final overallPercent = total > 0 ? ((completed / total) * 100).round() : 0;
+      final streak = streakCount;
+
+      await HomeWidget.saveWidgetData<int>('completed_lessons_count', completed);
+      await HomeWidget.saveWidgetData<int>('total_lessons_count', total);
+      await HomeWidget.saveWidgetData<int>('overall_progress_percent', overallPercent);
+      await HomeWidget.saveWidgetData<int>('daily_streak', streak);
+
+      await HomeWidget.updateWidget(
+        name: 'StudyProgressWidgetProvider',
+        androidName: 'StudyProgressWidgetProvider',
+      );
+    } catch (e) {
+      debugPrint('Error updating home widgets: $e');
+    }
+  }
+
   // ─── 1. التنقل بين التبويبات ─────────────────────────────────────────────
   int _currentTabIndex = 0;
   int get currentTabIndex => _currentTabIndex;
@@ -1690,6 +1787,7 @@ class AppProvider extends ChangeNotifier {
     _lastPlayedBook = getBookById(_lastPlayedSeries?.bookId ?? '');
     _lastPlayedSheikh = getSheikhById(_lastPlayedSeries?.sheikhId ?? '');
     notifyListeners();
+    updateHomeWidgets();
   }
 
   // ─── 5. نظام المحفوظات (المتون قيد الدراسة) ──────────────────────────────
@@ -1710,6 +1808,7 @@ class AppProvider extends ChangeNotifier {
     }
     notifyListeners();
     await _savePreferences();
+    updateHomeWidgets();
   }
 
   List<SeriesModel> getStudiedSeries() {
@@ -1733,6 +1832,7 @@ class AppProvider extends ChangeNotifier {
     }
     notifyListeners();
     await _savePreferences();
+    updateHomeWidgets();
   }
 
   double getSeriesProgress(String seriesId) {
@@ -2676,6 +2776,7 @@ class AppProvider extends ChangeNotifier {
       // تحميل إعدادات الورد العلمي وسلسلة الاستمرارية والتذكير اليومي
       await _loadStudyHabitPreferences(prefs);
       notifyListeners();
+      updateHomeWidgets();
     } catch (_) {
       // الاعتماد على البيانات الافتراضية
     }

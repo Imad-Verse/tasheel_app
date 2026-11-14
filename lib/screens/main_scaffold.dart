@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:home_widget/home_widget.dart';
 import '../core/theme/app_colors.dart';
 import '../models/models.dart';
 import '../providers/app_provider.dart';
+import '../providers/audio_provider.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/mini_player_widget.dart';
 import 'home_screen.dart';
@@ -12,6 +15,9 @@ import 'categories_screen.dart';
 import 'sheikhs_screen.dart';
 import 'bookmarks_screen.dart';
 import 'more_screen.dart';
+import 'lesson_player_screen.dart';
+import 'notes_notebook_screen.dart';
+import 'statistics_screen.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// الهيكل الرئيسي للتطبيق (Main Scaffold)
@@ -30,6 +36,87 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   bool _hasShownUpdateDialog = false;
+  StreamSubscription<Uri?>? _widgetClickSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initHomeWidgetClicks();
+  }
+
+  void _initHomeWidgetClicks() {
+    HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
+      if (uri != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _handleWidgetClickUri(uri);
+        });
+      }
+    });
+
+    _widgetClickSub = HomeWidget.widgetClicked.listen((uri) {
+      if (uri != null) {
+        _handleWidgetClickUri(uri);
+      }
+    });
+  }
+
+  void _handleWidgetClickUri(Uri uri) {
+    if (!mounted) return;
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+
+    if (uri.host == 'play_lesson') {
+      final lessonId = uri.queryParameters['lessonId'];
+      final seriesId = uri.queryParameters['seriesId'];
+      LessonModel? lesson;
+      SeriesModel? series;
+      if (lessonId != null && lessonId.isNotEmpty) {
+        lesson = appProvider.getLessonById(lessonId);
+      }
+      if (seriesId != null && seriesId.isNotEmpty) {
+        series = appProvider.getSeriesById(seriesId);
+      }
+      lesson ??= appProvider.lastPlayedLesson;
+      series ??= appProvider.lastPlayedSeries;
+
+      if (lesson != null && series != null) {
+        audioProvider.loadAndPlayLesson(
+          lesson: lesson,
+          series: series,
+          autoPlay: true,
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LessonPlayerScreen(
+              lesson: lesson!,
+              series: series!,
+            ),
+          ),
+        );
+      }
+    } else if (uri.host == 'notes') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const NotesNotebookScreen(),
+        ),
+      );
+    } else if (uri.host == 'stats') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const StatisticsScreen(),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _widgetClickSub?.cancel();
+    super.dispose();
+  }
 
   /// قائمة الصفحات الخمسة
   static const List<Widget> _screens = [

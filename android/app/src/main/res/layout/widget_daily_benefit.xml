@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="14dp"
+    android:layoutDirection="rtl">
+
+    <!-- شريط الرأس مع زر التحديث لتقليب الفوائد -->
+    <LinearLayout
+        android:id="@+id/header_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_quote_gold"
+            android:contentDescription="أيقونة فائدة" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginRight="6dp"
+            android:text="تَسْهِيل • دُرَرٌ وَفَوَائِدُ"
+            android:textColor="#D4AF37"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <ImageView
+            android:id="@+id/widget_btn_refresh"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/widget_btn_circle_bg"
+            android:padding="5dp"
+            android:src="@drawable/ic_refresh_gold"
+            android:contentDescription="فائدة تالية" />
+    </LinearLayout>
+
+    <!-- نص الفائدة العلمي الفاخر -->
+    <TextView
+        android:id="@+id/widget_benefit_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/header_layout"
+        android:layout_marginTop="8dp"
+        android:text="العلم قال الله قال رسوله، قال الصحابة هم أولو العرفان"
+        android:textColor="#FFF8E7"
+        android:textSize="13sp"
+        android:lineSpacingExtra="3dp"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <!-- قائل الفائدة / المصدر في الأسفل -->
+    <TextView
+        android:id="@+id/widget_benefit_source"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="— ابن القيم رحمه الله"
+        android:textColor="#DEC89E"
+        android:textSize="11sp"
+        android:singleLine="true"
+        android:ellipsize="end" />
+
+</RelativeLayout>
+

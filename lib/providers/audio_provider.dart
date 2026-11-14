@@ -322,15 +322,37 @@ class AudioProvider extends ChangeNotifier {
     try {
       final albumName = _currentBook?.title.isNotEmpty == true
           ? _currentBook!.title
-          : _currentSeries?.title ?? 'تطبيق تسهيل';
-      final artistName = _currentSheikh?.name.isNotEmpty == true
+          : _currentSeries?.title ?? 'تطبيق تسهيل للعلوم الشرعية';
+      final sheikhName = _currentSheikh?.name.isNotEmpty == true
           ? _currentSheikh!.name
-          : 'تطبيق تسهيل للعلوم الشرعية';
-      Uri? artUri;
+          : 'تطبيق تسهيل';
+      final seriesName = _currentSeries?.title.isNotEmpty == true
+          ? _currentSeries!.title
+          : '';
+      final artistName = seriesName.isNotEmpty && !sheikhName.contains(seriesName)
+          ? '$sheikhName - $seriesName'
+          : sheikhName;
+
+      // استخراج صورة غلاف الكتاب أو الشعار المحلي كـ Uri افتراضي فاخر
+      Uri artUri = Uri.parse('asset:///assets/images/cover.jpg');
       if (_currentBook?.coverUrl.isNotEmpty == true &&
           (_currentBook!.coverUrl.startsWith('http://') ||
               _currentBook!.coverUrl.startsWith('https://'))) {
-        artUri = Uri.tryParse(_currentBook!.coverUrl);
+        final parsed = Uri.tryParse(_currentBook!.coverUrl);
+        if (parsed != null) artUri = parsed;
+      }
+
+      // استخراج المدة الزمنية للدرس لتمكين شريط التمرير (Seekbar) التفاعلي بشاشة القفل
+      Duration? parsedDuration;
+      if (lesson.duration.isNotEmpty && lesson.duration != '00:00') {
+        try {
+          final parts = lesson.duration.trim().split(':').map((e) => int.tryParse(e) ?? 0).toList();
+          if (parts.length == 2) {
+            parsedDuration = Duration(minutes: parts[0], seconds: parts[1]);
+          } else if (parts.length == 3) {
+            parsedDuration = Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
+          }
+        } catch (_) {}
       }
 
       final mediaItem = MediaItem(
@@ -339,6 +361,7 @@ class AudioProvider extends ChangeNotifier {
         title: lesson.title,
         artist: artistName,
         artUri: artUri,
+        duration: parsedDuration,
       );
 
       bool playedLocally = false;

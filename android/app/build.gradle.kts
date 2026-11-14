@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.tasheel.tasheel_app"
-    compileSdk = 35
+    compileSdk = 37
     // ndkVersion = flutter.ndkVersion
 
     compileOptions {

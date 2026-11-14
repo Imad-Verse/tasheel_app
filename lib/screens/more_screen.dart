@@ -99,6 +99,11 @@ class MoreScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
+                      // ── بطاقة ويدجت الشاشة الرئيسية (Home Widgets) ────────
+                      _buildHomeWidgetsCard(context, appProvider),
+
+                      const SizedBox(height: 16),
+
                       // ── البطاقة البيضاء الثانية (4 عناصر) ────────────────
                       _buildSecondMenuCard(context),
 
@@ -275,6 +280,300 @@ class MoreScreen extends StatelessWidget {
         },
       ),
     ]);
+  }
+
+  /// بطاقة وتوجيهات ويدجت الشاشة الرئيسية للهاتف (Home Screen Widgets)
+  Widget _buildHomeWidgetsCard(BuildContext context, AppProvider appProvider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerLight),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cardShadow,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDarkBrown.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.iconGold.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.widgets_rounded,
+                  color: AppColors.primaryDarkBrown,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'ويدجت الشاشة الرئيسية',
+                          style: GoogleFonts.readexPro(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.iconGold,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'جديد',
+                            style: GoogleFonts.readexPro(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryDarkBrown,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'استأنف الدرس، واقرأ الفوائد، وتابع إنجازك من شاشة هاتفك',
+                      style: GoogleFonts.readexPro(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              // زر شرح طريقة الإضافة
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showWidgetInstructionsSheet(context),
+                  icon: const Icon(Icons.help_outline_rounded, size: 16),
+                  label: Text(
+                    'طريقة الإضافة',
+                    style: GoogleFonts.readexPro(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryDarkBrown,
+                    side: const BorderSide(color: AppColors.iconGold),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // زر الاختبار والتحديث اللحظي
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await appProvider.updateHomeWidgets();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'تم تحديث بيانات الويدجت في الشاشة الرئيسية بنجاح ✨',
+                            style: GoogleFonts.readexPro(),
+                          ),
+                          backgroundColor: AppColors.primaryDarkBrown,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.sync_rounded, size: 16),
+                  label: Text(
+                    'تحديث الآن',
+                    style: GoogleFonts.readexPro(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDarkBrown,
+                    foregroundColor: AppColors.textGoldLight,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// نافذة توضيح كيفية إضافة الويدجت لشاشة الهاتف الرئيسية
+  void _showWidgetInstructionsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+        decoration: const BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.dividerLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                const Icon(
+                  Icons.widgets_rounded,
+                  color: AppColors.iconGold,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'كيفية إضافة ويدجت "تسهيل" لشاشتك الرئيسية',
+                  style: GoogleFonts.readexPro(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryDarkBrown,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildStepItem(
+              number: '١',
+              title: 'الضغط المطول',
+              desc: 'اضغط مطولاً على أي مساحة فارغة في شاشة هاتفك الرئيسية.',
+            ),
+            const SizedBox(height: 12),
+            _buildStepItem(
+              number: '٢',
+              title: 'اختيار التطبيقات المصغرة',
+              desc: 'انقر على "التطبيقات المصغرة" أو "Widgets" من الخيارات الظاهرة.',
+            ),
+            const SizedBox(height: 12),
+            _buildStepItem(
+              number: '٣',
+              title: 'اختيار ويدجت تسهيل',
+              desc: 'ابحث عن "تسهيل"، واختر الويدجت المطلوب (استئناف المدارسة، فائدة مختارة، أو مؤشر الإنجاز) واسحبه للشاشة.',
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDarkBrown,
+                foregroundColor: AppColors.textGoldLight,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                'فهمت ذلك',
+                style: GoogleFonts.readexPro(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepItem({
+    required String number,
+    required String title,
+    required String desc,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: AppColors.primaryDarkBrown,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.iconGold, width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            number,
+            style: GoogleFonts.readexPro(
+              color: AppColors.textGoldLight,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.readexPro(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: GoogleFonts.readexPro(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   /// البطاقة البيضاء الثانية: عن التطبيق، تقييم التطبيق، شارك التطبيق، الدعم الفني
